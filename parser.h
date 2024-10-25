@@ -19,7 +19,8 @@ typedef enum {
     MINUS,
     MULTIPLY,
     DIVIDE,
-    MAIN
+    MAIN,
+    RETURN
 } TokenType;
 
 typedef struct {
@@ -30,6 +31,7 @@ typedef struct {
 } YYSTYPE;
 
 extern YYSTYPE yylval;
+extern int yylineno;
 
 typedef enum {
     NODE_FUNCTION,
@@ -37,7 +39,8 @@ typedef enum {
     NODE_BINARY_EXPR,
     NODE_NUMBER,
     NODE_STRING,
-    NODE_VARIABLE
+    NODE_VARIABLE,
+    NODE_RETURN
 } NodeType;
 
 typedef struct LogElement {
@@ -59,6 +62,9 @@ typedef struct ASTNode {
             struct ASTNode* body;
             int has_return;
         } function;
+        struct {
+            struct ASTNode* expression;
+        } return_statement;
         struct {
             LogElement* elements;
         } log;

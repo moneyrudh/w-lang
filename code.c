@@ -17,7 +17,7 @@ void cleanup_parser() {
 }
 
 void error(const char* message) {
-    fprintf(stderr, "Error: %s\n", message);
+    fprintf(stderr, "Error on line %d: %s\n", yylineno, message);
     exit(1);
 }
 
@@ -35,12 +35,13 @@ ASTNode* parse_variable_declaration();
 void free_ast(ASTNode* node);
 
 
-ASTNode* create_function_node(char* return_type, char* name, ASTNode* body) {
+ASTNode* create_function_node(char* return_type, char* name, ASTNode* body, int has_return) {
     ASTNode* node = malloc(sizeof(ASTNode));
     node->type = NODE_FUNCTION;
     node->data.function.return_type = return_type;
     node->data.function.name = name;
     node->data.function.body = body;
+    node->data.function.has_return = has_return;
     return node;
 }
 
@@ -117,7 +118,7 @@ ASTNode* parse_term() {
 ASTNode* parse_expression() {
     ASTNode* node = parse_term();
     while (token == PLUS || token == MINUS) {
-        char op = (token == PLUS) ? '*' : '-';
+        char op = (token == PLUS) ? '+' : '-';
         eat(token);
         node = create_binary_expr_node(node, parse_term(), op);
     }
@@ -220,6 +221,17 @@ ASTNode* parse_log() {
     return create_log_node(head);
 }
 
+ASTNode* parse_return_statement() {
+    eat(RETURN);
+    ASTNode* expr = parse_expression();
+    eat(SEMICOLON);
+
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->type = NODE_RETURN;
+    node->data.return_statement.expression = expr;
+    return node;
+}
+
 ASTNode* parse_statement() {
     switch (token) {
         case LOG:
@@ -234,16 +246,18 @@ ASTNode* parse_statement() {
         case INT:
         case STRING:
             return parse_variable_declaration();
+        case RETURN:
+            return parse_return_statement();
         default:
             {
-                error("Unexpected statement");
+                error("Unexpected token");
                 return NULL;
             }
     }
 }
 
 ASTNode* parse_function() {
-    char* return_type = strdup(yylval.string);  // We know it's "int" at this point
+    char* return_type = strdup(yylval.string);
     if (!return_type) {
         error("Memory allocation error");
     }
@@ -265,10 +279,16 @@ ASTNode* parse_function() {
     eat(LPAREN);
     eat(RPAREN);
     eat(LBRACE);
+
+    int has_return = 0;
     ASTNode* body = NULL;
     ASTNode* last = NULL;
+
     while (token != RBRACE) {
         ASTNode* statement = parse_statement();
+        if (statement->type == NODE_RETURN) {
+            has_return = 1;
+        }
         if (body == NULL) {
             body = statement;
             last = statement;
@@ -277,8 +297,13 @@ ASTNode* parse_function() {
             last = statement;
         }
     }
+
+    if (strcmp(return_type, "void")!=0 && has_return == 0) { 
+        error("Function must have a return statement.");
+    }
+
     eat(RBRACE);
-    return create_function_node(return_type, name, body);
+    return create_function_node(return_type, name, body, has_return);
 }
 
 ASTNode* parse() {
@@ -353,11 +378,6 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
                 generate(output, statement, indent_level + 1);
                 statement = statement->next;
             }
-            if (strcmp(node->data.function.return_type, "void") == 0) {
-                fprintf(output, "%s    return;\n", indent);
-            } else {
-                fprintf(output, "%s    return 0;\n", indent);
-            }
             fprintf(output, "}\n");
             break;
         case NODE_LOG:
@@ -379,6 +399,16 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
         case NODE_VARIABLE:
             fprintf(output, "%s", node->data.variable.name);
             break;
+        case NODE_RETURN: {
+            fprintf(output, "%sreturn ", indent);
+            DataType type = get_expression_type(node->data.return_statement.expression, symbol_table);
+            if (type != TYPE_INT) {
+                error("Invalid return type.");
+            }
+            generate(output, node->data.return_statement.expression, 0);
+            fprintf(output, ";\n");
+            break;
+        }
         default:
             fprintf(stderr, "Unknown node type in AST\n");
             exit(1);
@@ -422,6 +452,9 @@ void free_ast(ASTNode* node) {
                 break;
             case NODE_VARIABLE:
                 free(node->data.variable.name);
+                break;
+            case NODE_RETURN:
+                free_ast(node->data.return_statement.expression);
                 break;
             case NODE_NUMBER:
                 break;

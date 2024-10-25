@@ -6,6 +6,7 @@
 %}
 
 %option noyywrap
+%option yylineno
 
 %%
 "w"         { printf("LEX: MAIN\n"); yylval.string = strdup("main"); return MAIN; }
@@ -21,6 +22,7 @@
 "-"         { printf("LEX: MINUS\n"); return MINUS; }
 "*"         { printf("LEX: MULTIPLY\n"); return MULTIPLY; }
 "/"         { printf("LEX: DIVIDE\n"); return DIVIDE; }
+"return"    { return RETURN; }
 [0-9]+      { printf("LEX: NUMBER %s\n", yytext); yylval.number = atoi(yytext); return NUMBER; }
 [a-zA-Z_][a-zA-Z0-9_]* { printf("LEX: IDENTIFIER %s\n", yytext); yylval.string = strdup(yytext); return IDENTIFIER; }
 
@@ -30,7 +32,7 @@
     return STRING;
 }
 
-[ \t\n]+    { /* Ignore whitespace */ }
+[ \t\n]+      { /* Ignore whitespace */ }
 .           { printf("Unexpected character: %s\n", yytext); }
 
 %%
