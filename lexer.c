@@ -792,67 +792,67 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 YY_RULE_SETUP
 #line 12 "lexer.l"
-{ printf("LEX: MAIN\n"); yylval.string = strdup("main"); return MAIN; }
+{ yylval.string = strdup("main"); return MAIN; }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
 #line 13 "lexer.l"
-{ printf("LEX: INT\n"); yylval.string = strdup("int"); return INT; }
+{ yylval.string = strdup("int"); return INT; }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
 #line 14 "lexer.l"
-{ printf("LEX: VOID\n"); yylval.string = strdup("void"); return VOID; }
+{ yylval.string = strdup("void"); return VOID; }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
 #line 15 "lexer.l"
-{ printf("LEX: LOG\n"); return LOG; }
+{ return LOG; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
 #line 16 "lexer.l"
-{ printf("LEX: LPAREN\n"); return LPAREN; }
+{ return LPAREN; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
 #line 17 "lexer.l"
-{ printf("LEX: RPAREN\n"); return RPAREN; }
+{ return RPAREN; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
 #line 18 "lexer.l"
-{ printf("LEX: LBRACE\n"); return LBRACE; }
+{ return LBRACE; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
 #line 19 "lexer.l"
-{ printf("LEX: RBRACE\n"); return RBRACE; }
+{ return RBRACE; }
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
 #line 20 "lexer.l"
-{ printf("LEX: SEMICOLON\n"); return SEMICOLON; }
+{ return SEMICOLON; }
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
 #line 21 "lexer.l"
-{ printf("LEX: PLUS\n"); return PLUS; }
+{ return PLUS; }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
 #line 22 "lexer.l"
-{ printf("LEX: MINUS\n"); return MINUS; }
+{ return MINUS; }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
 #line 23 "lexer.l"
-{ printf("LEX: MULTIPLY\n"); return MULTIPLY; }
+{ return MULTIPLY; }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
 #line 24 "lexer.l"
-{ printf("LEX: DIVIDE\n"); return DIVIDE; }
+{ return DIVIDE; }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP

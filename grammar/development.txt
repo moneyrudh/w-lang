@@ -1,0 +1,8 @@
+Current Focus:
+- Currently, we're focusing on trying to parse functions correctly.
+- This includes checking for correct brace checks and error checking for function definitions.
+- Parser C code might need some structural modification to make it more dynamic.
+
+Planned Features:
+- Fix function error checking.
+- Implement arithmetic operations and variable declarations.

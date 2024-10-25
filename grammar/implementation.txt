@@ -1,0 +1,14 @@
+Core components:
+- Lexer (tokens, states)
+- Parser (grammar rules, AST nodes)
+- Symbol Table
+- Code Generator
+
+Data Structures:
+- AST node types and their fields
+- Symbol table structure
+- Helper functions
+
+Current Features:
+- w() function parsing, "log" printing
+- Rest of the transpiler to be written

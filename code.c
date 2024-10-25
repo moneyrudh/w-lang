@@ -4,16 +4,87 @@
 #include "parser.h"
 #include "symbol_table.h"
 
+typedef struct {
+    int brace_depth;
+    int* block_lines;
+    int block_capacity;
+    int error_count;
+    int in_function_body;
+} ParserState;
+
 YYSTYPE yylval;
 TokenType token;
 SymbolTable* symbol_table;
+ParserState parser_state;
+
+const char *tokenToString(TokenType token) {
+    switch (token) {
+        case INT:
+            return "INT";
+        case VOID:
+            return "VOID";
+        case IDENTIFIER:
+            return "IDENTIFIER";
+        case LOG:
+            return "LOG";
+        case LPAREN:
+            return "LPAREN";
+        case RPAREN:
+            return "RPAREN";
+        case LBRACE:
+            return "LBRACE";
+        case RBRACE:
+            return "RBRACE";
+        case SEMICOLON:
+            return "SEMICOLON";
+        case STRING:
+            return "STRING";
+        case NUMBER:
+            return "NUMBER";
+        case PLUS:
+            return "PLUS";
+        case MINUS:
+            return "MINUS";
+        case MULTIPLY:
+            return "MULTIPLY";
+        case DIVIDE:
+            return "DIVIDE";
+        case MAIN:
+            return "MAIN";
+        case RETURN:
+            return "RETURN";
+        default:
+            return "UNKNOWN";
+    }
+}
 
 void init_parser() {
     symbol_table = create_symbol_table();
 }
 
+void init_parser_state() {
+    parser_state.brace_depth = 0;
+    parser_state.block_capacity = 10;
+    parser_state.block_lines = malloc(sizeof(int) * parser_state.block_capacity);
+    parser_state.error_count = 0;
+    parser_state.in_function_body = 0;
+}
+
 void cleanup_parser() {
     free_symbol_table(symbol_table);
+}
+
+void cleanup_parser_state() {
+    free(parser_state.block_lines);
+}
+
+void parser_error(const char* message) {
+    fprintf(stderr, "Error on line %d: %s\n", yylineno, message);
+    parser_state.error_count++;
+    if (parser_state.error_count >= 5) {
+        fprintf(stderr, "Too many errors, exiting.\n");
+        exit(1);
+    }
 }
 
 void error(const char* message) {
@@ -21,11 +92,30 @@ void error(const char* message) {
     exit(1);
 }
 
+void enter_block() {
+    if (parser_state.brace_depth >= parser_state.block_capacity) {
+        parser_state.block_capacity *= 2;
+        parser_state.block_lines = realloc(parser_state.block_lines, sizeof(int) * parser_state.block_capacity);
+    }
+    parser_state.block_lines[parser_state.brace_depth++] = yylineno;
+}
+
+void exit_block() {
+    if (parser_state.brace_depth <= 0) {
+        parser_error("Unexpected closing brace");
+        return;
+    }
+    parser_state.brace_depth--;
+}
+
 void eat(TokenType _token) {
     if (token == _token) {
         token = yylex();
     } else {
-        error("Unexpected token");
+        char error_msg[100];
+        snprintf(error_msg, sizeof(error_msg), "Unexpected token. Expected %d, got %d", _token, token);
+        parser_error(error_msg);
+        exit(1);
     }
 }
 
@@ -233,7 +323,21 @@ ASTNode* parse_return_statement() {
 }
 
 ASTNode* parse_statement() {
+    printf("Token to string %s\n", tokenToString(token));
     switch (token) {
+        case LBRACE:
+            eat(LBRACE);
+            enter_block();
+            while (token != RBRACE && token != EOF) {
+                parse_statement();
+            }
+            if (token == EOF) {
+                parser_error("Unexpected end of file. Missing closing brace.");
+                return NULL;
+            }
+            eat(RBRACE);
+            exit_block();
+            return NULL;
         case LOG:
             return parse_log();
         case NUMBER:
@@ -250,7 +354,8 @@ ASTNode* parse_statement() {
             return parse_return_statement();
         default:
             {
-                error("Unexpected token");
+                error("Unexpected token.");
+                eat(token);
                 return NULL;
             }
     }
@@ -260,49 +365,68 @@ ASTNode* parse_function() {
     char* return_type = strdup(yylval.string);
     if (!return_type) {
         error("Memory allocation error");
+        return NULL;
     }
+    
     if (token == INT) {
         eat(INT);
     } else if (token == VOID) {
         eat(VOID);
     }
     
-    printf("Token: %d\n", token);
-    printf("Main: %d\n", MAIN);
-    if (token != MAIN) {
-        error("Expected MAIN");
-    }
-    // Get the function name
+    printf("Token: %s\n", tokenToString(token));
+
     char* name = strdup(yylval.string);
     printf("Function name: %s\n", name);
     eat(MAIN);
     eat(LPAREN);
     eat(RPAREN);
+
+    if (token != LBRACE) {
+        parser_error("Expected '{' to begin function boddy");
+        return NULL;
+    }
     eat(LBRACE);
+    enter_block();
+    parser_state.in_function_body = 1;
 
     int has_return = 0;
     ASTNode* body = NULL;
     ASTNode* last = NULL;
 
-    while (token != RBRACE) {
+    while (token != RBRACE && token != EOF) {
         ASTNode* statement = parse_statement();
-        if (statement->type == NODE_RETURN) {
-            has_return = 1;
+        if (statement) {
+            if (statement->type == NODE_RETURN) {
+                has_return = 1;
+            }
+            if (body == NULL) {
+                body = statement;
+                last = statement;
+            } else {
+                last->next = statement;
+                last = statement;
+            }
         }
-        if (body == NULL) {
-            body = statement;
-            last = statement;
-        } else {
-            last->next = statement;
-            last = statement;
-        }
+    }
+
+    if (token == EOF) {
+        parser_error("Unexpected end of file.");
+        return NULL;
+    }
+
+    eat(RBRACE);
+    exit_block();
+    parser_state.in_function_body = 0;
+
+    if (parser_state.brace_depth != 0) {
+        parser_error("Mismatched braces in function body.");
     }
 
     if (strcmp(return_type, "void")!=0 && has_return == 0) { 
         error("Function must have a return statement.");
     }
 
-    eat(RBRACE);
     return create_function_node(return_type, name, body, has_return);
 }
 

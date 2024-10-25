@@ -1,0 +1,82 @@
+Syntax:
+- Valid top-level constructs:
+    1. functions
+    2. globals
+    3. macros
+    4. structures
+    5. namespaces
+- Basic program structure:
+    1. w() is the start of the program (transpiles to main C function)
+    2. global variables can only be declared above all the functions
+    3. functions can be declared either above or below w(), and the transpiler has to handle prototyping
+- Expression types:
+    a. Primary Expressions:
+        1. Constants
+        2. Variables
+        3. Function calls
+    b. Arithmetic Expressions:
+        1. +, -, *, /, %
+        2. Example: x + 5, y * 2, (a + b) / c, a * b / c
+    c. Relational Expressions:
+        1. <, >, <=, >=, ==, is, !=
+        2. Example: x < y, a == 10, b >= 5, c is 4
+    d. Logical Expressions:
+        1. &&, and, ||, or, !, not
+        2. Example: (x > 0) && (y < 10), x > 0 and y is 3, not y
+    e. Assignment Expressions:
+        1. =
+        2. x = 5, y = a + b
+    f. Conditional Expressions:
+        1. Ternary operator, ?:
+        2. a is 0 ? 2 : 3
+    g. Bitwise Expressions (undecided)
+    h. Increment and Decrement Expressions:
+        1. ++, --
+        2. Example: x++, --y
+    i. Comma Expressions (undecided)
+- Operators and precedence:
+    1. Unary: ++, --, +, -, *, /, %
+    2. Binary: <, <=, >, >=, ==, is, !=, is not, +=, -=, *=, /=, %=, &&, and, ||, or, !, not
+    3. Ternary: ?:
+
+Type System:
+- All types:
+    1. int
+    2. float
+    3. char
+    4. str, string
+    5. short
+    6. long
+- Type conversion rules:
+    1. If C can compile it, then let it be
+    2. Basic conversions like (int), (float), etc.
+
+Scoping Rules:
+- Block scope behavior:
+    1. Basic generic block scope
+    2. Variable visibility rules:
+        i. A variable declared within a function or block has local scope.
+        ii. Once again, transpiling it to C should make it compile in C.
+
+Keywords:
+- if
+- else
+- while
+- switch
+- w
+- log
+- struct 
+- namespace 
+- int 
+- float 
+- char 
+- str 
+- string
+- short 
+- long 
+- function 
+- return 
+- break
+- is 
+- and 
+- not 
