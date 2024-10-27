@@ -33,6 +33,6 @@
 }
 
 [ \t\n]+      { /* Ignore whitespace */ }
-.           { printf("Unexpected character: %s\n", yytext); }
-
+.           { printf("Unexpected character: %s\n", yytext); return yytext[0]; }
+<<EOF>>     { return 0; }
 %%

@@ -888,16 +888,18 @@ YY_RULE_SETUP
 case 19:
 YY_RULE_SETUP
 #line 36 "lexer.l"
-{ printf("Unexpected character: %s\n", yytext); }
+{ printf("Unexpected character: %s\n", yytext); return yytext[0]; }
+	YY_BREAK
+case YY_STATE_EOF(INITIAL):
+#line 37 "lexer.l"
+{ return 0; }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
 #line 38 "lexer.l"
 ECHO;
 	YY_BREAK
-#line 898 "lexer.c"
-case YY_STATE_EOF(INITIAL):
-	yyterminate();
+#line 902 "lexer.c"
 
 	case YY_END_OF_BUFFER:
 		{

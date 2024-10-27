@@ -1,8 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "parser.h"
 #include "symbol_table.h"
+
+typedef struct {
+    char* current_name;
+    char* current_return_type;
+    int has_return;
+    int return_value_required;
+} FunctionContext;
 
 typedef struct {
     int brace_depth;
@@ -10,14 +18,29 @@ typedef struct {
     int block_capacity;
     int error_count;
     int in_function_body;
+    FunctionContext* function_context;
 } ParserState;
 
+ASTNode* ast;
 YYSTYPE yylval;
 TokenType token;
 SymbolTable* symbol_table;
 ParserState parser_state;
+char* output_file_name;
+
+ASTNode* parse_expression();
+ASTNode* parse_variable_declaration();
+
+void free_ast(ASTNode* node);
 
 const char *tokenToString(TokenType token) {
+    static char single_char[2] = {0, 0};
+
+    if (token < 256) {
+        single_char[0] = (char)token;
+        return single_char;
+    }
+
     switch (token) {
         case INT:
             return "INT";
@@ -58,24 +81,36 @@ const char *tokenToString(TokenType token) {
     }
 }
 
-void init_parser() {
-    symbol_table = create_symbol_table();
-}
-
 void init_parser_state() {
     parser_state.brace_depth = 0;
     parser_state.block_capacity = 10;
     parser_state.block_lines = malloc(sizeof(int) * parser_state.block_capacity);
     parser_state.error_count = 0;
     parser_state.in_function_body = 0;
+    parser_state.function_context = malloc(sizeof(FunctionContext));
+    parser_state.function_context->current_name = NULL;
+    parser_state.function_context->current_return_type = NULL;
+    parser_state.function_context->has_return = 0;
+    parser_state.function_context->return_value_required = 0;
 }
 
-void cleanup_parser() {
-    free_symbol_table(symbol_table);
+void init_parser() {
+    symbol_table = create_symbol_table();
+    init_parser_state();
 }
 
 void cleanup_parser_state() {
     free(parser_state.block_lines);
+    if (parser_state.function_context) {
+        free(parser_state.function_context->current_name);
+        free(parser_state.function_context->current_return_type);
+        free(parser_state.function_context);
+    }
+}
+
+void cleanup_parser() {
+    free_symbol_table(symbol_table);
+    cleanup_parser_state();
 }
 
 void parser_error(const char* message) {
@@ -83,14 +118,18 @@ void parser_error(const char* message) {
     parser_state.error_count++;
     if (parser_state.error_count >= 5) {
         fprintf(stderr, "Too many errors, exiting.\n");
+        free_ast(ast);
+        if (output_file_name != NULL) unlink(output_file_name);
+        cleanup_parser();
         exit(1);
     }
 }
 
-void error(const char* message) {
-    fprintf(stderr, "Error on line %d: %s\n", yylineno, message);
-    exit(1);
-}
+// void error(const char* message) {
+//     fprintf(stderr, "Error on line %d: %s\n", yylineno, message);
+//     free_ast(ast);
+//     exit(1);
+// }
 
 void enter_block() {
     if (parser_state.brace_depth >= parser_state.block_capacity) {
@@ -110,20 +149,19 @@ void exit_block() {
 
 void eat(TokenType _token) {
     if (token == _token) {
+        printf("Eating token: %s\n", tokenToString(token));
         token = yylex();
+        printf("Token: %s\n", tokenToString(token));
     } else {
         char error_msg[100];
-        snprintf(error_msg, sizeof(error_msg), "Unexpected token. Expected %d, got %d", _token, token);
+        snprintf(error_msg, sizeof(error_msg), 
+            "Unexpected token. Expected %d (%s), got %d (%s)", 
+            _token, tokenToString(_token), 
+            token, tokenToString(token));
         parser_error(error_msg);
         exit(1);
     }
 }
-
-ASTNode* parse_expression();
-ASTNode* parse_variable_declaration();
-
-void free_ast(ASTNode* node);
-
 
 ASTNode* create_function_node(char* return_type, char* name, ASTNode* body, int has_return) {
     ASTNode* node = malloc(sizeof(ASTNode));
@@ -191,7 +229,7 @@ ASTNode* parse_factor() {
         eat(RPAREN);
         return node;
     }
-    error("Unexpected token");
+    parser_error("Unexpected token");
     return NULL;
 }
 
@@ -228,12 +266,12 @@ ASTNode* parse_variable_declaration() {
     } else if (strcmp(type_name, "string") == 0) {
         type = TYPE_STRING;
     } else {
-        error("Unknown type");
+        parser_error("Unknown type");
         exit(1);
     }
 
     if (!add_symbol(symbol_table, var_name, type)) {
-        error("Variable already declared");
+        parser_error("Variable already declared");
         exit(1);
     }
 
@@ -284,7 +322,7 @@ ASTNode* parse_log() {
                 element->type = NODE_STRING;
                 element->value.string = strdup(expr->data.string.value);
             } else {
-                error("Invalid type in log statement");
+                parser_error("Invalid type in log statement");
             }
 
             free_ast(expr);
@@ -313,8 +351,59 @@ ASTNode* parse_log() {
 
 ASTNode* parse_return_statement() {
     eat(RETURN);
-    ASTNode* expr = parse_expression();
+    ASTNode* expr = NULL;
+    int has_value = 0;
+    if (token != SEMICOLON) {
+        expr = parse_expression();
+        has_value = 1;
+    }
+
     eat(SEMICOLON);
+
+    if (parser_state.function_context) {
+        parser_state.function_context->has_return = 1;
+
+        if (strcmp(parser_state.function_context->current_return_type, "void") == 0) {
+            if (has_value) {
+                char error_msg[100];
+                snprintf(error_msg, sizeof(error_msg),
+                    "Function '%s' declared as void, cannot return a value",
+                    parser_state.function_context->current_name);
+                parser_error(error_msg);
+            } 
+        } else {
+            if (!has_value) {
+                char error_msg[100];
+                snprintf(error_msg, sizeof(error_msg),
+                    "Function '%s' with return type '%s' must return a value",
+                    parser_state.function_context->current_name,
+                    parser_state.function_context->current_return_type);
+                parser_error(error_msg);    
+            } else if (expr) {
+                DataType expr_type = get_expression_type(expr, symbol_table);
+                DataType func_type;
+
+                if (strcmp(parser_state.function_context->current_return_type, "int") == 0) {
+                    func_type = TYPE_INT;
+                } else if (strcmp(parser_state.function_context->current_return_type, "string") == 0) {
+                    func_type = TYPE_STRING;
+                } else {
+                    func_type = TYPE_VOID;
+                }
+
+                if (expr_type != func_type) {
+                    char error_msg[100];
+                    snprintf(error_msg, sizeof(error_msg),
+                        "Return type mismatch in function '%s'. Expected %s, got %s",
+                        parser_state.function_context->current_name,
+                        parser_state.function_context->current_return_type,
+                        expr_type == TYPE_INT ? "int" :
+                        expr_type == TYPE_STRING ? "string" : "unknown");
+                    parser_error(error_msg);
+                }
+            }
+        }
+    }
 
     ASTNode* node = malloc(sizeof(ASTNode));
     node->type = NODE_RETURN;
@@ -354,7 +443,7 @@ ASTNode* parse_statement() {
             return parse_return_statement();
         default:
             {
-                error("Unexpected token.");
+                parser_error("Unexpected token in statement.");
                 eat(token);
                 return NULL;
             }
@@ -364,7 +453,7 @@ ASTNode* parse_statement() {
 ASTNode* parse_function() {
     char* return_type = strdup(yylval.string);
     if (!return_type) {
-        error("Memory allocation error");
+        parser_error("Memory allocation error");
         return NULL;
     }
     
@@ -374,13 +463,20 @@ ASTNode* parse_function() {
         eat(VOID);
     }
     
-    printf("Token: %s\n", tokenToString(token));
-
     char* name = strdup(yylval.string);
     printf("Function name: %s\n", name);
     eat(MAIN);
     eat(LPAREN);
     eat(RPAREN);
+
+    if (parser_state.function_context) {
+        free(parser_state.function_context->current_name);
+        free(parser_state.function_context->current_return_type);
+        parser_state.function_context->current_name = strdup(name);
+        parser_state.function_context->current_return_type = strdup(return_type);
+        parser_state.function_context->has_return = 0;
+        parser_state.function_context->return_value_required = strcmp(return_type, "void") != 0;
+    }
 
     if (token != LBRACE) {
         parser_error("Expected '{' to begin function boddy");
@@ -419,19 +515,92 @@ ASTNode* parse_function() {
     exit_block();
     parser_state.in_function_body = 0;
 
-    if (parser_state.brace_depth != 0) {
-        parser_error("Mismatched braces in function body.");
+    // if (parser_state.brace_depth != 0) {
+    //     parser_error("Mismatched braces in function body.");
+    // }
+
+    // if (strcmp(return_type, "void")!=0 && has_return == 0) { 
+    //     error("Function must have a return statement.");
+    // }
+
+    if (parser_state.function_context) {
+        if (parser_state.function_context->return_value_required &&
+            !parser_state.function_context->has_return) {
+            char error_msg[200];
+            snprintf(error_msg, sizeof(error_msg),
+                "Function '%s' with return type '%s' must return a value",
+                name,
+                return_type);
+            parser_error(error_msg);
+        }
     }
 
-    if (strcmp(return_type, "void")!=0 && has_return == 0) { 
-        error("Function must have a return statement.");
-    }
+    return create_function_node(
+        return_type, 
+        name, 
+        body, 
+        parser_state.function_context->has_return
+    );
+}
 
-    return create_function_node(return_type, name, body, has_return);
+ASTNode* create_program_node() {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    if (!node) {
+        parser_error("Memory allocation failed");
+        return NULL;
+    }
+    node->type = NODE_PROGRAM;
+    node->data.program.functions = NULL;
+    node->data.program.globals = NULL;
+    node->next = NULL;
+    return node;
 }
 
 ASTNode* parse() {
-    return parse_function();
+    ASTNode* program = create_program_node();
+    if (!program) return NULL;
+
+    ASTNode* last_function = NULL;
+    while (token != EOF) {
+        switch(token) {
+            case INT:
+            case VOID: {
+                ASTNode* function = parse_function();
+                if (function) {
+                    if (last_function == NULL) {
+                        program->data.program.functions = function;
+                    } else {
+                        last_function->next = function;
+                    }
+                    last_function = function;
+                } else {
+                    parser_error("Failed to parse function");
+                    free_ast(program);
+                    return NULL;
+                }
+                break;
+            }
+            default: {
+                if (token == 0 || token == EOF) {
+                    goto end;
+                }
+
+                char error_msg[100];
+                snprintf(error_msg, sizeof(error_msg),
+                    "Unexpected token %s at top level",
+                    tokenToString(token));
+                parser_error(error_msg);
+                printf("Current token: %d, %s\n", token, tokenToString(token));
+
+                while (token != 0 && token != EOF) {
+                    token = yylex();
+                }
+            } break;
+        }
+    }
+
+    end:
+        return program;
 }
 
 void generate_log_statement(FILE* output, LogElement* elements, int indent_level) {
@@ -456,19 +625,19 @@ void generate_log_statement(FILE* output, LogElement* elements, int indent_level
             case NODE_VARIABLE: {
                 Symbol* symbol = lookup_symbol(symbol_table, current->value.string);
                 if (symbol == NULL) {
-                    error("Undefined variable in log statement");
+                    parser_error("Undefined variable in log statement");
                 } else if (symbol->type == TYPE_INT) {
                     fprintf(output, "%%d");
                 } else if (symbol->type == TYPE_STRING) {
                     fprintf(output, "%%s");
                 } else {
-                    error("Invalid type in log statement");
+                    parser_error("Invalid type in log statement");
                 }
                 arg_count++;
                 break;
             }
             default:
-                error("Unknown node type in log statement");
+                parser_error("Unknown node type in log statement");
         }
         current = current->next;
     }
@@ -489,12 +658,23 @@ void generate_log_statement(FILE* output, LogElement* elements, int indent_level
 }
 
 void generate(FILE* output, ASTNode* node, int indent_level) {
+    if (!node) return;
+
+    printf("Generating node of type %d\n", node->type);
     char indent[256] = {0};
     for (int i=0; i < indent_level; i++) {
         strcat(indent, "    ");
     }
 
     switch (node->type) {
+        case NODE_PROGRAM: {
+            fprintf(output, "#include <stdio.h>\n\n");
+            ASTNode* function = node->data.program.functions;
+            while (function != NULL) {
+                generate(output, function, indent_level);
+                function = function->next;
+            }
+        } break;
         case NODE_FUNCTION:
             fprintf(output, "%s %s() {\n", node->data.function.return_type, node->data.function.name);
             ASTNode* statement = node->data.function.body;
@@ -525,11 +705,10 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
             break;
         case NODE_RETURN: {
             fprintf(output, "%sreturn ", indent);
-            DataType type = get_expression_type(node->data.return_statement.expression, symbol_table);
-            if (type != TYPE_INT) {
-                error("Invalid return type.");
+            if (node->data.return_statement.expression) {
+                DataType type = get_expression_type(node->data.return_statement.expression, symbol_table);
+                generate(output, node->data.return_statement.expression, 0);
             }
-            generate(output, node->data.return_statement.expression, 0);
             fprintf(output, ";\n");
             break;
         }
@@ -540,7 +719,13 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
 }
 
 void generate_code(FILE* output, ASTNode* node) {
-    fprintf(output, "#include <stdio.h>\n\n");
+    if (!node) return;
+
+    if (node->type != NODE_PROGRAM) {
+        fprintf(stderr, "Expected program node at root.\n");
+        return;
+    }
+
     generate(output, node, 0);
 }
 
@@ -559,6 +744,10 @@ void free_log_elements(LogElement* elements) {
 void free_ast(ASTNode* node) {
     if (node) {
         switch (node->type) {
+            case NODE_PROGRAM:
+                free_ast(node->data.program.functions);
+                free_ast(node->data.program.globals);
+                break;
             case NODE_FUNCTION:
                 free(node->data.function.return_type);
                 free(node->data.function.name);
@@ -600,22 +789,37 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    FILE* output = fopen(argv[2], "w");
+    output_file_name = argv[2];
+    FILE* output = fopen(output_file_name, "w");
     if (!output) {
         perror("Error opening output file.");
         fclose(input);
         return 1;
     }
 
+    init_parser();
     yyin = input;
     token = yylex();
     printf("Token: %d\n", token);
-    ASTNode* ast = parse();
+    ast = parse();
+
+    if (!ast || ast->type != NODE_PROGRAM) {
+        fprintf(stderr, "Failed to parse program.\n");
+        return 1;
+    }
+
     generate_code(output, ast);
 
     free_ast(ast);
     fclose(input);
     fclose(output);
+
+    cleanup_parser();
+
+    if (parser_state.error_count > 0) {
+        unlink(output_file_name);
+        return 1;
+    }
 
     return 0;
 }

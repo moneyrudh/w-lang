@@ -34,6 +34,7 @@ extern YYSTYPE yylval;
 extern int yylineno;
 
 typedef enum {
+    NODE_PROGRAM,
     NODE_FUNCTION,
     NODE_LOG,
     NODE_BINARY_EXPR,
@@ -56,6 +57,10 @@ typedef struct LogElement {
 typedef struct ASTNode {
     NodeType type;
     union {
+        struct {
+            struct ASTNode* functions;
+            struct ASTNode* globals;
+        } program;
         struct {
             char* return_type;
             char* name;
