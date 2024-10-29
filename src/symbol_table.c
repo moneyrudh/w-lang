@@ -4,21 +4,27 @@
 #include "symbol_table.h"
 #include "parser.h"
 
-SymbolTable* create_symbol_table() {
-    SymbolTable* table = malloc(sizeof(SymbolTable));
-    table->head = NULL;
-    return table;
+SymbolTable* symbol_table;
+
+SymbolTable* getSymbolTable(void) {
+    return symbol_table;
 }
 
-void free_symbol_table(SymbolTable* table) {
-    Symbol* current = table->head;
+void create_symbol_table() {
+    symbol_table = malloc(sizeof(SymbolTable));
+    symbol_table->head = NULL;
+    return;
+}
+
+void free_symbol_table(void) {
+    Symbol* current = symbol_table->head;
     while (current != NULL) {
         Symbol* next = current->next;
         free(current->name);
         free(current);
         current = next;
     }
-    free(table);
+    free(symbol_table);
 }
 
 bool add_symbol(SymbolTable* table, const char* name, DataType type) {

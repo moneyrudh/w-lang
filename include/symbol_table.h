@@ -2,7 +2,9 @@
 #define SYMBOL_TABLE_H
 
 #include <stdbool.h>
-#include "parser.h"
+
+#include "types.h"
+#include "ast.h"
 
 typedef enum {
     TYPE_INT,
@@ -20,11 +22,14 @@ typedef struct SymbolTable {
     Symbol* head;
 } SymbolTable;
 
-SymbolTable* create_symbol_table();
-void free_symbol_table(SymbolTable* table);
+SymbolTable* getSymbolTable(void);
+void create_symbol_table(void);
+void free_symbol_table(void);
 bool add_symbol(SymbolTable* table, const char* name, DataType type);
 Symbol* lookup_symbol(SymbolTable* table, const char* name);
 DataType get_expression_type(ASTNode* node, SymbolTable* table);
 bool compare_types(DataType left, DataType right);
+
+extern SymbolTable* symbol_table;
 
 #endif
