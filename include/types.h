@@ -2,6 +2,7 @@
 #define W_TYPES_H
 
 #include <stdio.h>
+#include <stdbool.h>
 
 typedef enum {
     INT = 258,
@@ -20,13 +21,24 @@ typedef enum {
     MULTIPLY,
     DIVIDE,
     MAIN,
-    RETURN
+    ASSIGNMENT,
+    RETURN,
+    FLOAT_TYPE,
+    FLOAT_LITERAL,
+    CHAR_TYPE,
+    STRING_TYPE,
+    CHAR_LITERAL,
+    BOOL_TYPE,
+    BOOL_LITERAL
 } TokenType;
 
 typedef struct {
     union {
         char* string;
         int number;
+        double float_val;
+        char char_val;
+        bool bool_val;
     };
 } YYSTYPE;
 
@@ -35,13 +47,29 @@ extern int yylineno;
 extern TokenType token;
 
 typedef enum {
+    TYPE_INT,
+    TYPE_FLOAT,
+    TYPE_CHAR,
+    TYPE_BOOL,
+    TYPE_STRING,
+    TYPE_VOID
+} DataType;
+
+typedef enum {
     NODE_PROGRAM,
     NODE_FUNCTION,
+    NODE_FUNCTION_CALL,
     NODE_LOG,
     NODE_BINARY_EXPR,
+    NODE_UNARY_EXPR,
     NODE_NUMBER,
     NODE_STRING,
+    NODE_FLOAT,
+    NODE_CHAR,
+    NODE_BOOL,
     NODE_VARIABLE,
+    NODE_VAR_DECLARATION,
+    NODE_ASSIGNMENT,
     NODE_RETURN
 } NodeType;
 
@@ -50,6 +78,9 @@ typedef struct LogElement {
     union {
         char* string;
         int number;
+        double float_val;
+        char char_val;
+        bool bool_val;
         char* variable;
     } value;
     struct LogElement* next;

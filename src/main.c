@@ -52,10 +52,10 @@ int main(int argc, char* argv[]) {
 
     cleanup_parser();
 
-    if (getParserState().error_count > 0) {
-        unlink(output_file_name);
-        return 1;
-    }
+    // if (getParserState().error_count > 0) {
+    //     unlink(output_file_name);
+    //     return 1;
+    // }
 
     return 0;
 }

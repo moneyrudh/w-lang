@@ -27,6 +27,7 @@ ASTNode* parse_statement(void);
 ASTNode* parse_function(void);
 
 const char* token_to_string(TokenType token);
+const char* type_to_string(DataType type);
 
 extern ParserState parser_state;
 

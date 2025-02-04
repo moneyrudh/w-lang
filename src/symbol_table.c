@@ -57,6 +57,14 @@ DataType get_expression_type(ASTNode* node, SymbolTable* table) {
             return TYPE_INT;
         case NODE_STRING:
             return TYPE_STRING;
+        case NODE_FLOAT:
+            return TYPE_FLOAT;
+        case NODE_CHAR:
+            return TYPE_CHAR;
+        case NODE_BOOL:
+            return TYPE_BOOL;
+        case NODE_ASSIGNMENT:
+            return get_expression_type(node->data.assignment.value, table);
         case NODE_VARIABLE: {
             Symbol* symbol = lookup_symbol(table, node->data.variable.name);
             if (symbol == NULL) {
@@ -84,11 +92,23 @@ bool compare_types(DataType left, DataType right) {
     if (left == right) {
         return true;
     }
-    if (left == INT && right == STRING) {
+
+    if (left == TYPE_FLOAT && right == INT) {
         return true;
     }
-    if (left == STRING && right == INT) {
+
+    if (left == INT && right == TYPE_CHAR) {
         return true;
     }
+
+    if (left == TYPE_CHAR && right == INT) {
+        return true;
+    }
+    // if (left == INT && right == STRING) {
+    //     return true;
+    // }
+    // if (left == STRING && right == INT) {
+    //     return true;
+    // }
     return false;
 }

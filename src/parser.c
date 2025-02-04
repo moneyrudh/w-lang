@@ -86,6 +86,22 @@ const char *tokenToString(TokenType token) {
             return "MAIN";
         case RETURN:
             return "RETURN";
+        case ASSIGNMENT:
+            return "ASSIGNMENT";
+        case FLOAT_TYPE:
+            return "FLOAT_TYPE";
+        case FLOAT_LITERAL:
+            return "FLOAT_LITERAL";
+        case CHAR_TYPE:
+            return "CHAR_TYPE";
+        case CHAR_LITERAL:
+            return "CHAR_LITERAL";
+        case STRING_TYPE:
+            return "STRING_TYPE";
+        case BOOL_TYPE:
+            return "BOOL_TYPE";
+        case BOOL_LITERAL:
+            return "BOOL_LITERAL";
         default:
             return "UNKNOWN";
     }
@@ -120,75 +136,162 @@ void exit_block() {
 }
 
 ASTNode* parse_factor() {
-    if (token == NUMBER) {
-        ASTNode* node = create_number_node(yylval.number);
-        eat(NUMBER);
-        return node;
-    } else if (token == STRING) {
-        ASTNode* node = create_string_node(yylval.string);
-        eat(STRING);
-        return node;
-    } else if (token == IDENTIFIER) {
-        ASTNode* node = create_variable_node(yylval.string);
-        eat(IDENTIFIER);
-        return node;
-    } else if (token == LPAREN) {
-        eat(LPAREN);
-        ASTNode* node = parse_expression();
-        eat(RPAREN);
-        return node;
+    SourceLocation loc = {yylineno, 0, NULL};
+    switch (token) {
+        case NUMBER:
+            {
+                ASTNode* node = create_number_node(yylval.number, loc);
+                eat(NUMBER);
+                return node;
+            }
+        case FLOAT_LITERAL:
+            {
+                ASTNode* node = create_float_node(yylval.float_val, loc);
+                eat(FLOAT_LITERAL);
+                return node;
+            }
+        case CHAR_LITERAL:
+            {
+                ASTNode* node = create_char_node(yylval.char_val, loc);
+                eat(CHAR_LITERAL);
+                return node;
+            }
+        case BOOL_LITERAL:
+            {
+                ASTNode* node = create_bool_node(yylval.bool_val, loc);
+                eat(BOOL_LITERAL);
+                return node;
+            }
+        case STRING:
+            {
+                ASTNode* node = create_string_node(yylval.string, loc);
+                eat(STRING);
+                return node;
+            }
+        case IDENTIFIER:
+            {
+                ASTNode* node = create_variable_node(yylval.string, loc);
+                eat(IDENTIFIER);
+                return node;
+            }
+        case LPAREN:
+            {
+                eat(LPAREN);
+                ASTNode* node = parse_expression();
+                eat(RPAREN);
+                return node;
+            }
+        default:
+            parser_error("Unexpected token in factor");
+            return NULL;
     }
-    parser_error("Unexpected token");
-    return NULL;
 }
 
 ASTNode* parse_term() {
+    SourceLocation loc = {yylineno, 0, NULL};
     ASTNode* node = parse_factor();
     while (token == MULTIPLY || token == DIVIDE) {
         char op = (token == MULTIPLY) ? '*' : '/';
         eat(token);
-        node = create_binary_expr_node(node, parse_factor(), op);
+        node = create_binary_expr_node(node, parse_factor(), op, loc);
     }
     return node;
 }
 
 ASTNode* parse_expression() {
+    SourceLocation loc = {yylineno, 0, NULL};
     ASTNode* node = parse_term();
     while (token == PLUS || token == MINUS) {
         char op = (token == PLUS) ? '+' : '-';
         eat(token);
-        node = create_binary_expr_node(node, parse_term(), op);
+        node = create_binary_expr_node(node, parse_term(), op, loc);
     }
     return node;
 }
 
 ASTNode* parse_variable_declaration() {
-    char* type_name = strdup(yytext);
-    eat(IDENTIFIER);
+    SourceLocation loc = {yylineno, 0, NULL};
+    
 
-    char* var_name = strdup(yytext);
-    eat(IDENTIFIER);
-
-    DataType type;
-    if (strcmp(type_name, "int") == 0) {
-        type = TYPE_INT;
-    } else if (strcmp(type_name, "string") == 0) {
-        type = TYPE_STRING;
+    DataType var_type;
+    if (token == INT) {
+        var_type = TYPE_INT;
+        eat(INT);
+    } else if (token == FLOAT_TYPE) {
+        var_type = TYPE_FLOAT;
+        eat(FLOAT_TYPE);
+    } else if (token == CHAR_TYPE) {
+        var_type = TYPE_CHAR;
+        eat(CHAR_TYPE);
+    } else if (token == STRING_TYPE) {
+        var_type = TYPE_STRING;
+        eat(STRING_TYPE);
+    } else if (token == BOOL_TYPE) {
+        var_type = TYPE_BOOL;
+        eat(BOOL_TYPE);
     } else {
-        parser_error("Unknown type");
-        exit(1);
+        parser_error("Expected type specifier");
+        return NULL;
     }
 
-    if (!add_symbol(getSymbolTable(), var_name, type)) {
-        parser_error("Variable already declared");
-        exit(1);
+    if (token != IDENTIFIER) {
+        parser_error("Expected identifier after type");
+        return NULL;
     }
 
-    free(type_name);
-    free(var_name);
+    char* var_name = strdup(yylval.string);
+    eat(IDENTIFIER);
+
+    ASTNode* init_expr = NULL;
+    if (token == ASSIGNMENT) {
+        eat(ASSIGNMENT);
+        init_expr = parse_expression();
+
+        if (init_expr) {
+            DataType expr_type = get_expression_type(init_expr, getSymbolTable());
+            if (!compare_types(var_type, expr_type)) {
+                char error_msg[100];
+                snprintf(error_msg, sizeof(error_msg),
+                    "Type mismatch in initialization: cannot assign %s to %s",
+                    type_to_string(expr_type),
+                    type_to_string(var_type));
+                parser_error(error_msg);
+                free_ast(init_expr);
+                free(var_name);
+                return NULL;
+            }
+        }
+    }
+
+    if (token != SEMICOLON) {
+        parser_error("Expected semicolon after variable declaration");
+        if (init_expr) free_ast(init_expr);
+        free(var_name);
+        return NULL;
+    }
 
     eat(SEMICOLON);
-    return NULL;
+
+    if (!add_symbol(getSymbolTable(), var_name, var_type)) {
+        parser_error("Variable already declared in this scope");
+        if (init_expr) free_ast(init_expr);
+        free(var_name);
+        return NULL;
+    }
+
+    return create_var_declaration_node(var_name, var_type, init_expr, loc);
+}
+
+const char* type_to_string(DataType type) {
+    switch (type) {
+        case TYPE_INT: return "int";
+        case TYPE_FLOAT: return "float";
+        case TYPE_CHAR: return "char";
+        case TYPE_BOOL: return "bool";
+        case TYPE_STRING: return "string";
+        case TYPE_VOID: return "void";
+        default: return "unknown";
+    }
 }
 
 ASTNode* parse_log() {
@@ -306,6 +409,7 @@ ASTNode* parse_return_statement() {
 }
 
 ASTNode* parse_statement() {
+    SourceLocation loc = {yylineno, 0, NULL};
     printf("Token to string %s\n", tokenToString(token));
     switch (token) {
         case LBRACE:
@@ -331,20 +435,45 @@ ASTNode* parse_statement() {
                 return expr;
             }
         case INT:
-        case STRING:
+        case FLOAT_TYPE:
+        case CHAR_TYPE:
+        case STRING_TYPE:
+        case BOOL_TYPE:
             return parse_variable_declaration();
         case RETURN:
             return parse_return_statement();
-        default:
-            {
-                parser_error("Unexpected token in statement.");
-                eat(token);
-                return NULL;
+        case IDENTIFIER: {
+            char*name = strdup(yylval.string);
+            eat(IDENTIFIER);
+
+            if (token == ASSIGNMENT) {
+                eat(ASSIGNMENT);
+                ASTNode* value = parse_expression();
+                eat(SEMICOLON);
+                return create_assignment_node(name, value, loc);
+            } else if (token == LPAREN) {
+                // handle function call
+                eat(LPAREN);
+                // parse arguments
+                eat(RPAREN);
+                eat(SEMICOLON);
+                return create_function_call_node(name, NULL, 0, loc);
             }
+
+            parser_error("Expected '=' or '(' after identifier");
+            free(name);
+            return NULL;
+        }
+        default: {
+            parser_error("Unexpected token in statement.");
+            eat(token);
+            return NULL;    
+        }
     }
 }
 
 ASTNode* parse_function() {
+    SourceLocation loc = {yylineno, 0, NULL};
     char* return_type = strdup(yylval.string);
     if (!return_type) {
         parser_error("Memory allocation error");
@@ -433,12 +562,14 @@ ASTNode* parse_function() {
         return_type, 
         name, 
         body, 
-        parser_state.function_context->has_return
+        parser_state.function_context->has_return,
+        loc
     );
 }
 
 ASTNode* parse() {
-    ASTNode* program = create_program_node();
+    SourceLocation loc = {yylineno, 0, NULL};
+    ASTNode* program = create_program_node(loc);
     if (!program) return NULL;
 
     ASTNode* last_function = NULL;

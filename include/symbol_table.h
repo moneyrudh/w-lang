@@ -6,12 +6,6 @@
 #include "types.h"
 #include "ast.h"
 
-typedef enum {
-    TYPE_INT,
-    TYPE_STRING,
-    TYPE_VOID
-} DataType;
-
 typedef struct Symbol {
     char* name;
     DataType type;
