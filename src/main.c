@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
     init_parser();
     yyin = input;
     token = yylex();
-    printf("Token: %d\n", token);
+    // printf("Token: %d\n", token);
     ast = parse();
 
     if (!ast || ast->type != NODE_PROGRAM) {

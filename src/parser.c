@@ -410,7 +410,6 @@ ASTNode* parse_return_statement() {
 
 ASTNode* parse_statement() {
     SourceLocation loc = {yylineno, 0, NULL};
-    printf("Token to string %s\n", tokenToString(token));
     switch (token) {
         case LBRACE:
             eat(LBRACE);
@@ -487,7 +486,7 @@ ASTNode* parse_function() {
     }
     
     char* name = strdup(yylval.string);
-    printf("Function name: %s\n", name);
+    // printf("Function name: %s\n", name);
     eat(MAIN);
     eat(LPAREN);
     eat(RPAREN);
@@ -617,9 +616,9 @@ ASTNode* parse() {
 
 void eat(TokenType _token) {
     if (token == _token) {
-        printf("Eating token: %s\n", tokenToString(token));
+        // printf("Eating token: %s\n", tokenToString(token));
         token = yylex();
-        printf("Token: %s\n", tokenToString(token));
+        // printf("Token: %s\n", tokenToString(token));
     } else {
         char error_msg[100];
         snprintf(error_msg, sizeof(error_msg), 

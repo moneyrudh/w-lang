@@ -1,0 +1,111 @@
+# Project Structure
+
+## Directory Organization
+The W Lang transpiler project is organized into the following files:
+
+Core Implementation Files:
+- ast.c/h: Abstract Syntax Tree implementation and node definitions
+- gen.c/h: Code generation for converting AST to C code
+- lexer.l: Flex-based lexical analyzer for tokenization
+- main.c: Program entry point and file handling
+- parser.c/h: Recursive descent parser implementation
+- symbol_table.c/h: Symbol management and type checking
+- types.h: Common type definitions and enums
+
+## Component Overview
+
+### Lexical Analysis (lexer.l)
+The lexer handles tokenization using flex with these key features:
+- Token definitions for language keywords (if, while, return, etc.)
+- Recognition of literals (numbers, strings, characters)
+- Special handling of the 'w()' function (maps to main())
+- Operator and punctuation tokenization
+- Comment handling and whitespace skipping
+- Line number tracking for error reporting
+
+### Abstract Syntax Tree (ast.c/h)
+The AST implementation provides:
+- Node structures for all language constructs
+- Memory management for tree construction/deletion
+- Source location tracking for error reporting
+- Expression handling with type information
+- Node creation functions for each construct type
+- Tree traversal capabilities
+
+### Parser (parser.c/h)
+The parser implements:
+- Recursive descent parsing strategy
+- Error detection and recovery
+- Symbol table integration
+- Type checking during parse
+- Scope management
+- AST construction
+- Function context tracking
+
+### Code Generator (gen.c/h)
+Code generation features:
+- AST traversal and C code emission
+- Type conversion handling
+- Proper indentation and formatting
+- Standard library function mapping
+- Symbol resolution
+- Error checking during generation
+
+### Symbol Table (symbol_table.c/h)
+Symbol management includes:
+- Variable tracking and lookup
+- Type system implementation
+- Scope handling
+- Symbol table construction/cleanup
+- Type compatibility checking
+- Error reporting for symbol issues
+
+## Build Process
+1. Source files are processed by the lexer
+2. Parser constructs AST from token stream
+3. Symbol table tracks declarations and types
+4. Code generator produces C output
+5. Generated C code can be compiled with gcc/clang
+
+This modular structure allows for easy extension and maintenance while keeping concerns properly separated.
+
+# File Details and Dependencies
+Each file in the project has specific roles and dependencies:
+
+## Core Files
+ast.c/h:
+- Defines AST node structures
+- Implements node creation/deletion
+- Handles tree manipulation
+- Dependencies: types.h, parser.h, symbol_table.h
+
+gen.c/h:
+- Implements code generation
+- Handles C output formatting
+- Manages type conversions
+- Dependencies: ast.h, symbol_table.h, types.h
+
+parser.c/h:
+- Implements parsing logic
+- Manages parser state
+- Handles error reporting
+- Dependencies: ast.h, types.h, symbol_table.h
+
+symbol_table.c/h:
+- Implements symbol management
+- Handles type checking
+- Manages variable scoping
+- Dependencies: types.h, ast.h
+
+types.h:
+- Defines common types and enums
+- Declares shared structures
+- No dependencies
+
+## Important Relationships
+- The parser uses the AST module to build the tree
+- The symbol table is used by both parser and code generator
+- Type information flows through all components
+- Error handling is coordinated across modules
+
+This structure ensures clean separation of concerns while maintaining necessary communication between components.

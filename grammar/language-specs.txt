@@ -1,0 +1,114 @@
+# W Lang Language Specification
+
+## Program Structure
+The W Lang program structure follows these rules:
+
+### Top-Level Constructs
+Valid top-level elements include:
+1. Functions
+2. Global variables
+3. Macros
+4. Structures
+5. Namespaces
+
+### Basic Program Organization
+1. Program entry point is defined by w() function
+2. Global variables must be declared before functions
+3. Functions can be declared before or after w()
+4. Transpiler handles function prototyping automatically
+
+## Type System
+
+### Basic Types
+The language supports these fundamental types:
+1. int: Integer values
+2. float: Floating-point numbers
+3. char: Single characters
+4. str/string: String values
+5. short: Short integers
+6. long: Long integers
+7. bool: Boolean values
+
+### Type Conversion Rules
+1. Implicit conversions follow C rules
+2. Explicit casting uses (type) syntax
+3. Type safety is enforced during compilation
+4. Numeric promotion follows C standards
+
+## Expression Types
+
+### Primary Expressions
+1. Constants (numeric, string, character)
+2. Variables
+3. Function calls
+
+### Arithmetic Expressions
+1. Basic operators: +, -, *, /, %
+2. Follows C operator precedence
+3. Supports parenthesized grouping
+
+### Relational Expressions
+1. Comparison operators: <, >, <=, >=, ==, is, !=
+2. Returns boolean result
+3. Supports numeric and string comparisons
+
+### Logical Expressions
+1. Operators: &&, and, ||, or, !, not
+2. Short-circuit evaluation
+3. Boolean result types
+
+### Assignment Expressions
+1. Basic assignment: =
+2. Compound assignments: +=, -=, *=, /=, %=
+
+### Other Expressions
+1. Increment/Decrement: ++, --
+2. Conditional (ternary): ?:
+3. Comma expressions (like C)
+4. Function calls
+
+## Scoping Rules
+
+### Block Scope
+1. Variables have block-level scope
+2. Inner blocks can shadow outer variables
+3. Global variables accessible throughout program
+
+### Variable Visibility
+1. Local variables shadow globals
+2. Block scope follows C rules
+3. Function parameters have function scope
+
+## Keywords
+The language defines these reserved keywords:
+- Control flow: if, else, while, switch
+- Functions: w, function, return
+- Types: int, float, char, str, string, short, long, bool
+- Structures: struct, namespace
+- Operators: is, and, not
+- Other: log, break
+
+## Standard Library
+1. Built-in log function (maps to printf)
+2. Basic I/O operations
+3. String manipulation functions
+4. Mathematical operations
+5. Type conversion utilities
+
+## Operator Precedence
+Operators follow this precedence (highest to lowest):
+1. () [] . -> (member access)
+2. ! ~ ++ -- (unary)
+3. * / %
+4. + -
+5. < <= > >=
+6. == != is
+7. && and
+8. || or
+9. = += -= *= /=
+
+## Implementation Notes
+1. All W Lang constructs map to equivalent C code
+2. Standard library functions use C standard library
+3. Memory management follows C rules
+4. Error handling provides source location information

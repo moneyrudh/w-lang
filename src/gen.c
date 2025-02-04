@@ -99,7 +99,7 @@ void generate_expression_with_cast(FILE* output, ASTNode* expr, DataType target_
 void generate(FILE* output, ASTNode* node, int indent_level) {
     if (!node) return;
 
-    printf("Generating node of type %d\n", node->type);
+    // printf("Generating node of type %d\n", node->type);
     char indent[256] = {0};
     for (int i=0; i < indent_level; i++) {
         strcat(indent, "    ");
