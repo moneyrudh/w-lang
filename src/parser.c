@@ -70,10 +70,10 @@ const char *tokenToString(TokenType token) {
             return "RBRACE";
         case SEMICOLON:
             return "SEMICOLON";
-        case STRING:
-            return "STRING";
-        case NUMBER:
-            return "NUMBER";
+        case STRING_LITERAL:
+            return "STRING_LITERAL";
+        case INT_LITERAL:
+            return "INT_LITERAL";
         case PLUS:
             return "PLUS";
         case MINUS:
@@ -88,18 +88,18 @@ const char *tokenToString(TokenType token) {
             return "RETURN";
         case ASSIGNMENT:
             return "ASSIGNMENT";
-        case FLOAT_TYPE:
-            return "FLOAT_TYPE";
+        case FLOAT:
+            return "FLOAT";
         case FLOAT_LITERAL:
             return "FLOAT_LITERAL";
-        case CHAR_TYPE:
-            return "CHAR_TYPE";
+        case CHAR:
+            return "CHAR";
         case CHAR_LITERAL:
             return "CHAR_LITERAL";
-        case STRING_TYPE:
-            return "STRING_TYPE";
-        case BOOL_TYPE:
-            return "BOOL_TYPE";
+        case STRING:
+            return "STRING";
+        case BOOL:
+            return "BOOL";
         case BOOL_LITERAL:
             return "BOOL_LITERAL";
         default:
@@ -138,10 +138,10 @@ void exit_block() {
 ASTNode* parse_factor() {
     SourceLocation loc = {yylineno, 0, NULL};
     switch (token) {
-        case NUMBER:
+        case INT_LITERAL:
             {
                 ASTNode* node = create_number_node(yylval.number, loc);
-                eat(NUMBER);
+                eat(INT_LITERAL);
                 return node;
             }
         case FLOAT_LITERAL:
@@ -162,10 +162,10 @@ ASTNode* parse_factor() {
                 eat(BOOL_LITERAL);
                 return node;
             }
-        case STRING:
+        case STRING_LITERAL:
             {
                 ASTNode* node = create_string_node(yylval.string, loc);
-                eat(STRING);
+                eat(STRING_LITERAL);
                 return node;
             }
         case IDENTIFIER:
@@ -217,18 +217,18 @@ ASTNode* parse_variable_declaration() {
     if (token == INT) {
         var_type = TYPE_INT;
         eat(INT);
-    } else if (token == FLOAT_TYPE) {
+    } else if (token == FLOAT) {
         var_type = TYPE_FLOAT;
-        eat(FLOAT_TYPE);
-    } else if (token == CHAR_TYPE) {
+        eat(FLOAT);
+    } else if (token == CHAR) {
         var_type = TYPE_CHAR;
-        eat(CHAR_TYPE);
-    } else if (token == STRING_TYPE) {
+        eat(CHAR);
+    } else if (token == STRING) {
         var_type = TYPE_STRING;
-        eat(STRING_TYPE);
-    } else if (token == BOOL_TYPE) {
+        eat(STRING);
+    } else if (token == BOOL) {
         var_type = TYPE_BOOL;
-        eat(BOOL_TYPE);
+        eat(BOOL);
     } else {
         parser_error("Expected type specifier");
         return NULL;
@@ -304,10 +304,10 @@ ASTNode* parse_log() {
     while (token != RPAREN) {
         LogElement* element = malloc(sizeof(LogElement));
 
-        if (token == STRING) {
+        if (token == STRING_LITERAL) {
             element->type = NODE_STRING;
             element->value.string = strdup(yylval.string);
-            eat(STRING);
+            eat(STRING_LITERAL);
         } else if (token == PLUS) {
             if (current->type == NODE_STRING) {
                 element->type = NODE_STRING;
@@ -426,7 +426,7 @@ ASTNode* parse_statement() {
             return NULL;
         case LOG:
             return parse_log();
-        case NUMBER:
+        case INT_LITERAL:
         case LPAREN:
             {
                 ASTNode* expr = parse_expression();
@@ -434,10 +434,10 @@ ASTNode* parse_statement() {
                 return expr;
             }
         case INT:
-        case FLOAT_TYPE:
-        case CHAR_TYPE:
-        case STRING_TYPE:
-        case BOOL_TYPE:
+        case FLOAT:
+        case CHAR:
+        case STRING:
+        case BOOL:
             return parse_variable_declaration();
         case RETURN:
             return parse_return_statement();

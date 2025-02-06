@@ -22,7 +22,10 @@ void free_symbol_table(void);
 bool add_symbol(SymbolTable* table, const char* name, DataType type);
 Symbol* lookup_symbol(SymbolTable* table, const char* name);
 DataType get_expression_type(ASTNode* node, SymbolTable* table);
+
 bool compare_types(DataType left, DataType right);
+DataType get_operation_type(DataType left, DataType right, OperatorType op);
+bool can_convert_type(DataType from, DataType to);
 
 extern SymbolTable* symbol_table;
 

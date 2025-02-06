@@ -13,10 +13,10 @@
 "w"         { yylval.string = strdup("main"); return MAIN; }
 "int"       { yylval.string = strdup("int"); return INT; }
 "void"      { yylval.string = strdup("void"); return VOID; }
-"float"     { yylval.string = strdup("float"); return FLOAT_TYPE; }
-"char"      { yylval.string = strdup("char"); return CHAR_TYPE; }
-"string"      { yylval.string = strdup("string"); return STRING_TYPE; }
-"bool"      { yylval.string = strdup("bool"); return BOOL_TYPE; }
+"float"     { yylval.string = strdup("float"); return FLOAT; }
+"char"      { yylval.string = strdup("char"); return CHAR; }
+"string"    { yylval.string = strdup("string"); return STRING; }
+"bool"      { yylval.string = strdup("bool"); return BOOL; }
 "true"      { yylval.bool_val = true; return BOOL_LITERAL; }
 "false"     { yylval.bool_val = false; return BOOL_LITERAL; }
 "log"       { return LOG; }
@@ -32,7 +32,7 @@
 "/"         { return DIVIDE; }
 "return"    { return RETURN; }
 
-[0-9]+      { yylval.number = atoi(yytext); return NUMBER; }
+[0-9]+      { yylval.number = atoi(yytext); return INT_LITERAL; }
 [0-9]+\.[0-9]+ { 
     yylval.float_val = atof(yytext); 
     return FLOAT_LITERAL; 
@@ -46,8 +46,9 @@
 \"(\\.|[^"\\])*\" {
     yylval.string = strdup(yytext + 1);
     yylval.string[strlen(yylval.string)-1] = '\0';
-    return STRING;
+    return STRING_LITERAL;
 }
+
 \'([^\'\\]|\\[\'\"\\nt])\' {
     if (strlen(yytext) == 3) {
         yylval.char_val = yytext[1];

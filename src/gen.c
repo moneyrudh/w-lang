@@ -7,6 +7,7 @@
 #include "types.h"
 #include "ast.h"
 #include "parser.h"
+#include "operator_utils.h"
 
 const char* get_c_type_string(DataType type) {
     switch (type) {
@@ -96,6 +97,60 @@ void generate_expression_with_cast(FILE* output, ASTNode* expr, DataType target_
     }
 }
 
+static void generate_cast_if_needed(FILE* output, DataType from, DataType to) {
+    if (from == to) return;
+    
+    if (can_convert_type(from, to)) {
+        fprintf(output, "(%s)", get_c_type_string(to));
+    }
+}
+
+static void generate_binary_expr(FILE* output, ASTNode* node, int indent_level) {
+    if (!node || node->type != NODE_BINARY_EXPR) return;
+
+    DataType left_type = get_expression_type(node->data.binary_expr.left, getSymbolTable());
+    DataType right_type = get_expression_type(node->data.binary_expr.right, getSymbolTable());
+    DataType result_type = get_operation_type(left_type, right_type, char_to_operator(node->data.binary_expr.operator));
+
+    bool needs_parens = node->data.binary_expr.left->type == NODE_BINARY_EXPR ||
+                        node->data.binary_expr.right->type == NODE_BINARY_EXPR;
+
+    if (needs_parens && node->data.binary_expr.left->type == NODE_BINARY_EXPR) {
+        fprintf(output, "(");
+        generate_cast_if_needed(output, left_type, result_type);
+        generate(output, node->data.binary_expr.left, indent_level);
+        fprintf(output, ")");
+    } else {
+        generate_cast_if_needed(output, left_type, result_type);
+        generate(output, node->data.binary_expr.left, indent_level);
+    }
+    
+    fprintf(output, " %c ", node->data.binary_expr.operator);
+    
+    generate_cast_if_needed(output, right_type, result_type);
+    generate(output, node->data.binary_expr.right, indent_level);
+}
+
+static void generate_assignment(FILE* output, ASTNode* node, int indent_level) {
+    if (!node || node->type != NODE_ASSIGNMENT) return;
+
+    char indent[256] = {0};
+    for (int i = 0; i < indent_level; i++) {
+        strcat(indent, "    ");
+    }
+
+    Symbol* target_symbol = lookup_symbol(getSymbolTable(), node->data.assignment.target);
+    DataType target_type = target_symbol->type;
+    DataType value_type = get_expression_type(node->data.assignment.value, getSymbolTable());
+
+    fprintf(output, "%s%s = ", indent, node->data.assignment.target);
+
+    generate_cast_if_needed(output, value_type, target_type);
+
+    generate(output, node->data.assignment.value, 0);
+    fprintf(output, ";\n");
+}
+
 void generate(FILE* output, ASTNode* node, int indent_level) {
     if (!node) return;
 
@@ -179,11 +234,7 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
             break;
         }
         case NODE_BINARY_EXPR:
-            fprintf(output, "%s", indent);
-            generate(output, node->data.binary_expr.left, 0);
-            fprintf(output, " %c ", node->data.binary_expr.operator);
-            generate(output, node->data.binary_expr.right, 0);
-            fprintf(output, ";\n");
+            generate_binary_expr(output, node, indent_level);
             break;
         case NODE_NUMBER:
             fprintf(output, "%d", node->data.number.value);
@@ -221,13 +272,7 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
             fprintf(output, "%s", node->data.bool_val.value ? "true" : "false");
             break;
         case NODE_ASSIGNMENT: {
-            fprintf(output, "%s%s = ", indent, node->data.assignment.target);
-            generate_expression_with_cast(
-                output,
-                node->data.assignment.value,
-                node->data.assignment.base.expr_type
-            );
-            fprintf(output, ";\n");
+            generate_assignment(output, node, indent_level);
             break;
         }
         case NODE_VARIABLE:

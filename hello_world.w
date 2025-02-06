@@ -1,10 +1,12 @@
 int w() {
     log("Hello" + "World");
-    int x;                    
-    float y = 3.0;
-    int z = 42;              
+    float x;                    
+    int y = 3;
+    int z = 42;
+    float f = 3.14;
+    x = (y + z) * f;
     char c = 'a';            
-    bool flag = truel;        
+    bool flag = true;        
     string str = "hello";
     return 0;
 }

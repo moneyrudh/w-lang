@@ -830,22 +830,22 @@ YY_RULE_SETUP
 case 4:
 YY_RULE_SETUP
 #line 16 "lexer.l"
-{ yylval.string = strdup("float"); return FLOAT_TYPE; }
+{ yylval.string = strdup("float"); return FLOAT; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
 #line 17 "lexer.l"
-{ yylval.string = strdup("char"); return CHAR_TYPE; }
+{ yylval.string = strdup("char"); return CHAR; }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
 #line 18 "lexer.l"
-{ yylval.string = strdup("string"); return STRING_TYPE; }
+{ yylval.string = strdup("string"); return STRING; }
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
 #line 19 "lexer.l"
-{ yylval.string = strdup("bool"); return BOOL_TYPE; }
+{ yylval.string = strdup("bool"); return BOOL; }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
@@ -920,7 +920,7 @@ YY_RULE_SETUP
 case 22:
 YY_RULE_SETUP
 #line 35 "lexer.l"
-{ yylval.number = atoi(yytext); return NUMBER; }
+{ yylval.number = atoi(yytext); return INT_LITERAL; }
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
@@ -945,7 +945,7 @@ YY_RULE_SETUP
 {
     yylval.string = strdup(yytext + 1);
     yylval.string[strlen(yylval.string)-1] = '\0';
-    return STRING;
+    return STRING_LITERAL;
 }
 	YY_BREAK
 case 26:

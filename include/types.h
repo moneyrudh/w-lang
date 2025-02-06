@@ -14,8 +14,8 @@ typedef enum {
     LBRACE,
     RBRACE,
     SEMICOLON,
-    STRING,
-    NUMBER,
+    STRING_LITERAL,
+    INT_LITERAL,
     PLUS,
     MINUS,
     MULTIPLY,
@@ -23,12 +23,12 @@ typedef enum {
     MAIN,
     ASSIGNMENT,
     RETURN,
-    FLOAT_TYPE,
+    FLOAT,
     FLOAT_LITERAL,
-    CHAR_TYPE,
-    STRING_TYPE,
+    CHAR,
+    STRING,
     CHAR_LITERAL,
-    BOOL_TYPE,
+    BOOL,
     BOOL_LITERAL
 } TokenType;
 
@@ -54,6 +54,13 @@ typedef enum {
     TYPE_STRING,
     TYPE_VOID
 } DataType;
+
+typedef enum {
+    OP_ADD,
+    OP_SUB,
+    OP_MUL,
+    OP_DIV
+} OperatorType;
 
 typedef enum {
     NODE_PROGRAM,
