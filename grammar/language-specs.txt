@@ -94,6 +94,7 @@ The language defines these reserved keywords:
 3. String manipulation functions
 4. Mathematical operations
 5. Type conversion utilities
+6. Built in data structures (such as in python)
 
 ## Operator Precedence
 Operators follow this precedence (highest to lowest):
