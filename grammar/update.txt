@@ -1,0 +1,45 @@
+# LANGUAGE UPDATE
+
+## Variable Syntax Update: before -> after
+
+> int x; -> dec x: int;
+> int y = 10; -> y: int = 10;
+> y = y + 10; -> y = y + 10;
+> y += 1; -> y += 1;
+> y++; -> y++;
+> float f = 1.001; -> f: float = 1.001;
+
+## Function Syntax Update
+
+> declaration:
+a. int function_name();
+b. fun function_name(): int;
+
+> definition:
+I.
+a. void function_name(int x, float w) {
+    int y;
+    float z = 2.0f;
+    y = x + 1;
+}
+b(1). fun function_name(x: int, w: float): void {
+    dec y: int;
+    dec z := 2.0;
+    dec z: float = 2.0;
+    y = x + 1;
+}
+b(2). fun function_name(x: int, w: float) {
+    dec y: int;
+    dec z := 2.0;
+    dec z: float = 2.0;
+    y = x + 1;
+}
+
+II.
+a. void function_name();
+b(1). fun function_name();
+b(2). fun function_name(): void;
+
+III.
+a. int function_name();
+b. fun function_name(): int;
