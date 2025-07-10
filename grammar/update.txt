@@ -1,19 +1,41 @@
 # LANGUAGE UPDATE
 
+## Type changes
+
+> int, long, long long -> num
+> float -> real
+> void -> zil
+> int[] -> vec[int], float[] -> vec[float], etc
+> char[] -> str, char* -> str (but str would map only to char*)
+> char -> chr
+> struct -> pod (classes with/without functions), type (without functions for dynamic typing) 
+
+## Data Structures
+
+Data structures will be defined in the transpiler, abstracted from the user. Since it will be converted to C, the transpiler's object file will have the definition of the data structures used in w-lang. The 'use' keyword might be used to 'import' the data structures.
+> map (for hash map, will use random seed on every program run), ex: map[int, int], map[int, real], map[str, int]
+> ref (pointers), ex: ref num, ref map[int, int], ref real (but i may discard pointers entirely)
+> set (for hash set)
+> heap
+> stack
+> que (with option for priority, or might just stick to vec only)
+> link (linked lists), ex: link[int], link[Node] (where Node is a pod)
+> tree, ex: tree[Node] (where Node is a pod with left and right child)
+
 ## Variable Syntax Update: before -> after
 
-> int x; -> dec x: int;
-> int y = 10; -> y: int = 10;
+> int x; -> dec x: num;
+> int y = 10; -> y: nu m= 10;
 > y = y + 10; -> y = y + 10;
 > y += 1; -> y += 1;
 > y++; -> y++;
-> float f = 1.001; -> f: float = 1.001;
+> float f = 1.001; -> f: real = 1.001;
 
 ## Function Syntax Update
 
 > declaration:
 a. int function_name();
-b. fun function_name(): int;
+b. fun function_name(): num;
 
 > definition:
 I.
@@ -22,24 +44,24 @@ a. void function_name(int x, float w) {
     float z = 2.0f;
     y = x + 1;
 }
-b(1). fun function_name(x: int, w: float): void {
-    dec y: int;
+b(1). fun function_name(x: num, w: real): void {
+    dec y: num;
     dec z := 2.0;
-    dec z: float = 2.0;
+    dec z: real = 2.0;
     y = x + 1;
 }
-b(2). fun function_name(x: int, w: float) {
-    dec y: int;
+b(2). fun function_name(x: num, w: real) {
+    dec y: num;
     dec z := 2.0;
-    dec z: float = 2.0;
+    dec z: real = 2.0;
     y = x + 1;
 }
 
 II.
 a. void function_name();
 b(1). fun function_name();
-b(2). fun function_name(): void;
+b(2). fun function_name(): zil;
 
 III.
 a. int function_name();
-b. fun function_name(): int;
+b. fun function_name(): num;
