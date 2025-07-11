@@ -5,31 +5,53 @@
 #include <stdbool.h>
 
 typedef enum {
-    INT = 258,
-    VOID,
-    IDENTIFIER,
+    NUM = 258,
+    ZIL,
+    REAL,
+    CHR,
+    STR,
+    BOOL,
+
+    VEC,
+    MAP,
+    SET,
+    REF,
+    HEAP,
+    STACK,
+    QUE,
+    LINK,
+    TREE,
+    POD,
+
+    DEC,
+    FUN,
+    USE,
+    MAIN,
+    RETURN,
     LOG,
-    LPAREN,
+
+    IDENTIFIER,
+    INT_LITERAL,
+    FLOAT_LITERAL,
+    STRING_LITERAL,
+    CHAR_LITERAL,
+    BOOL_LITERAL,
+
+    COLON,
+    INFER_ASSIGN,
+    ASSIGNMENT,
+    LBRACKET,
+    RBRACKET,
     RPAREN,
     LBRACE,
     RBRACE,
+    COMMA,
     SEMICOLON,
-    STRING_LITERAL,
-    INT_LITERAL,
+
     PLUS,
     MINUS,
     MULTIPLY,
-    DIVIDE,
-    MAIN,
-    ASSIGNMENT,
-    RETURN,
-    FLOAT,
-    FLOAT_LITERAL,
-    CHAR,
-    STRING,
-    CHAR_LITERAL,
-    BOOL,
-    BOOL_LITERAL
+    DIVIDE
 } TokenType;
 
 typedef struct {

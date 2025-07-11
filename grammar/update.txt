@@ -2,7 +2,7 @@
 
 ## Type changes
 
-> int, long, long long -> num
+> int, uint32, long, long long -> num
 > float -> real
 > void -> zil
 > int[] -> vec[int], float[] -> vec[float], etc
