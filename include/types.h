@@ -69,12 +69,23 @@ extern int yylineno;
 extern TokenType token;
 
 typedef enum {
-    TYPE_INT,
-    TYPE_FLOAT,
-    TYPE_CHAR,
+    TYPE_NUM,
+    TYPE_REAL,
+    TYPE_CHR,
     TYPE_BOOL,
-    TYPE_STRING,
-    TYPE_VOID
+    TYPE_STR,
+    TYPE_ZIL,
+
+    TYPE_VEC,
+    TYPE_MAP,
+    TYPE_SET,
+    TYPE_REF,
+    TYPE_HEAP,
+    TYPE_STACK,
+    TYPE_QUE,
+    TYPE_LINK,
+    TYPE_TREE,
+    TYPE_POD
 } DataType;
 
 typedef enum {
