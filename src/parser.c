@@ -43,6 +43,56 @@ void cleanup_parser() {
     cleanup_parser_state();
 }
 
+// Convert DataType enums to string representations
+const char* type_to_string(DataType type) {
+    switch (type) {
+        case TYPE_NUM: return "num";
+        case TYPE_REAL: return "real";
+        case TYPE_CHR: return "chr";
+        case TYPE_BOOL: return "bool";
+        case TYPE_STRING: return "str";
+        case TYPE_ZIL: return "zil";
+        default: return "unknown";
+    }
+}
+
+// Convert type tokens to their string representations
+const char* token_to_type_string(TokenType token) {
+    switch (token) {
+        case NUM: return "num";
+        case REAL: return "real";
+        case CHR: return "chr";
+        case STR: return "str";
+        case BOOL: return "bool";
+        case ZIL: return "zil";
+        default: return NULL;
+    }
+}
+
+// Convert type tokens to DataType enum values
+DataType token_to_data_type(TokenType token) {
+    switch (token) {
+        case NUM: return TYPE_NUM;
+        case REAL: return TYPE_REAL;
+        case CHR: return TYPE_CHR;
+        case STR: return TYPE_STR;
+        case BOOL: return TYPE_BOOL;
+        case ZIL: return TYPE_ZIL;
+        default: return TYPE_ZIL;
+    }
+}
+
+bool is_type_token(TokenType token) {
+    return (
+        token == NUM
+        || token == REAL
+        || token == CHR
+        || token == STR
+        || token == BOOL
+        || token == ZIL;
+    );
+}
+
 const char *tokenToString(TokenType token) {
     static char single_char[2] = {0, 0};
 
@@ -52,10 +102,18 @@ const char *tokenToString(TokenType token) {
     }
 
     switch (token) {
-        case INT:
-            return "INT";
-        case VOID:
-            return "VOID";
+        case NUM:
+            return "NUM";
+        case ZIL:
+            return "ZIL";
+        case REAL:
+            return "REAL";
+        case CHR:
+            return "CHR";
+        case STR:
+            return "STR";
+        case BOOL:
+            return "BOOL";
         case IDENTIFIER:
             return "IDENTIFIER";
         case LOG:
@@ -70,10 +128,6 @@ const char *tokenToString(TokenType token) {
             return "RBRACE";
         case SEMICOLON:
             return "SEMICOLON";
-        case STRING_LITERAL:
-            return "STRING_LITERAL";
-        case INT_LITERAL:
-            return "INT_LITERAL";
         case PLUS:
             return "PLUS";
         case MINUS:
@@ -85,23 +139,33 @@ const char *tokenToString(TokenType token) {
         case MAIN:
             return "MAIN";
         case RETURN:
-            return "RETURN";
-        case ASSIGNMENT:
             return "ASSIGNMENT";
-        case FLOAT:
-            return "FLOAT";
-        case FLOAT_LITERAL:
-            return "FLOAT_LITERAL";
-        case CHAR:
-            return "CHAR";
+        case ASSIGNMENT:
+            return "ASSIGM";
         case CHAR_LITERAL:
             return "CHAR_LITERAL";
-        case STRING:
-            return "STRING";
-        case BOOL:
-            return "BOOL";
         case BOOL_LITERAL:
             return "BOOL_LITERAL";
+        case STRING_LITERAL:
+            return "STRING_LITERAL";
+        case INT_LITERAL:
+            return "INT_LITERAL";
+        case FLOAT_LITERAL:
+            return "FLOAT_LITERAL";
+        case DEC:
+            return "DEC";
+        case FUN:
+            return "FUN";
+        case COLON:
+            return "COLON";
+        case INFER_ASSIGN:
+            return "INFER_ASSIGN";
+        case LBRACKET:
+            return "LBRACKET";
+        case RBRACKET:
+            return "RBRACKET";
+        case COMMA:
+            return "COMMA";
         default:
             return "UNKNOWN";
     }
@@ -209,38 +273,50 @@ ASTNode* parse_expression() {
     return node;
 }
 
+DataType parse_type_specifier() {
+    if (!is_type_token(token)) {
+        parser_error("Expected type specifier (num, real, chr, str, bool, zil)");
+        return TYPE_ZIL;
+    }
+
+    DataType var_type = token_to_data_type(token);
+    eat(token);
+    return var_type;
+}
+
 ASTNode* parse_variable_declaration() {
     SourceLocation loc = {yylineno, 0, NULL};
-    
+    bool has_dec_keyword = false;
 
-    DataType var_type;
-    if (token == INT) {
-        var_type = TYPE_INT;
-        eat(INT);
-    } else if (token == FLOAT) {
-        var_type = TYPE_FLOAT;
-        eat(FLOAT);
-    } else if (token == CHAR) {
-        var_type = TYPE_CHAR;
-        eat(CHAR);
-    } else if (token == STRING) {
-        var_type = TYPE_STRING;
-        eat(STRING);
-    } else if (token == BOOL) {
-        var_type = TYPE_BOOL;
-        eat(BOOL);
-    } else {
-        parser_error("Expected type specifier");
-        return NULL;
+    // Check if this is a dec declared variable
+    if (token == DEC) {
+        has_dec_keyword = true;
+        eat(DEC);
     }
 
+    // Parse variable name
     if (token != IDENTIFIER) {
-        parser_error("Expected identifier after type");
+        parser_error("Expected identifier in variable declaration");
         return NULL;
     }
-
+    
     char* var_name = strdup(yylval.string);
     eat(IDENTIFIER);
+
+    // Expect colon for type annotation
+    if (token != COLON) {
+        parser_error("Expected ':' after variable name in declaration");
+        free(var_name);
+        return NULL;
+    }
+
+    eat(COLON);
+
+    DataType var_type = parse_type_specifier();
+    if (var_type == TYPE_ZIL) {
+        free(var_name);
+        return NULL;
+    }
 
     ASTNode* init_expr = NULL;
     if (token == ASSIGNMENT) {
@@ -282,18 +358,6 @@ ASTNode* parse_variable_declaration() {
     return create_var_declaration_node(var_name, var_type, init_expr, loc);
 }
 
-const char* type_to_string(DataType type) {
-    switch (type) {
-        case TYPE_INT: return "int";
-        case TYPE_FLOAT: return "float";
-        case TYPE_CHAR: return "char";
-        case TYPE_BOOL: return "bool";
-        case TYPE_STRING: return "string";
-        case TYPE_VOID: return "void";
-        default: return "unknown";
-    }
-}
-
 ASTNode* parse_log() {
     eat(LOG);
     eat(LPAREN);
@@ -318,10 +382,10 @@ ASTNode* parse_log() {
             ASTNode* expr = parse_expression();
             DataType type = get_expression_type(expr, getSymbolTable());
 
-            if (type == TYPE_INT) {
+            if (type == TYPE_NUM) {
                 element->type = NODE_NUMBER;
                 element->value.number = expr->data.number.value;
-            } else if (type == TYPE_STRING) {
+            } else if (type == TYPE_STR) {
                 element->type = NODE_STRING;
                 element->value.string = strdup(expr->data.string.value);
             } else {
@@ -331,6 +395,7 @@ ASTNode* parse_log() {
             free_ast(expr);
         }
 
+        element->next = NULL;
         if (head == NULL) {
             head = element;
             current = element;
@@ -350,6 +415,7 @@ ASTNode* parse_return_statement() {
     eat(RETURN);
     ASTNode* expr = NULL;
     int has_value = 0;
+
     if (token != SEMICOLON) {
         expr = parse_expression();
         has_value = 1;
@@ -360,7 +426,7 @@ ASTNode* parse_return_statement() {
     if (parser_state.function_context) {
         parser_state.function_context->has_return = 1;
 
-        if (strcmp(parser_state.function_context->current_return_type, "void") == 0) {
+        if (strcmp(parser_state.function_context->current_return_type, "zil") == 0) {
             if (has_value) {
                 char error_msg[100];
                 snprintf(error_msg, sizeof(error_msg),
@@ -380,10 +446,16 @@ ASTNode* parse_return_statement() {
                 DataType expr_type = get_expression_type(expr, getSymbolTable());
                 DataType func_type;
 
-                if (strcmp(parser_state.function_context->current_return_type, "int") == 0) {
-                    func_type = TYPE_INT;
-                } else if (strcmp(parser_state.function_context->current_return_type, "string") == 0) {
-                    func_type = TYPE_STRING;
+                if (strcmp(parser_state.function_context->current_return_type, "num") == 0) {
+                    func_type = TYPE_NUM;
+                } else if (strcmp(parser_state.function_context->current_return_type, "chr") == 0) {
+                    func_type = TYPE_CHR;
+                } else if (strcmp(parser_state.function_context->current_return_type, "bool") == 0)}
+                    func_type = TYPE_BOOL;
+                } else if (strcmp(parser_state.function_context->current_return_type, "real") == 0) {
+                    func_type = TYPE_REAL;
+                } else if (strcmp(parser_state.function_context->current_return_type, "str") == 0) {
+                    func_type = TYPE_STR;
                 } else {
                     func_type = TYPE_VOID;
                 }
@@ -405,6 +477,7 @@ ASTNode* parse_return_statement() {
     ASTNode* node = malloc(sizeof(ASTNode));
     node->type = NODE_RETURN;
     node->data.return_statement.expression = expr;
+    node->next = NULL;
     return node;
 }
 
@@ -433,11 +506,7 @@ ASTNode* parse_statement() {
                 eat(SEMICOLON);
                 return expr;
             }
-        case INT:
-        case FLOAT:
-        case CHAR:
-        case STRING:
-        case BOOL:
+        case DEC:
             return parse_variable_declaration();
         case RETURN:
             return parse_return_statement();
@@ -473,23 +542,44 @@ ASTNode* parse_statement() {
 
 ASTNode* parse_function() {
     SourceLocation loc = {yylineno, 0, NULL};
-    char* return_type = strdup(yylval.string);
-    if (!return_type) {
-        parser_error("Memory allocation error");
+    
+    if (token != FUN) {
+        parser_error("Expected 'fun' keyword for function definition");
         return NULL;
     }
-    
-    if (token == INT) {
-        eat(INT);
-    } else if (token == VOID) {
-        eat(VOID);
+    eat(FUN);
+
+    if (token != MAIN && token != IDENTIFIER) {
+        parser_error("Expected function name after 'fun'");
+        return NULL;
     }
-    
+
     char* name = strdup(yylval.string);
     // printf("Function name: %s\n", name);
-    eat(MAIN);
+    // Eat "main" or identifier
+    eat(token);
     eat(LPAREN);
+    // ====================================
+    // TODO: ADD PARAMETER PARSING FOR "name: type, name: type" SYNTAX
+    // ====================================
     eat(RPAREN);
+
+    char* return_type = strdup("zil");
+    if (token == COLON) {
+        eat(COLON);
+
+        const char* type_str = token_to_type_string(token);
+        if (type_str) {
+            free(return_type);
+            return_type = strdup(type_str);
+            eat(token);
+        } else {
+            parser_error("Expected return type after ':'");
+            free(name);
+            free(return_type);
+            return NULL;
+        }
+    }
 
     if (parser_state.function_context) {
         free(parser_state.function_context->current_name);
@@ -502,6 +592,8 @@ ASTNode* parse_function() {
 
     if (token != LBRACE) {
         parser_error("Expected '{' to begin function boddy");
+        free(name);
+        free(return_type);
         return NULL;
     }
     eat(LBRACE);
@@ -530,6 +622,8 @@ ASTNode* parse_function() {
 
     if (token == EOF) {
         parser_error("Unexpected end of file.");
+        free(name);
+        free(return_type);
         return NULL;
     }
 
@@ -574,8 +668,7 @@ ASTNode* parse() {
     ASTNode* last_function = NULL;
     while (token != EOF) {
         switch(token) {
-            case INT:
-            case VOID: {
+            case FUN: {
                 ASTNode* function = parse_function();
                 if (function) {
                     if (last_function == NULL) {
@@ -598,7 +691,7 @@ ASTNode* parse() {
 
                 char error_msg[100];
                 snprintf(error_msg, sizeof(error_msg),
-                    "Unexpected token %s at top level",
+                    "Unexpected token %s at top level. Expected 'fun' for function definition.",
                     tokenToString(token));
                 parser_error(error_msg);
                 printf("Current token: %d, %s\n", token, tokenToString(token));

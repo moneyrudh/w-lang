@@ -25,11 +25,11 @@ Data structures will be defined in the transpiler, abstracted from the user. Sin
 ## Variable Syntax Update: before -> after
 
 > int x; -> dec x: num;
-> int y = 10; -> y: nu m= 10;
+> int y = 10; -> dec y: num= 10;
 > y = y + 10; -> y = y + 10;
 > y += 1; -> y += 1;
 > y++; -> y++;
-> float f = 1.001; -> f: real = 1.001;
+> float f = 1.001; -> dec f: real = 1.001;
 
 ## Function Syntax Update
 
