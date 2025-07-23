@@ -53,17 +53,17 @@ Symbol* lookup_symbol(SymbolTable* table, const char* name) {
 }
 
 DataType get_expression_type(ASTNode* node, SymbolTable* table) {
-    if (!node) return TYPE_VOID;
+    if (!node) return TYPE_ZIL;
 
     switch (node->type) {
         case NODE_NUMBER:
-            return TYPE_INT;
+            return TYPE_NUM;
         case NODE_STRING:
-            return TYPE_STRING;
+            return TYPE_STR;
         case NODE_FLOAT:
-            return TYPE_FLOAT;
+            return TYPE_REAL;
         case NODE_CHAR:
-            return TYPE_CHAR;
+            return TYPE_CHR;
         case NODE_BOOL:
             return TYPE_BOOL;
         case NODE_VARIABLE: {
@@ -77,18 +77,13 @@ DataType get_expression_type(ASTNode* node, SymbolTable* table) {
                     node->data.variable.name
                 );
                 parser_error(error_msg);
-                return TYPE_VOID;
+                return TYPE_ZIL;
             }
             return symbol->type;
         }
         case NODE_BINARY_EXPR: {
             DataType left = get_expression_type(node->data.binary_expr.left, table);
             DataType right = get_expression_type(node->data.binary_expr.right, table);
-            // if (!compare_types(left, right)) {
-            //     fprintf(stderr, "Error: Type mismatch in binary expression\n");
-            //     exit(1);
-            // }
-            // return left;
             return get_operation_type(
                 left, 
                 right,
@@ -145,23 +140,22 @@ bool compare_types(DataType left, DataType right) {
         return true;
     }
 
-    if (left == TYPE_FLOAT && right == TYPE_INT) {
+    if (left == TYPE_REAL && right == TYPE_NUM) {
         return true;
     }
 
-    if (left == TYPE_INT && right == TYPE_CHAR) {
+    if (left == TYPE_NUM && right == TYPE_CHR) {
         return true;
     }
 
-    if (left == TYPE_CHAR && right == TYPE_INT) {
+    if (
+        (left == TYPE_BOOL && right == TYPE_NUM)
+        ||
+        (left == TYPE_NUM && right == TYPE_BOOL)
+    ) {
         return true;
     }
-    // if (left == TYPE_INT && right == TYPE_STRING) {
-    //     return true;
-    // }
-    // if (left == TYPE_STRING && right == TYPE_INT) {
-    //     return true;
-    // }
+
     return false;
 }
 
@@ -169,39 +163,48 @@ bool can_convert_type(DataType from, DataType to) {
     if (from == to) return true;
 
     switch (to) {
-        case TYPE_FLOAT:
-            return from == TYPE_INT || from == TYPE_CHAR || from == TYPE_BOOL;
-        case TYPE_INT:
-            return from == TYPE_CHAR || from == TYPE_BOOL;
+        case TYPE_REAL:
+            return from == TYPE_NUM || from == TYPE_CHR || from == TYPE_BOOL;
+        case TYPE_NUM:
+            return from == TYPE_CHR || from == TYPE_BOOL;
         case TYPE_BOOL:
-            return from == TYPE_INT || from == TYPE_FLOAT || from == TYPE_CHAR;
+            return from == TYPE_NUM || from == TYPE_REAL || from == TYPE_CHR;
+        case TYPE_CHR;
+            return from == TYPE_NUM;
+        case TYPE_STR;
+            return false;
+        case TYPE_ZIL;
+            return false;
         default:
             return false;
     }
 }
 
 DataType get_operation_type(DataType left, DataType right, OperatorType op) {
-    if (left == TYPE_VOID || right == TYPE_VOID) {
-        parser_error("Cannot perform operations on void type");
-        return TYPE_VOID;
+    if (left == TYPE_ZIL || right == TYPE_ZIL) {
+        parser_error("Cannot perform operations on zil type");
+        return TYPE_ZIL;
     }
 
-    if (op == OP_ADD && (left == TYPE_STRING || right == TYPE_STRING)) {
-        if (left == TYPE_STRING && right == TYPE_STRING) {
-            return TYPE_STRING;
+    // string concat between string 1 and string 2
+    if (op == OP_ADD && (left == TYPE_STR || right == TYPE_STR)) {
+        if (left == TYPE_STR && right == TYPE_STR) {
+            return TYPE_STR;
         }
-        parser_error("String concatenation only works between strings");
-        return TYPE_VOID;
+        parser_error("String concatenation only works betweens strings");
+        return TYPE_ZIL;
     }
 
-    if (left == TYPE_STRING || right == TYPE_STRING) {
-        parser_error("Invalid operation on string type");
-        return TYPE_VOID;
+    // invalid operation on string (can only do +)
+    if (left == TYPE_STR || right == TYPE_STR) {
+        parser_error("Invalid arithmetic operation on str type");
+        return TYPE_ZIL;
     }
 
-    if (left == TYPE_FLOAT || right == TYPE_FLOAT) {
-        return TYPE_FLOAT;
+    if (left == TYPE_REAL || right == TYPE_REAL) {
+        return TYPE_REAL;
     }
 
-    return TYPE_INT;
+    // converts num, chr, and bool into num
+    return TYPE_NUM;
 }
