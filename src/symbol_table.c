@@ -110,7 +110,7 @@ DataType get_expression_type(ASTNode* node, SymbolTable* table) {
                     node->data.assignment.target
                 );
                 parser_error(error_msg);
-                return TYPE_VOID;
+                return TYPE_ZIL;
             }
 
             DataType value_type = get_expression_type(node->data.assignment.value, table);
@@ -124,14 +124,14 @@ DataType get_expression_type(ASTNode* node, SymbolTable* table) {
                     type_to_string(symbol->type)
                 );
                 parser_error(error_msg);
-                return TYPE_VOID;
+                return TYPE_ZIL;
             }
 
             return symbol->type;
         }
         default:
             parser_error("Unknown expression type");
-            return TYPE_VOID;
+            return TYPE_ZIL;
     }
 }
 
@@ -169,11 +169,11 @@ bool can_convert_type(DataType from, DataType to) {
             return from == TYPE_CHR || from == TYPE_BOOL;
         case TYPE_BOOL:
             return from == TYPE_NUM || from == TYPE_REAL || from == TYPE_CHR;
-        case TYPE_CHR;
+        case TYPE_CHR:
             return from == TYPE_NUM;
-        case TYPE_STR;
+        case TYPE_STR:
             return false;
-        case TYPE_ZIL;
+        case TYPE_ZIL:
             return false;
         default:
             return false;

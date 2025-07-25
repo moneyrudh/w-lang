@@ -11,17 +11,17 @@
 
 const char* get_c_type_string(DataType type) {
     switch (type) {
-        case TYPE_INT:
+        case TYPE_NUM:
             return "int";
-        case TYPE_FLOAT:
+        case TYPE_REAL:
             return "float";
-        case TYPE_CHAR:
+        case TYPE_CHR:
             return "char";
         case TYPE_BOOL:
             return "bool";
-        case TYPE_STRING:
+        case TYPE_STR:
             return "char*";
-        case TYPE_VOID:
+        case TYPE_ZIL:
             return "void";
         default:
             fprintf(stderr, "Uknown type in code generation\n");
@@ -52,10 +52,16 @@ void generate_log_statement(FILE* output, LogElement* elements, int indent_level
                 Symbol* symbol = lookup_symbol(getSymbolTable(), current->value.string);
                 if (symbol == NULL) {
                     parser_error("Undefined variable in log statement");
-                } else if (symbol->type == TYPE_INT) {
+                } else if (symbol->type == TYPE_NUM) {
                     fprintf(output, "%%d");
-                } else if (symbol->type == TYPE_STRING) {
+                } else if (symbol->type == TYPE_REAL) {
+                    fprintf(output, "%%f");
+                } else if (symbol->type == TYPE_CHR) {
+                    fprintf(output, "%%c");
+                } else if (symbol->type == TYPE_STR) {
                     fprintf(output, "%%s");
+                } else if (symbol->type == TYPE_BOOL) {
+                    fprintf(output, "%%d");
                 } else {
                     parser_error("Invalid type in log statement");
                 }
@@ -213,17 +219,17 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
                 );
             } else {
                 switch (node->data.var_declaration.type) {
-                    case TYPE_INT:
+                    case TYPE_NUM:
                     case TYPE_BOOL:
                         fprintf(output, " = 0");
                         break;
-                    case TYPE_FLOAT:
+                    case TYPE_REAL:
                         fprintf(output, " = 0.0f");
                         break;
-                    case TYPE_CHAR:
+                    case TYPE_CHR:
                         fprintf(output, " = '\\0'");
                         break;
-                    case TYPE_STRING:
+                    case TYPE_STR:
                         fprintf(output, " = NULL");
                         break;
                     default:
@@ -281,7 +287,7 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
         case NODE_RETURN: {
             fprintf(output, "%sreturn ", indent);
             if (node->data.return_statement.expression) {
-                DataType type = get_expression_type(node->data.return_statement.expression, getSymbolTable());
+                // DataType type = get_expression_type(node->data.return_statement.expression, getSymbolTable());
                 generate(output, node->data.return_statement.expression, 0);
             }
             fprintf(output, ";\n");

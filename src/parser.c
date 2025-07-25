@@ -50,7 +50,7 @@ const char* type_to_string(DataType type) {
         case TYPE_REAL: return "real";
         case TYPE_CHR: return "chr";
         case TYPE_BOOL: return "bool";
-        case TYPE_STRING: return "str";
+        case TYPE_STR: return "str";
         case TYPE_ZIL: return "zil";
         default: return "unknown";
     }
@@ -89,7 +89,7 @@ bool is_type_token(TokenType token) {
         || token == CHR
         || token == STR
         || token == BOOL
-        || token == ZIL;
+        || token == ZIL
     );
 }
 
@@ -450,14 +450,14 @@ ASTNode* parse_return_statement() {
                     func_type = TYPE_NUM;
                 } else if (strcmp(parser_state.function_context->current_return_type, "chr") == 0) {
                     func_type = TYPE_CHR;
-                } else if (strcmp(parser_state.function_context->current_return_type, "bool") == 0)}
+                } else if (strcmp(parser_state.function_context->current_return_type, "bool") == 0) {
                     func_type = TYPE_BOOL;
                 } else if (strcmp(parser_state.function_context->current_return_type, "real") == 0) {
                     func_type = TYPE_REAL;
                 } else if (strcmp(parser_state.function_context->current_return_type, "str") == 0) {
                     func_type = TYPE_STR;
                 } else {
-                    func_type = TYPE_VOID;
+                    func_type = TYPE_ZIL;
                 }
 
                 if (expr_type != func_type) {
@@ -466,8 +466,8 @@ ASTNode* parse_return_statement() {
                         "Return type mismatch in function '%s'. Expected %s, got %s",
                         parser_state.function_context->current_name,
                         parser_state.function_context->current_return_type,
-                        expr_type == TYPE_INT ? "int" :
-                        expr_type == TYPE_STRING ? "string" : "unknown");
+                        expr_type == TYPE_NUM ? "int" :
+                        expr_type == TYPE_STR ? "string" : "unknown");
                     parser_error(error_msg);
                 }
             }

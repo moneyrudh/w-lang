@@ -42,6 +42,7 @@ typedef enum {
     ASSIGNMENT,
     LBRACKET,
     RBRACKET,
+    LPAREN,
     RPAREN,
     LBRACE,
     RBRACE,
