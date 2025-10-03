@@ -65,3 +65,23 @@ b(2). fun function_name(): zil;
 III.
 a. int function_name();
 b. fun function_name(): num;
+
+## Hashmap
+
+> 
+dec m: map(num, str) = {
+    2: "two",
+    3: "three",
+}
+
+>
+dec m1: map(num, list(str)) = {}
+
+>
+dec m1: map(num, list(str));
+
+
+## Queue
+
+> 
+dec q: que(str) = ["one", "two", "three"]

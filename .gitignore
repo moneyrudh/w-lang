@@ -1,6 +1,7 @@
 *.md
-transpiler
+/transpiler
 output.c
 commands.txt
 extras/
 .vscode/
+/*.txt
