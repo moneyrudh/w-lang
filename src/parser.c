@@ -350,27 +350,29 @@ ASTNode* parse_log() {
             element->type = NODE_STRING;
             element->value.string = strdup(yylval.string);
             eat(STRING_LITERAL);
+        } else if (token == COMMA) {
+            // Comma adds a space between elements
+            element->type = NODE_STRING;
+            element->value.string = strdup(" ");
+            eat(COMMA);
         } else if (token == PLUS) {
-            if (current->type == NODE_STRING) {
-                element->type = NODE_STRING;
-                element->value.string = strdup(" ");
-                eat(PLUS);
-            }
+            // Plus concatenates without space
+            eat(PLUS);
+            continue; // Don't create an element, just continue to next token
+        } else if (token == IDENTIFIER) {
+            // Handle variable reference
+            element->type = NODE_VARIABLE;
+            element->value.string = strdup(yylval.string);
+            eat(IDENTIFIER);
+        } else if (token == INT_LITERAL) {
+            // Handle number literal
+            element->type = NODE_NUMBER;
+            element->value.number = yylval.number;
+            eat(INT_LITERAL);
         } else {
-            ASTNode* expr = parse_expression();
-            DataType type = get_expression_type(expr, getSymbolTable());
-
-            if (type == TYPE_NUM) {
-                element->type = NODE_NUMBER;
-                element->value.number = expr->data.number.value;
-            } else if (type == TYPE_STR) {
-                element->type = NODE_STRING;
-                element->value.string = strdup(expr->data.string.value);
-            } else {
-                parser_error("Invalid type in log statement");
-            }
-
-            free_ast(expr);
+            parser_error("Invalid token in log statement");
+            free(element);
+            break;
         }
 
         element->next = NULL;

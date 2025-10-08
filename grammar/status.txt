@@ -13,13 +13,6 @@
 8. Variable declarations
 9. Basic expression handling
 
-### Current Focus
-
-#### Fix Existing Bugs
-
-1. String concatenation in log statements - Currently broken (outputs garbage like 2097792 instead of the total variable value)
-2. Log statement parsing - The + operator in log("Total: " + total) isn't being parsed correctly
-
 ## Known Issues
 
 ### Parser Limitations
@@ -80,3 +73,8 @@
 
 10. Implement W Lang map syntax - Allow users to write dec m: map(num, str) = {1: "one"} in W Lang code
 11. Map operations - m.get(), m.put(), m.contains(), etc.
+
+#### Completed
+
+1. String concatenation in log statements - Variables now properly referenced instead of garbage values
+2. Log statement parsing - Both ',' (space separator) and '+' (concatenation) now work correctly in log statements
