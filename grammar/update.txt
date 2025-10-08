@@ -52,7 +52,7 @@ b(1). fun function_name(x: num, w: real): void {
 }
 b(2). fun function_name(x: num, w: real) {
     dec y: num;
-    dec z := 2.0;
+    dec z := 2.0; // there can be no space between : and =, it has to be :=
     dec z: real = 2.0;
     y = x + 1;
 }
@@ -79,6 +79,12 @@ dec m1: map(num, list(str)) = {}
 
 >
 dec m1: map(num, list(str));
+m1[1] = ["a", "b"]
+log(m1[2]) // error
+m1[2] = ["ab"]
+if (m1[1]) {
+    log("Hello World");
+}
 
 
 ## Queue
