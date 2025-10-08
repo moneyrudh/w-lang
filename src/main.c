@@ -8,6 +8,7 @@
 #include "ast.h"
 #include "gen.h"
 #include "parser.h"
+#include "transpiler/type_registry.h"
 
 YYSTYPE yylval;
 TokenType token;
@@ -33,6 +34,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    type_registry_init();
     init_parser();
     yyin = input;
     token = yylex();
@@ -51,6 +53,7 @@ int main(int argc, char* argv[]) {
     fclose(output);
 
     cleanup_parser();
+    type_registry_cleanup();
 
     // if (getParserState().error_count > 0) {
     //     unlink(output_file_name);

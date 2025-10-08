@@ -8,25 +8,10 @@
 #include "ast.h"
 #include "parser.h"
 #include "operator_utils.h"
+#include "transpiler/type_registry.h"
 
 const char* get_c_type_string(DataType type) {
-    switch (type) {
-        case TYPE_NUM:
-            return "int";
-        case TYPE_REAL:
-            return "float";
-        case TYPE_CHR:
-            return "char";
-        case TYPE_BOOL:
-            return "bool";
-        case TYPE_STR:
-            return "char*";
-        case TYPE_ZIL:
-            return "void";
-        default:
-            fprintf(stderr, "Uknown type in code generation\n");
-            exit(1);
-    }
+    return get_c_type_from_enum(type);
 }
 
 void generate_log_statement(FILE* output, LogElement* elements, int indent_level) {
@@ -190,8 +175,11 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
             }
             break;
         }
-        case NODE_FUNCTION:
-            fprintf(output, "%s %s() {\n", node->data.function.return_type, node->data.function.name);
+        case NODE_FUNCTION: {
+            // Convert W Lang return type to C type
+            const TypeMapping* mapping = type_registry_get_by_wlang_name(node->data.function.return_type);
+            const char* c_return_type = mapping ? mapping->c_equivalent : node->data.function.return_type;
+            fprintf(output, "%s %s() {\n", c_return_type, node->data.function.name);
             ASTNode* statement = node->data.function.body;
             while (statement != NULL) {
                 generate(output, statement, indent_level + 1);
@@ -199,6 +187,7 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
             }
             fprintf(output, "}\n");
             break;
+        }
         case NODE_LOG:
             generate_log_statement(output, node->data.log.elements, indent_level);
             break;
@@ -218,22 +207,9 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
                     node->data.var_declaration.type
                 );
             } else {
-                switch (node->data.var_declaration.type) {
-                    case TYPE_NUM:
-                    case TYPE_BOOL:
-                        fprintf(output, " = 0");
-                        break;
-                    case TYPE_REAL:
-                        fprintf(output, " = 0.0f");
-                        break;
-                    case TYPE_CHR:
-                        fprintf(output, " = '\\0'");
-                        break;
-                    case TYPE_STR:
-                        fprintf(output, " = NULL");
-                        break;
-                    default:
-                        break;
+                const char* default_val = get_default_value_from_enum(node->data.var_declaration.type);
+                if (default_val && strlen(default_val) > 0) {
+                    fprintf(output, " = %s", default_val);
                 }
             }
             fprintf(output, ";\n");

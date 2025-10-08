@@ -8,6 +8,7 @@
 #include "types.h"
 #include "ast.h"
 #include "parser.h"
+#include "transpiler/type_registry.h"
 
 ParserState parser_state;
 
@@ -45,41 +46,18 @@ void cleanup_parser() {
 
 // Convert DataType enums to string representations
 const char* type_to_string(DataType type) {
-    switch (type) {
-        case TYPE_NUM: return "num";
-        case TYPE_REAL: return "real";
-        case TYPE_CHR: return "chr";
-        case TYPE_BOOL: return "bool";
-        case TYPE_STR: return "str";
-        case TYPE_ZIL: return "zil";
-        default: return "unknown";
-    }
+    return get_wlang_type_from_enum(type);
 }
 
 // Convert type tokens to their string representations
 const char* token_to_type_string(TokenType token) {
-    switch (token) {
-        case NUM: return "num";
-        case REAL: return "real";
-        case CHR: return "chr";
-        case STR: return "str";
-        case BOOL: return "bool";
-        case ZIL: return "zil";
-        default: return NULL;
-    }
+    const TypeMapping* mapping = type_registry_get_by_token(token);
+    return mapping ? mapping->w_lang_name : NULL;
 }
 
 // Convert type tokens to DataType enum values
 DataType token_to_data_type(TokenType token) {
-    switch (token) {
-        case NUM: return TYPE_NUM;
-        case REAL: return TYPE_REAL;
-        case CHR: return TYPE_CHR;
-        case STR: return TYPE_STR;
-        case BOOL: return TYPE_BOOL;
-        case ZIL: return TYPE_ZIL;
-        default: return TYPE_ZIL;
-    }
+    return convert_token_to_data_type(token);
 }
 
 bool is_type_token(TokenType token) {
@@ -643,10 +621,13 @@ ASTNode* parse_function() {
         if (parser_state.function_context->return_value_required &&
             !parser_state.function_context->has_return) {
             char error_msg[200];
-            snprintf(error_msg, sizeof(error_msg),
+            snprintf(
+                error_msg, 
+                sizeof(error_msg),
                 "Function '%s' with return type '%s' must return a value",
                 name,
-                return_type);
+                return_type
+            );
             parser_error(error_msg);
         }
     }
