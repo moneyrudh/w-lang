@@ -34,7 +34,7 @@ ASTNode* create_program_node(SourceLocation loc) {
     return node;
 }
 
-ASTNode* create_function_node(char* return_type, char* name, ASTNode* body, int has_return, SourceLocation loc) {
+ASTNode* create_function_node(char* return_type, char* name, Parameter* parameters, int param_count, ASTNode* body, int has_return, SourceLocation loc) {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (!node) {
         parser_error("Memory allocation failed");
@@ -44,6 +44,8 @@ ASTNode* create_function_node(char* return_type, char* name, ASTNode* body, int 
     set_node_location(node, loc);
     node->data.function.return_type = return_type;
     node->data.function.name = name;
+    node->data.function.parameters = parameters;
+    node->data.function.param_count = param_count;
     node->data.function.body = body;
     node->data.function.has_return = has_return;
     node->next = NULL;
@@ -315,11 +317,20 @@ void free_ast(ASTNode* node) {
                 free_ast(node->data.program.functions);
                 free_ast(node->data.program.globals);
                 break;
-            case NODE_FUNCTION:
+            case NODE_FUNCTION: {
                 free(node->data.function.return_type);
                 free(node->data.function.name);
+                // Free parameters
+                Parameter* param = node->data.function.parameters;
+                while (param != NULL) {
+                    Parameter* next = param->next;
+                    free(param->name);
+                    free(param);
+                    param = next;
+                }
                 free_ast(node->data.function.body);
                 break;
+            }
             case NODE_FUNCTION_CALL:
                 free(node->data.function_call.name);
                 if (node->data.function_call.args) {
