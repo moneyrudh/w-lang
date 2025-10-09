@@ -30,7 +30,7 @@ void create_function_table() {
 bool add_function(FunctionTable* table, const char* name, DataType return_type) {
     if (!table) return false;
 
-    // Check if function already exists
+    // check if function already exists
     FunctionSymbol* current = table->head;
     while (current != NULL) {
         if (strcmp(current->name, name) == 0) {
@@ -39,7 +39,7 @@ bool add_function(FunctionTable* table, const char* name, DataType return_type) 
         current = current->next;
     }
 
-    // Create new function symbol
+    // create new function symbol
     FunctionSymbol* func = malloc(sizeof(FunctionSymbol));
     if (!func) return false;
 

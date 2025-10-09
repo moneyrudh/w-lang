@@ -86,27 +86,27 @@ ASTNode* create_log_node(LogElement* elements) {
 }
 
 ASTNode* create_assignment_node(char* target, ASTNode* value, SourceLocation loc) {
-    // First, validate our inputs
+    // first, validate our inputs
     if (!target || !value) {
         parser_error("Invalid assignment: missing target or value");
         return NULL;
     }
 
-    // Create and initialize the node
+    // create and initialize the node
     ASTNode* node = malloc(sizeof(ASTNode));
     if (!node) {
         parser_error("Memory allocation failed for assignment node");
         return NULL;
     }
 
-    // Set up the node's basic properties
+    // set up the node's basic properties
     node->type = NODE_ASSIGNMENT;
     node->location = loc;
-    
-    // Initialize the base expression
+
+    // initialize the base expression
     init_expression(&node->data.assignment.base, NODE_ASSIGNMENT, loc);
 
-    // Set up the assignment-specific data
+    // set up the assignment-specific data
     node->data.assignment.target = strdup(target);  // Make a copy of the target name
     if (!node->data.assignment.target) {
         parser_error("Memory allocation failed for assignment target");
@@ -117,10 +117,10 @@ ASTNode* create_assignment_node(char* target, ASTNode* value, SourceLocation loc
     node->data.assignment.value = value;
     node->next = NULL;
 
-    // The type of an assignment expression is the type of its value
+    // the type of an assignment expression is the type of its value
     node->data.assignment.base.expr_type = get_expression_type(value, getSymbolTable());
 
-    // Verify that the target exists in the symbol table
+    // verify that the target exists in the symbol table
     Symbol* symbol = lookup_symbol(getSymbolTable(), target);
     if (!symbol) {
         char error_msg[100];
@@ -132,7 +132,7 @@ ASTNode* create_assignment_node(char* target, ASTNode* value, SourceLocation loc
         return NULL;
     }
 
-    // Check type compatibility
+    // check type compatibility
     if (!compare_types(symbol->type, node->data.assignment.base.expr_type)) {
         char error_msg[100];
         snprintf(error_msg, sizeof(error_msg),
@@ -216,12 +216,12 @@ ASTNode* create_float_node(double value, SourceLocation loc) {
     
     node->type = NODE_FLOAT;
     node->location = loc;
-    
-    // Initialize the base expression fields
+
+    // initialize the base expression fields
     init_expression(&node->data.float_val.base, NODE_FLOAT, loc);
     node->data.float_val.base.expr_type = TYPE_REAL;
-    
-    // Set the value
+
+    // set the value
     node->data.float_val.value = value;
     node->next = NULL;
     
@@ -237,12 +237,12 @@ ASTNode* create_char_node(char value, SourceLocation loc) {
     
     node->type = NODE_CHAR;
     node->location = loc;
-    
-    // Initialize the base expression fields
+
+    // initialize the base expression fields
     init_expression(&node->data.char_val.base, NODE_CHAR, loc);
     node->data.char_val.base.expr_type = TYPE_CHR;
-    
-    // Set the value
+
+    // set the value
     node->data.char_val.value = value;
     node->next = NULL;
     
@@ -258,12 +258,12 @@ ASTNode* create_bool_node(bool value, SourceLocation loc) {
     
     node->type = NODE_BOOL;
     node->location = loc;
-    
-    // Initialize the base expression fields
+
+    // initialize the base expression fields
     init_expression(&node->data.bool_val.base, NODE_BOOL, loc);
     node->data.bool_val.base.expr_type = TYPE_BOOL;
-    
-    // Set the value
+
+    // set the value
     node->data.bool_val.value = value;
     node->next = NULL;
     
@@ -320,7 +320,7 @@ void free_ast(ASTNode* node) {
             case NODE_FUNCTION: {
                 free(node->data.function.return_type);
                 free(node->data.function.name);
-                // Free parameters
+                // free parameters
                 Parameter* param = node->data.function.parameters;
                 while (param != NULL) {
                     Parameter* next = param->next;

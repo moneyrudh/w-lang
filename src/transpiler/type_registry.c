@@ -2,13 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Global type registry maps
+// global type registry maps
 static Map* enum_to_mapping = NULL;     // DataType -> TypeMapping*
 static Map* token_to_mapping = NULL;    // TokenType -> TypeMapping*
 static Map* wlang_to_mapping = NULL;    // const char* -> TypeMapping*
 static Map* c_to_mapping = NULL;        // const char* -> TypeMapping*
 
-// Static type mapping table
+// static type mapping table
 static TypeMapping type_mappings[] = {
     // enum_value,  token_value, w_lang_name, c_equivalent, format_spec, default_value
     {TYPE_NUM,      NUM,         "num",       "int",        "%d",        "0"},
@@ -21,20 +21,20 @@ static TypeMapping type_mappings[] = {
 
 static const size_t num_type_mappings = sizeof(type_mappings) / sizeof(type_mappings[0]);
 
-// ==================== Initialization & Cleanup ====================
+// ==================== initialization & cleanup ====================
 
 void type_registry_init(void) {
-    // Avoid double initialization
+    // avoid double initialization
     if (enum_to_mapping != NULL) {
         return;
     }
 
-    // Create maps with appropriate configurations
+    // create maps with appropriate configurations
     MapConfig enum_config = {
         .hash = hash_int,
         .key_equal = key_equal_int,
-        .key_copy = NULL,           // Store enum values directly
-        .value_copy = NULL,         // Store pointers to static data
+        .key_copy = NULL,           // store enum values directly
+        .value_copy = NULL,         // store pointers to static data
         .key_free = NULL,
         .value_free = NULL
     };
@@ -51,8 +51,8 @@ void type_registry_init(void) {
     MapConfig string_config = {
         .hash = hash_string,
         .key_equal = key_equal_string,
-        .key_copy = NULL,           // Store pointers to static strings
-        .value_copy = NULL,         // Store pointers to static data
+        .key_copy = NULL,           // store pointers to static strings
+        .value_copy = NULL,         // store pointers to static data
         .key_free = NULL,
         .value_free = NULL
     };
@@ -62,7 +62,7 @@ void type_registry_init(void) {
     wlang_to_mapping = map_create(16, string_config);
     c_to_mapping = map_create(16, string_config);
 
-    // Populate all maps
+    // populate all maps
     for (size_t i = 0; i < num_type_mappings; i++) {
         TypeMapping* mapping = &type_mappings[i];
 
@@ -103,7 +103,7 @@ void type_registry_cleanup(void) {
     }
 }
 
-// ==================== Lookup Functions ====================
+// ==================== lookup functions ====================
 
 const TypeMapping* type_registry_get_by_enum(DataType type) {
     if (!enum_to_mapping) return NULL;
@@ -125,7 +125,7 @@ const TypeMapping* type_registry_get_by_c_name(const char* name) {
     return (const TypeMapping*)map_get(c_to_mapping, (void*)name);
 }
 
-// ==================== Convenience Functions ====================
+// ==================== convenience functions ====================
 
 const char* get_c_type_from_enum(DataType type) {
     const TypeMapping* mapping = type_registry_get_by_enum(type);

@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-// ==================== Map Creation ====================
+// ==================== map creation ====================
 
 Map* wlang_map_create_num_num(void) {
     MapConfig config = {
         .hash = hash_int,
         .key_equal = key_equal_int,
-        .key_copy = NULL,        // Integers stored as values
-        .value_copy = NULL,      // Integers stored as values
+        .key_copy = NULL,        // integers stored as values
+        .value_copy = NULL,      // integers stored as values
         .key_free = NULL,
         .value_free = NULL
     };
@@ -20,8 +20,8 @@ Map* wlang_map_create_num_str(void) {
     MapConfig config = {
         .hash = hash_int,
         .key_equal = key_equal_int,
-        .key_copy = NULL,        // Integers stored as values
-        .value_copy = value_copy_string,  // Deep copy strings
+        .key_copy = NULL,        // integers stored as values
+        .value_copy = value_copy_string,  // deep copy strings
         .key_free = NULL,
         .value_free = value_free_string
     };
@@ -32,8 +32,8 @@ Map* wlang_map_create_str_num(void) {
     MapConfig config = {
         .hash = hash_string,
         .key_equal = key_equal_string,
-        .key_copy = key_copy_string,  // Deep copy strings
-        .value_copy = NULL,           // Integers stored as values
+        .key_copy = key_copy_string,  // deep copy strings
+        .value_copy = NULL,           // integers stored as values
         .key_free = key_free_string,
         .value_free = NULL
     };
@@ -44,8 +44,8 @@ Map* wlang_map_create_str_str(void) {
     MapConfig config = {
         .hash = hash_string,
         .key_equal = key_equal_string,
-        .key_copy = key_copy_string,   // Deep copy strings
-        .value_copy = value_copy_string, // Deep copy strings
+        .key_copy = key_copy_string,   // deep copy strings
+        .value_copy = value_copy_string, // deep copy strings
         .key_free = key_free_string,
         .value_free = value_free_string
     };
@@ -56,7 +56,7 @@ Map* wlang_map_create_real_real(void) {
     MapConfig config = {
         .hash = hash_float,
         .key_equal = key_equal_float,
-        .key_copy = NULL,        // Floats stored as pointers to heap-allocated values
+        .key_copy = NULL,        // floats stored as pointers to heap-allocated values
         .value_copy = NULL,
         .key_free = NULL,
         .value_free = NULL
@@ -88,7 +88,7 @@ Map* wlang_map_create_chr_num(void) {
     return map_create(16, config);
 }
 
-// ==================== Put Operations ====================
+// ==================== put operations ====================
 
 bool wlang_map_put_num_num(Map* map, int key, int value) {
     return map_put(map, (void*)(intptr_t)key, (void*)(intptr_t)value);
@@ -107,7 +107,7 @@ bool wlang_map_put_str_str(Map* map, const char* key, const char* value) {
 }
 
 bool wlang_map_put_real_real(Map* map, float key, float value) {
-    // Allocate heap memory for float keys and values
+    // allocate heap memory for float keys and values
     float* key_ptr = malloc(sizeof(float));
     float* value_ptr = malloc(sizeof(float));
     if (!key_ptr || !value_ptr) {
@@ -131,7 +131,7 @@ bool wlang_map_put_chr_num(Map* map, char key, int value) {
     return map_put(map, (void*)(intptr_t)key, (void*)(intptr_t)value);
 }
 
-// ==================== Get Operations ====================
+// ==================== get operations ====================
 
 int wlang_map_get_num_num(Map* map, int key, int default_value) {
     void* result = map_get(map, (void*)(intptr_t)key);
@@ -168,7 +168,7 @@ int wlang_map_get_chr_num(Map* map, char key, int default_value) {
     return result ? (int)(intptr_t)result : default_value;
 }
 
-// ==================== Contains Operations ====================
+// ==================== contains operations ====================
 
 bool wlang_map_contains_num(Map* map, int key) {
     return map_contains(map, (void*)(intptr_t)key);
@@ -186,7 +186,7 @@ bool wlang_map_contains_chr(Map* map, char key) {
     return map_contains(map, (void*)(intptr_t)key);
 }
 
-// ==================== Remove Operations ====================
+// ==================== remove operations ====================
 
 bool wlang_map_remove_num(Map* map, int key) {
     return map_remove(map, (void*)(intptr_t)key);
@@ -204,7 +204,7 @@ bool wlang_map_remove_chr(Map* map, char key) {
     return map_remove(map, (void*)(intptr_t)key);
 }
 
-// ==================== Generic Map Operations ====================
+// ==================== generic map operations ====================
 
 size_t wlang_map_size(Map* map) {
     return map_size(map);

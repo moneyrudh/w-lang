@@ -62,7 +62,7 @@ typedef struct ASTNode {
         struct {
             Expression base;
             char* name;
-            struct ASTNode** args;    // Array of argument expressions
+            struct ASTNode** args;    // array of argument expressions
             int arg_count;
         } function_call;
         struct {

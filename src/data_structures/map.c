@@ -8,7 +8,7 @@
 #define DEFAULT_LOAD_FACTOR 0.75f
 #define MIN_CAPACITY 8
 
-// ==================== Internal Helper Functions ====================
+// ==================== internal helper functions ====================
 
 static size_t get_bucket_index(const Map* map, const void* key) {
     unsigned long hash = map->config.hash(key);
@@ -17,14 +17,14 @@ static size_t get_bucket_index(const Map* map, const void* key) {
 
 static void map_resize(Map* map, size_t new_capacity);
 
-// ==================== Core API Implementation ====================
+// ==================== core API implementation ====================
 
 Map* map_create(size_t initial_capacity, MapConfig config) {
     if (initial_capacity < MIN_CAPACITY) {
         initial_capacity = MIN_CAPACITY;
     }
 
-    // Must have hash and equality functions
+    // must have hash and equality functions
     assert(config.hash != NULL);
     assert(config.key_equal != NULL);
 
@@ -48,7 +48,7 @@ Map* map_create(size_t initial_capacity, MapConfig config) {
 bool map_put(Map* map, void* key, void* value) {
     if (!map) return false;
 
-    // Check if resize needed
+    // check if resize needed
     if ((float)map->size / map->bucket_count > map->load_factor) {
         map_resize(map, map->bucket_count * 2);
     }
@@ -56,10 +56,10 @@ bool map_put(Map* map, void* key, void* value) {
     size_t bucket_idx = get_bucket_index(map, key);
     MapEntry* entry = map->buckets[bucket_idx];
 
-    // Check if key exists (update case)
+    // check if key exists (update case)
     while (entry) {
         if (map->config.key_equal(entry->key, key)) {
-            // Update existing entry
+            // update existing entry
             void* new_value = map->config.value_copy
                 ? map->config.value_copy(value)
                 : value;
@@ -73,7 +73,7 @@ bool map_put(Map* map, void* key, void* value) {
         entry = entry->next;
     }
 
-    // Create new entry
+    // create new entry
     MapEntry* new_entry = malloc(sizeof(MapEntry));
     if (!new_entry) return false;
 
@@ -119,14 +119,14 @@ bool map_remove(Map* map, const void* key) {
 
     while (entry) {
         if (map->config.key_equal(entry->key, key)) {
-            // Found it, remove it
+            // found it, remove it
             if (prev) {
                 prev->next = entry->next;
             } else {
                 map->buckets[bucket_idx] = entry->next;
             }
 
-            // Free key and value if free functions provided
+            // free key and value if free functions provided
             if (map->config.key_free) {
                 map->config.key_free(entry->key);
             }
@@ -191,7 +191,7 @@ static void map_resize(Map* map, size_t new_capacity) {
     MapEntry** old_buckets = map->buckets;
     size_t old_capacity = map->bucket_count;
 
-    // Allocate new buckets
+    // allocate new buckets
     map->buckets = calloc(new_capacity, sizeof(MapEntry*));
     if (!map->buckets) {
         map->buckets = old_buckets;  // Restore on failure
@@ -201,13 +201,13 @@ static void map_resize(Map* map, size_t new_capacity) {
     map->bucket_count = new_capacity;
     map->size = 0;
 
-    // Rehash all entries
+    // rehash all entries
     for (size_t i = 0; i < old_capacity; i++) {
         MapEntry* entry = old_buckets[i];
         while (entry) {
             MapEntry* next = entry->next;
 
-            // Reinsert into new buckets
+            // reinsert into new buckets
             size_t new_idx = get_bucket_index(map, entry->key);
             entry->next = map->buckets[new_idx];
             map->buckets[new_idx] = entry;
@@ -220,7 +220,7 @@ static void map_resize(Map* map, size_t new_capacity) {
     free(old_buckets);
 }
 
-// ==================== Iteration API Implementation ====================
+// ==================== iteration API implementation ====================
 
 MapIterator map_iterator(const Map* map) {
     MapIterator iter = {
@@ -230,7 +230,7 @@ MapIterator map_iterator(const Map* map) {
     };
 
     if (map && map->bucket_count > 0) {
-        // Find first non-empty bucket
+        // find first non-empty bucket
         for (size_t i = 0; i < map->bucket_count; i++) {
             if (map->buckets[i]) {
                 iter.bucket_index = i;
@@ -250,15 +250,15 @@ bool map_iterator_has_next(MapIterator* iter) {
 bool map_iterator_next(MapIterator* iter, void** key_out, void** value_out) {
     if (!iter || !iter->current_entry) return false;
 
-    // Return current entry
+    // return current entry
     if (key_out) *key_out = iter->current_entry->key;
     if (value_out) *value_out = iter->current_entry->value;
 
-    // Advance to next entry
+    // advance to next entry
     if (iter->current_entry->next) {
         iter->current_entry = iter->current_entry->next;
     } else {
-        // Find next non-empty bucket
+        // find next non-empty bucket
         iter->current_entry = NULL;
         for (size_t i = iter->bucket_index + 1; i < iter->map->bucket_count; i++) {
             if (iter->map->buckets[i]) {
@@ -272,11 +272,11 @@ bool map_iterator_next(MapIterator* iter, void** key_out, void** value_out) {
     return true;
 }
 
-// ==================== Built-in Hash Functions ====================
+// ==================== built-in hash functions ====================
 
 unsigned long hash_int(const void* key) {
     unsigned long k = (unsigned long)(intptr_t)key;
-    // Wang's integer hash
+    // wang's integer hash
     k = (k ^ 61) ^ (k >> 16);
     k = k + (k << 3);
     k = k ^ (k >> 4);
@@ -287,7 +287,7 @@ unsigned long hash_int(const void* key) {
 
 unsigned long hash_float(const void* key) {
     float f = *(float*)key;
-    // Hash the bit pattern of the float
+    // hash the bit pattern of the float
     unsigned int bits;
     memcpy(&bits, &f, sizeof(float));
     return hash_int((void*)(intptr_t)bits);
@@ -314,7 +314,7 @@ unsigned long hash_pointer(const void* key) {
     return (unsigned long)(uintptr_t)key;
 }
 
-// ==================== Built-in Equality Functions ====================
+// ==================== built-in equality functions ====================
 
 bool key_equal_int(const void* k1, const void* k2) {
     return (intptr_t)k1 == (intptr_t)k2;
@@ -323,7 +323,7 @@ bool key_equal_int(const void* k1, const void* k2) {
 bool key_equal_float(const void* k1, const void* k2) {
     float f1 = *(float*)k1;
     float f2 = *(float*)k2;
-    // Use small epsilon for floating point comparison
+    // use small epsilon for floating point comparison
     return fabsf(f1 - f2) < 1e-6f;
 }
 
@@ -339,7 +339,7 @@ bool key_equal_pointer(const void* k1, const void* k2) {
     return k1 == k2;
 }
 
-// ==================== Built-in Copy Functions ====================
+// ==================== built-in copy functions ====================
 
 void* key_copy_string(const void* key) {
     if (!key) return NULL;
@@ -351,7 +351,7 @@ void* value_copy_string(const void* value) {
     return strdup((const char*)value);
 }
 
-// ==================== Built-in Free Functions ====================
+// ==================== built-in free functions ====================
 
 void key_free_string(void* key) {
     free(key);

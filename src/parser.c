@@ -46,18 +46,18 @@ void cleanup_parser() {
     cleanup_parser_state();
 }
 
-// Convert DataType enums to string representations
+// convert DataType enums to string representations
 const char* type_to_string(DataType type) {
     return get_wlang_type_from_enum(type);
 }
 
-// Convert type tokens to their string representations
+// convert type tokens to their string representations
 const char* token_to_type_string(TokenType token) {
     const TypeMapping* mapping = type_registry_get_by_token(token);
     return mapping ? mapping->w_lang_name : NULL;
 }
 
-// Convert type tokens to DataType enum values
+// convert type tokens to DataType enum values
 DataType token_to_data_type(TokenType token) {
     return convert_token_to_data_type(token);
 }
@@ -310,13 +310,13 @@ ASTNode* parse_variable_declaration() {
     SourceLocation loc = {yylineno, 0, NULL};
     bool has_dec_keyword = false;
 
-    // Check if this is a dec declared variable
+    // check if this is a dec declared variable
     if (token == DEC) {
         has_dec_keyword = true;
         eat(DEC);
     }
 
-    // Parse variable name
+    // parse variable name
     if (token != IDENTIFIER) {
         parser_error("Expected identifier in variable declaration");
         return NULL;
@@ -325,7 +325,7 @@ ASTNode* parse_variable_declaration() {
     char* var_name = strdup(yylval.string);
     eat(IDENTIFIER);
 
-    // Expect colon for type annotation
+    // expect colon for type annotation
     if (token != COLON) {
         parser_error("Expected ':' after variable name in declaration");
         free(var_name);
@@ -395,21 +395,21 @@ ASTNode* parse_log() {
             element->value.string = strdup(yylval.string);
             eat(STRING_LITERAL);
         } else if (token == COMMA) {
-            // Comma adds a space between elements
+            // comma adds a space between elements
             element->type = NODE_STRING;
             element->value.string = strdup(" ");
             eat(COMMA);
         } else if (token == PLUS) {
-            // Plus concatenates without space
+            // plus concatenates without space
             eat(PLUS);
             continue; // Don't create an element, just continue to next token
         } else if (token == IDENTIFIER) {
-            // Handle variable reference
+            // handle variable reference
             element->type = NODE_VARIABLE;
             element->value.string = strdup(yylval.string);
             eat(IDENTIFIER);
         } else if (token == INT_LITERAL) {
-            // Handle number literal
+            // handle number literal
             element->type = NODE_NUMBER;
             element->value.number = yylval.number;
             eat(INT_LITERAL);
@@ -510,13 +510,13 @@ Parameter* parse_parameter_list(int* param_count) {
     Parameter* tail = NULL;
     *param_count = 0;
 
-    // If next token is RPAREN, no parameters
+    // if next token is RPAREN, no parameters
     if (token == RPAREN) {
         return NULL;
     }
 
     while (1) {
-        // Expect parameter name
+        // expect parameter name
         if (token != IDENTIFIER) {
             parser_error("Expected parameter name");
             return head;
@@ -525,7 +525,7 @@ Parameter* parse_parameter_list(int* param_count) {
         char* param_name = strdup(yylval.string);
         eat(IDENTIFIER);
 
-        // Expect colon
+        // expect colon
         if (token != COLON) {
             parser_error("Expected ':' after parameter name");
             free(param_name);
@@ -533,10 +533,10 @@ Parameter* parse_parameter_list(int* param_count) {
         }
         eat(COLON);
 
-        // Parse parameter type
+        // parse parameter type
         DataType param_type = parse_type_specifier();
 
-        // Create parameter node
+        // create parameter node
         Parameter* param = malloc(sizeof(Parameter));
         if (!param) {
             parser_error("Memory allocation failed for parameter");
@@ -547,14 +547,14 @@ Parameter* parse_parameter_list(int* param_count) {
         param->type = param_type;
         param->next = NULL;
 
-        // Add to symbol table
+        // add to symbol table
         if (!add_symbol(getSymbolTable(), param_name, param_type)) {
             parser_error("Duplicate parameter name");
             free(param);
             return head;
         }
 
-        // Add to linked list
+        // add to linked list
         if (head == NULL) {
             head = param;
             tail = param;
@@ -564,7 +564,7 @@ Parameter* parse_parameter_list(int* param_count) {
         }
         (*param_count)++;
 
-        // Check for comma (more parameters) or closing paren
+        // check for comma (more parameters) or closing paren
         if (token == COMMA) {
             eat(COMMA);
             continue;
@@ -686,7 +686,7 @@ ASTNode* parse_function() {
 
     char* name = strdup(yylval.string);
     // printf("Function name: %s\n", name);
-    // Eat "main" or identifier
+    // eat "main" or identifier
     eat(token);
     eat(LPAREN);
 
