@@ -153,8 +153,8 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
 
     switch (node->type) {
         case NODE_PROGRAM: {
-            fprintf(output, "#include <stdio.h>\n\n");
-            fprintf(output, "#include <stdbool.h>\n\n");
+            fprintf(output, "#include <stdio.h>\n");
+            fprintf(output, "#include <stdbool.h>\n");
             fprintf(output, "#include <string.h>\n\n");
 
             if (node->data.program.globals) {
@@ -176,10 +176,32 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
             break;
         }
         case NODE_FUNCTION: {
-            // Convert W Lang return type to C type
+            // convert W Lang return type to C type
             const TypeMapping* mapping = type_registry_get_by_wlang_name(node->data.function.return_type);
             const char* c_return_type = mapping ? mapping->c_equivalent : node->data.function.return_type;
-            fprintf(output, "%s %s() {\n", c_return_type, node->data.function.name);
+
+            // generate function signature
+            fprintf(output, "%s %s(", c_return_type, node->data.function.name);
+
+            // generate parameters
+            if (node->data.function.param_count == 0) {
+                fprintf(output, "void");
+            } else {
+                Parameter* param = node->data.function.parameters;
+                int first = 1;
+                while (param != NULL) {
+                    if (!first) {
+                        fprintf(output, ", ");
+                    }
+                    fprintf(output, "%s %s", get_c_type_string(param->type), param->name);
+                    first = 0;
+                    param = param->next;
+                }
+            }
+
+            fprintf(output, ") {\n");
+
+            // generate function body
             ASTNode* statement = node->data.function.body;
             while (statement != NULL) {
                 generate(output, statement, indent_level + 1);
@@ -267,6 +289,27 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
                 generate(output, node->data.return_statement.expression, 0);
             }
             fprintf(output, ";\n");
+            break;
+        }
+        case NODE_FUNCTION_CALL: {
+            // if this is at indent_level > 0, it's a statement, so add indent and semicolon
+            // if indent_level == 0, it's an expression within another expression
+            if (indent_level > 0) {
+                fprintf(output, "%s", indent);
+            }
+
+            fprintf(output, "%s(", node->data.function_call.name);
+            for (int i = 0; i < node->data.function_call.arg_count; i++) {
+                if (i > 0) {
+                    fprintf(output, ", ");
+                }
+                generate(output, node->data.function_call.args[i], 0);
+            }
+            fprintf(output, ")");
+
+            if (indent_level > 0) {
+                fprintf(output, ";\n");
+            }
             break;
         }
         default:
