@@ -6,6 +6,7 @@
 #include "operator_utils.h"
 
 SymbolTable* symbol_table;
+FunctionTable* function_table;
 
 SymbolTable* getSymbolTable(void) {
     return symbol_table;
@@ -15,6 +16,65 @@ void create_symbol_table() {
     symbol_table = malloc(sizeof(SymbolTable));
     symbol_table->head = NULL;
     return;
+}
+
+FunctionTable* getFunctionTable(void) {
+    return function_table;
+}
+
+void create_function_table() {
+    function_table = malloc(sizeof(FunctionTable));
+    function_table->head = NULL;
+}
+
+bool add_function(FunctionTable* table, const char* name, DataType return_type) {
+    if (!table) return false;
+
+    // Check if function already exists
+    FunctionSymbol* current = table->head;
+    while (current != NULL) {
+        if (strcmp(current->name, name) == 0) {
+            return false;  // Function already declared
+        }
+        current = current->next;
+    }
+
+    // Create new function symbol
+    FunctionSymbol* func = malloc(sizeof(FunctionSymbol));
+    if (!func) return false;
+
+    func->name = strdup(name);
+    func->return_type = return_type;
+    func->next = table->head;
+    table->head = func;
+    return true;
+}
+
+FunctionSymbol* lookup_function(FunctionTable* table, const char* name) {
+    if (!table) return NULL;
+
+    FunctionSymbol* current = table->head;
+    while (current != NULL) {
+        if (strcmp(current->name, name) == 0) {
+            return current;
+        }
+        current = current->next;
+    }
+    return NULL;
+}
+
+void free_function_table(void) {
+    if (!function_table) return;
+
+    FunctionSymbol* current = function_table->head;
+    while (current != NULL) {
+        FunctionSymbol* next = current->next;
+        free(current->name);
+        free(current);
+        current = next;
+    }
+    free(function_table);
+    function_table = NULL;
 }
 
 void free_symbol_table(void) {
@@ -117,7 +177,7 @@ DataType get_expression_type(ASTNode* node, SymbolTable* table) {
             if (!can_convert_type(value_type, symbol->type)) {
                 char error_msg[100];
                 snprintf(
-                    error_msg, 
+                    error_msg,
                     sizeof(error_msg),
                     "Cannot assign %s to %s",
                     type_to_string(value_type),
@@ -128,6 +188,21 @@ DataType get_expression_type(ASTNode* node, SymbolTable* table) {
             }
 
             return symbol->type;
+        }
+        case NODE_FUNCTION_CALL: {
+            FunctionSymbol* func = lookup_function(getFunctionTable(), node->data.function_call.name);
+            if (!func) {
+                char error_msg[100];
+                snprintf(
+                    error_msg,
+                    sizeof(error_msg),
+                    "Undefined function: '%s'",
+                    node->data.function_call.name
+                );
+                parser_error(error_msg);
+                return TYPE_ZIL;
+            }
+            return func->return_type;
         }
         default:
             parser_error("Unknown expression type");
