@@ -27,6 +27,7 @@ void init_parser_state() {
 
 void init_parser() {
     create_symbol_table();
+    create_function_table();
     init_parser_state();
 }
 
@@ -41,6 +42,7 @@ void cleanup_parser_state() {
 
 void cleanup_parser() {
     free_symbol_table();
+    free_function_table();
     cleanup_parser_state();
 }
 
@@ -212,9 +214,51 @@ ASTNode* parse_factor() {
             }
         case IDENTIFIER:
             {
-                ASTNode* node = create_variable_node(yylval.string, loc);
+                char* name = strdup(yylval.string);
                 eat(IDENTIFIER);
-                return node;
+
+                // check if this is a function call
+                if (token == LPAREN) {
+                    eat(LPAREN);
+
+                    // parse arguments
+                    ASTNode** args = NULL;
+                    int arg_count = 0;
+                    int arg_capacity = 4;
+
+                    if (token != RPAREN) {
+                        args = malloc(sizeof(ASTNode*) * arg_capacity);
+
+                        while (1) {
+                            if (arg_count >= arg_capacity) {
+                                arg_capacity *= 2;
+                                args = realloc(args, sizeof(ASTNode*) * arg_capacity);
+                            }
+
+                            args[arg_count++] = parse_expression();
+
+                            if (token == COMMA) {
+                                eat(COMMA);
+                            } else if (token == RPAREN) {
+                                break;
+                            } else {
+                                parser_error("Expected ',' or ')' in function call");
+                                break;
+                            }
+                        }
+                    }
+
+                    eat(RPAREN);
+                    ASTNode* node = create_function_call_node(name, args, arg_count, loc);
+                    free(name);
+                    if (args) free(args);
+                    return node;
+                } else {
+                    // just a variable reference
+                    ASTNode* node = create_variable_node(name, loc);
+                    free(name);
+                    return node;
+                }
             }
         case LPAREN:
             {
@@ -461,6 +505,80 @@ ASTNode* parse_return_statement() {
     return node;
 }
 
+Parameter* parse_parameter_list(int* param_count) {
+    Parameter* head = NULL;
+    Parameter* tail = NULL;
+    *param_count = 0;
+
+    // If next token is RPAREN, no parameters
+    if (token == RPAREN) {
+        return NULL;
+    }
+
+    while (1) {
+        // Expect parameter name
+        if (token != IDENTIFIER) {
+            parser_error("Expected parameter name");
+            return head;
+        }
+
+        char* param_name = strdup(yylval.string);
+        eat(IDENTIFIER);
+
+        // Expect colon
+        if (token != COLON) {
+            parser_error("Expected ':' after parameter name");
+            free(param_name);
+            return head;
+        }
+        eat(COLON);
+
+        // Parse parameter type
+        DataType param_type = parse_type_specifier();
+
+        // Create parameter node
+        Parameter* param = malloc(sizeof(Parameter));
+        if (!param) {
+            parser_error("Memory allocation failed for parameter");
+            free(param_name);
+            return head;
+        }
+        param->name = param_name;
+        param->type = param_type;
+        param->next = NULL;
+
+        // Add to symbol table
+        if (!add_symbol(getSymbolTable(), param_name, param_type)) {
+            parser_error("Duplicate parameter name");
+            free(param);
+            return head;
+        }
+
+        // Add to linked list
+        if (head == NULL) {
+            head = param;
+            tail = param;
+        } else {
+            tail->next = param;
+            tail = param;
+        }
+        (*param_count)++;
+
+        // Check for comma (more parameters) or closing paren
+        if (token == COMMA) {
+            eat(COMMA);
+            continue;
+        } else if (token == RPAREN) {
+            break;
+        } else {
+            parser_error("Expected ',' or ')' after parameter");
+            break;
+        }
+    }
+
+    return head;
+}
+
 ASTNode* parse_statement() {
     SourceLocation loc = {yylineno, 0, NULL};
     switch (token) {
@@ -498,14 +616,46 @@ ASTNode* parse_statement() {
                 eat(ASSIGNMENT);
                 ASTNode* value = parse_expression();
                 eat(SEMICOLON);
-                return create_assignment_node(name, value, loc);
+                ASTNode* node = create_assignment_node(name, value, loc);
+                free(name);
+                return node;
             } else if (token == LPAREN) {
                 // handle function call
                 eat(LPAREN);
+
                 // parse arguments
+                ASTNode** args = NULL;
+                int arg_count = 0;
+                int arg_capacity = 4;
+
+                if (token != RPAREN) {
+                    args = malloc(sizeof(ASTNode*) * arg_capacity);
+
+                    while (1) {
+                        if (arg_count >= arg_capacity) {
+                            arg_capacity *= 2;
+                            args = realloc(args, sizeof(ASTNode*) * arg_capacity);
+                        }
+
+                        args[arg_count++] = parse_expression();
+
+                        if (token == COMMA) {
+                            eat(COMMA);
+                        } else if (token == RPAREN) {
+                            break;
+                        } else {
+                            parser_error("Expected ',' or ')' in function call");
+                            break;
+                        }
+                    }
+                }
+
                 eat(RPAREN);
                 eat(SEMICOLON);
-                return create_function_call_node(name, NULL, 0, loc);
+                ASTNode* node = create_function_call_node(name, args, arg_count, loc);
+                free(name);
+                if (args) free(args);
+                return node;
             }
 
             parser_error("Expected '=' or '(' after identifier");
@@ -539,12 +689,19 @@ ASTNode* parse_function() {
     // Eat "main" or identifier
     eat(token);
     eat(LPAREN);
+
     // ====================================
-    // TODO: ADD PARAMETER PARSING FOR "name: type, name: type" SYNTAX
+    // TODO: SCOPED SYMBOL TABLE
     // ====================================
+
+    // parse parameters
+    int param_count = 0;
+    Parameter* parameters = parse_parameter_list(&param_count);
+
     eat(RPAREN);
 
     char* return_type = strdup("zil");
+    DataType return_data_type = TYPE_ZIL;
     if (token == COLON) {
         eat(COLON);
 
@@ -552,6 +709,7 @@ ASTNode* parse_function() {
         if (type_str) {
             free(return_type);
             return_type = strdup(type_str);
+            return_data_type = token_to_data_type(token);
             eat(token);
         } else {
             parser_error("Expected return type after ':'");
@@ -561,13 +719,21 @@ ASTNode* parse_function() {
         }
     }
 
+    // register function in function table
+    if (!add_function(getFunctionTable(), name, return_data_type)) {
+        char error_msg[100];
+        snprintf(error_msg, sizeof(error_msg),
+            "Function '%s' already declared", name);
+        parser_error(error_msg);
+    }
+
     if (parser_state.function_context) {
         free(parser_state.function_context->current_name);
         free(parser_state.function_context->current_return_type);
         parser_state.function_context->current_name = strdup(name);
         parser_state.function_context->current_return_type = strdup(return_type);
         parser_state.function_context->has_return = 0;
-        parser_state.function_context->return_value_required = strcmp(return_type, "void") != 0;
+        parser_state.function_context->return_value_required = strcmp(return_type, "zil") != 0;
     }
 
     if (token != LBRACE) {
@@ -635,9 +801,11 @@ ASTNode* parse_function() {
     }
 
     return create_function_node(
-        return_type, 
-        name, 
-        body, 
+        return_type,
+        name,
+        parameters,
+        param_count,
+        body,
         parser_state.function_context->has_return,
         loc
     );
