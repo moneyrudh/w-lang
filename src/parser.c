@@ -9,6 +9,7 @@
 #include "ast.h"
 #include "parser.h"
 #include "transpiler/type_registry.h"
+#include "transpiler/token_registry.h"
 
 ParserState parser_state;
 
@@ -63,92 +64,11 @@ DataType token_to_data_type(TokenType token) {
 }
 
 bool is_type_token(TokenType token) {
-    return (
-        token == NUM
-        || token == REAL
-        || token == CHR
-        || token == STR
-        || token == BOOL
-        || token == ZIL
-    );
+    return token_registry_is_type(token);
 }
 
 const char *tokenToString(TokenType token) {
-    static char single_char[2] = {0, 0};
-
-    if (token < 256) {
-        single_char[0] = (char)token;
-        return single_char;
-    }
-
-    switch (token) {
-        case NUM:
-            return "NUM";
-        case ZIL:
-            return "ZIL";
-        case REAL:
-            return "REAL";
-        case CHR:
-            return "CHR";
-        case STR:
-            return "STR";
-        case BOOL:
-            return "BOOL";
-        case IDENTIFIER:
-            return "IDENTIFIER";
-        case LOG:
-            return "LOG";
-        case LPAREN:
-            return "LPAREN";
-        case RPAREN:
-            return "RPAREN";
-        case LBRACE:
-            return "LBRACE";
-        case RBRACE:
-            return "RBRACE";
-        case SEMICOLON:
-            return "SEMICOLON";
-        case PLUS:
-            return "PLUS";
-        case MINUS:
-            return "MINUS";
-        case MULTIPLY:
-            return "MULTIPLY";
-        case DIVIDE:
-            return "DIVIDE";
-        case MAIN:
-            return "MAIN";
-        case RETURN:
-            return "ASSIGNMENT";
-        case ASSIGNMENT:
-            return "ASSIGM";
-        case CHAR_LITERAL:
-            return "CHAR_LITERAL";
-        case BOOL_LITERAL:
-            return "BOOL_LITERAL";
-        case STRING_LITERAL:
-            return "STRING_LITERAL";
-        case INT_LITERAL:
-            return "INT_LITERAL";
-        case FLOAT_LITERAL:
-            return "FLOAT_LITERAL";
-        case DEC:
-            return "DEC";
-        case FUN:
-            return "FUN";
-        case COLON:
-            return "COLON";
-        case INFER_ASSIGN:
-            return "INFER_ASSIGN";
-        case LBRACKET:
-            return "LBRACKET";
-        case RBRACKET:
-            return "RBRACKET";
-        case COMMA:
-            return "COMMA";
-        default:
-            return "UNKNOWN";
-    }
+    return token_registry_get_display_name(token);
 }
 
 void parser_error(const char* message) {
@@ -457,7 +377,7 @@ ASTNode* parse_return_statement() {
                     "Function '%s' declared as void, cannot return a value",
                     parser_state.function_context->current_name);
                 parser_error(error_msg);
-            } 
+            }
         } else {
             if (!has_value) {
                 char error_msg[100];
@@ -465,24 +385,10 @@ ASTNode* parse_return_statement() {
                     "Function '%s' with return type '%s' must return a value",
                     parser_state.function_context->current_name,
                     parser_state.function_context->current_return_type);
-                parser_error(error_msg);    
+                parser_error(error_msg);
             } else if (expr) {
                 DataType expr_type = get_expression_type(expr, getSymbolTable());
-                DataType func_type;
-
-                if (strcmp(parser_state.function_context->current_return_type, "num") == 0) {
-                    func_type = TYPE_NUM;
-                } else if (strcmp(parser_state.function_context->current_return_type, "chr") == 0) {
-                    func_type = TYPE_CHR;
-                } else if (strcmp(parser_state.function_context->current_return_type, "bool") == 0) {
-                    func_type = TYPE_BOOL;
-                } else if (strcmp(parser_state.function_context->current_return_type, "real") == 0) {
-                    func_type = TYPE_REAL;
-                } else if (strcmp(parser_state.function_context->current_return_type, "str") == 0) {
-                    func_type = TYPE_STR;
-                } else {
-                    func_type = TYPE_ZIL;
-                }
+                DataType func_type = type_registry_string_to_enum(parser_state.function_context->current_return_type);
 
                 if (expr_type != func_type) {
                     char error_msg[100];
@@ -490,8 +396,7 @@ ASTNode* parse_return_statement() {
                         "Return type mismatch in function '%s'. Expected %s, got %s",
                         parser_state.function_context->current_name,
                         parser_state.function_context->current_return_type,
-                        expr_type == TYPE_NUM ? "int" :
-                        expr_type == TYPE_STR ? "string" : "unknown");
+                        get_wlang_type_from_enum(expr_type));
                     parser_error(error_msg);
                 }
             }
