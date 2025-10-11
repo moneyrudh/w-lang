@@ -156,3 +156,8 @@ TokenType convert_data_type_to_token(DataType type) {
     const TypeMapping* mapping = type_registry_get_by_enum(type);
     return mapping ? mapping->token_value : ZIL;
 }
+
+DataType type_registry_string_to_enum(const char* type_str) {
+    const TypeMapping* mapping = type_registry_get_by_wlang_name(type_str);
+    return mapping ? mapping->enum_value : TYPE_ZIL;
+}

@@ -57,4 +57,8 @@ DataType convert_token_to_data_type(TokenType token);
 // convert DataType to TokenType
 TokenType convert_data_type_to_token(DataType type);
 
+// convert W Lang type string to DataType enum (e.g., "num" -> TYPE_NUM)
+// replaces manual string->enum conversions in parser.c
+DataType type_registry_string_to_enum(const char* type_str);
+
 #endif // TYPE_REGISTRY_H
