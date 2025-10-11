@@ -8,6 +8,7 @@ fun greet(name: str): zil {
 
 fun test(): zil {
     log("Void func");
+    ret;
 }
 
 fun w(): num {
