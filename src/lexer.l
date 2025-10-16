@@ -10,7 +10,7 @@
 %option yylineno
 
 %%
-"w"         { yylval.string = strdup("main"); return MAIN; }
+"w"         { yylval.string = strdup("w"); return MAIN; }
 "num"       { yylval.string = strdup("num"); return NUM; }
 "zil"      { yylval.string = strdup("zil"); return ZIL; }
 "real"     { yylval.string = strdup("real"); return REAL; }
