@@ -8,6 +8,7 @@
 #define C_INCLUDES_BLOCK      C_INCLUDE_STDIO C_INCLUDE_STDBOOL C_INCLUDE_STRING "\n"
 
 // ===== C keywords =====
+#define C_MAIN                "main"
 #define C_VOID                "void"
 #define C_RETURN              "return"
 #define C_IF                  "if"

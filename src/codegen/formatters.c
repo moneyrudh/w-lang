@@ -3,6 +3,21 @@
 #include "transpiler/type_registry.h"
 #include <string.h>
 #include <stdbool.h>
+#include <stdio.h>
+
+// ==================== mangling helper ====================
+
+static const char* mangle_identifier(const char* w_name, bool is_function) {
+    // Special case: entry point w() becomes main
+    if (strcmp(w_name, "w") == 0 && is_function) {
+        return C_MAIN;
+    }
+
+    // Mangle: W__name_v (variables) or W__name_f (functions)
+    static char buffer[512];
+    snprintf(buffer, sizeof(buffer), "W__%s_%c", w_name, is_function ? 'f' : 'v');
+    return buffer;
+}
 
 // ==================== output helpers ====================
 
@@ -31,7 +46,8 @@ void emit_function_signature(FILE* out, const char* return_type, const char* nam
             if (!first) {
                 fprintf(out, C_COMMA);
             }
-            fprintf(out, "%s %s", get_c_type_from_enum(param->type), param->name);
+            fprintf(out, "%s %s", get_c_type_from_enum(param->type),
+                    mangle_identifier(param->name, false));
             first = false;
             param = param->next;
         }
@@ -53,7 +69,8 @@ void emit_function_declaration(FILE* out, const char* return_type, const char* n
             if (!first) {
                 fprintf(out, C_COMMA);
             }
-            fprintf(out, "%s %s", get_c_type_from_enum(param->type), param->name);
+            fprintf(out, "%s %s", get_c_type_from_enum(param->type),
+                    mangle_identifier(param->name, false));
             first = false;
             param = param->next;
         }
