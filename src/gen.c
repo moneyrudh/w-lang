@@ -16,11 +16,23 @@ const char* get_c_type_string(DataType type) {
     return get_c_type_from_enum(type);
 }
 
+static const char* mangle_identifier(const char* w_name, bool is_function) {
+    // Special case: entry point w() becomes main
+    if (strcmp(w_name, "w") == 0 && is_function) {
+        return "main";
+    }
+
+    // Mangle: W__name_v (variables) or W__name_f (functions)
+    static char buffer[512];
+    snprintf(buffer, sizeof(buffer), "W__%s_%c", w_name, is_function ? 'f' : 'v');
+    return buffer;
+}
+
 static ASTNode* find_entry_point(ASTNode* functions) {
     ASTNode* current = functions;
     while (current != NULL) {
         if (current->type == NODE_FUNCTION &&
-            strcmp(current->data.function.name, "main") == 0) {
+            strcmp(current->data.function.name, "w") == 0) {
             return current;
         }
         current = current->next;
@@ -67,7 +79,7 @@ void generate_log_statement(FILE* output, LogElement* elements, int indent_level
         if (current->type == NODE_NUMBER) {
             fprintf(output, C_COMMA "%d", current->value.number);
         } else if (current->type == NODE_VARIABLE) {
-            fprintf(output, C_COMMA "%s", current->value.string);
+            fprintf(output, C_COMMA "%s", mangle_identifier(current->value.string, false));
         }
         current = current->next;
     }
@@ -132,7 +144,7 @@ static void generate_assignment(FILE* output, ASTNode* node, int indent_level) {
     DataType target_type = target_symbol->type;
     DataType value_type = get_expression_type(node->data.assignment.value, getSymbolTable());
 
-    fprintf(output, "%s" C_ASSIGN, node->data.assignment.target);
+    fprintf(output, "%s" C_ASSIGN, mangle_identifier(node->data.assignment.target, false));
 
     generate_cast_if_needed(output, value_type, target_type);
 
@@ -166,18 +178,20 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
                 fprintf(output, C_NEWLINE);
             }
 
-            // emit forward declarations for all non-main functions
+            // emit forward declarations for all non-w functions
             ASTNode* function = node->data.program.functions;
             while (function != NULL) {
-                if (strcmp(function->data.function.name, "main") != 0) {
+                if (strcmp(function->data.function.name, "w") != 0) {
                     const TypeMapping* mapping = type_registry_get_by_wlang_name(
                         function->data.function.return_type
                     );
                     const char* c_return_type = mapping ? mapping->c_equivalent :
                                                 function->data.function.return_type;
 
+                    const char* c_func_name = mangle_identifier(function->data.function.name, true);
+
                     emit_function_declaration(output, c_return_type,
-                                            function->data.function.name,
+                                            c_func_name,
                                             function->data.function.parameters,
                                             function->data.function.param_count);
                 }
@@ -185,17 +199,17 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
             }
             fprintf(output, C_NEWLINE);
 
-            // emit definitions for all non-main functions
+            // emit definitions for all non-w functions
             function = node->data.program.functions;
             while (function != NULL) {
-                if (strcmp(function->data.function.name, "main") != 0) {
+                if (strcmp(function->data.function.name, "w") != 0) {
                     generate(output, function, indent_level);
                     fprintf(output, C_NEWLINE);
                 }
                 function = function->next;
             }
 
-            // emit main function definition last
+            // emit w() function definition last (becomes main)
             generate(output, entry_point, indent_level);
             fprintf(output, C_NEWLINE);
             break;
@@ -205,8 +219,11 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
             const TypeMapping* mapping = type_registry_get_by_wlang_name(node->data.function.return_type);
             const char* c_return_type = mapping ? mapping->c_equivalent : node->data.function.return_type;
 
+            // mangle function name
+            const char* c_func_name = mangle_identifier(node->data.function.name, true);
+
             // generate function signature using formatter
-            emit_function_signature(output, c_return_type, node->data.function.name,
+            emit_function_signature(output, c_return_type, c_func_name,
                                    node->data.function.parameters, node->data.function.param_count);
 
             // generate function body
@@ -226,7 +243,7 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
             fprintf(
                 output, "%s %s",
                 get_c_type_string(node->data.var_declaration.type),
-                node->data.var_declaration.name
+                mangle_identifier(node->data.var_declaration.name, false)
             );
 
             if (node->data.var_declaration.init_expr) {
@@ -290,7 +307,7 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
             break;
         }
         case NODE_VARIABLE:
-            fprintf(output, "%s", node->data.variable.name);
+            fprintf(output, "%s", mangle_identifier(node->data.variable.name, false));
             break;
         case NODE_RETURN: {
             emit_indent(output, indent_level);
@@ -309,7 +326,7 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
                 emit_indent(output, indent_level);
             }
 
-            fprintf(output, "%s" C_LPAREN, node->data.function_call.name);
+            fprintf(output, "%s" C_LPAREN, mangle_identifier(node->data.function_call.name, true));
             for (int i = 0; i < node->data.function_call.arg_count; i++) {
                 if (i > 0) {
                     fprintf(output, C_COMMA);
