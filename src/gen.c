@@ -16,6 +16,18 @@ const char* get_c_type_string(DataType type) {
     return get_c_type_from_enum(type);
 }
 
+static ASTNode* find_entry_point(ASTNode* functions) {
+    ASTNode* current = functions;
+    while (current != NULL) {
+        if (current->type == NODE_FUNCTION &&
+            strcmp(current->data.function.name, "main") == 0) {
+            return current;
+        }
+        current = current->next;
+    }
+    return NULL;
+}
+
 void generate_log_statement(FILE* output, LogElement* elements, int indent_level) {
     emit_indent(output, indent_level);
     fprintf(output, C_PRINTF C_LPAREN C_STRING_QUOTE);
@@ -134,8 +146,16 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
 
     switch (node->type) {
         case NODE_PROGRAM: {
+            // validate entry point exists
+            ASTNode* entry_point = find_entry_point(node->data.program.functions);
+            if (entry_point == NULL) {
+                fprintf(stderr, "Error: Entry point function 'w()' not defined\n");
+                exit(1);
+            }
+
             emit_c_includes(output);
 
+            // emit global variables
             if (node->data.program.globals) {
                 ASTNode* global = node->data.program.globals;
                 while (global) {
@@ -146,12 +166,38 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
                 fprintf(output, C_NEWLINE);
             }
 
+            // emit forward declarations for all non-main functions
             ASTNode* function = node->data.program.functions;
             while (function != NULL) {
-                generate(output, function, indent_level);
-                fprintf(output, C_NEWLINE);
+                if (strcmp(function->data.function.name, "main") != 0) {
+                    const TypeMapping* mapping = type_registry_get_by_wlang_name(
+                        function->data.function.return_type
+                    );
+                    const char* c_return_type = mapping ? mapping->c_equivalent :
+                                                function->data.function.return_type;
+
+                    emit_function_declaration(output, c_return_type,
+                                            function->data.function.name,
+                                            function->data.function.parameters,
+                                            function->data.function.param_count);
+                }
                 function = function->next;
             }
+            fprintf(output, C_NEWLINE);
+
+            // emit definitions for all non-main functions
+            function = node->data.program.functions;
+            while (function != NULL) {
+                if (strcmp(function->data.function.name, "main") != 0) {
+                    generate(output, function, indent_level);
+                    fprintf(output, C_NEWLINE);
+                }
+                function = function->next;
+            }
+
+            // emit main function definition last
+            generate(output, entry_point, indent_level);
+            fprintf(output, C_NEWLINE);
             break;
         }
         case NODE_FUNCTION: {
