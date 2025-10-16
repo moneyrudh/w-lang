@@ -19,6 +19,10 @@ void emit_c_includes(FILE* out);
 void emit_function_signature(FILE* out, const char* return_type, const char* name,
                              Parameter* params, int param_count);
 
+// emit function forward declaration (signature + semicolon)
+void emit_function_declaration(FILE* out, const char* return_type, const char* name,
+                                Parameter* params, int param_count);
+
 // ==================== type conversion ====================
 
 // emit type cast if needed (handles conversion rules)

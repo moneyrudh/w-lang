@@ -40,6 +40,28 @@ void emit_function_signature(FILE* out, const char* return_type, const char* nam
     fprintf(out, C_RPAREN C_LBRACE);
 }
 
+void emit_function_declaration(FILE* out, const char* return_type, const char* name,
+                                Parameter* params, int param_count) {
+    fprintf(out, "%s %s" C_LPAREN, return_type, name);
+
+    if (param_count == 0) {
+        fprintf(out, C_VOID);
+    } else {
+        Parameter* param = params;
+        bool first = true;
+        while (param) {
+            if (!first) {
+                fprintf(out, C_COMMA);
+            }
+            fprintf(out, "%s %s", get_c_type_from_enum(param->type), param->name);
+            first = false;
+            param = param->next;
+        }
+    }
+
+    fprintf(out, C_RPAREN C_SEMICOLON_NL);
+}
+
 // ==================== type conversion ====================
 
 void emit_cast(FILE* out, DataType from_type, DataType to_type) {
