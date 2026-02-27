@@ -1,19 +1,41 @@
 # LANGUAGE UPDATE
 
+## Type changes
+
+> int, uint32, long, long long -> num
+> float -> real
+> void -> zil
+> int[] -> vec[int], float[] -> vec[float], etc
+> char[] -> str, char* -> str (but str would map only to char*)
+> char -> chr
+> struct -> pod (classes with/without functions), type (without functions for dynamic typing) 
+
+## Data Structures
+
+Data structures will be defined in the transpiler, abstracted from the user. Since it will be converted to C, the transpiler's object file will have the definition of the data structures used in w-lang. The 'use' keyword might be used to 'import' the data structures.
+> map (for hash map, will use random seed on every program run), ex: map[int, int], map[int, real], map[str, int]
+> ref (pointers), ex: ref num, ref map[int, int], ref real (but i may discard pointers entirely)
+> set (for hash set)
+> heap
+> stack
+> que (with option for priority, or might just stick to vec only)
+> link (linked lists), ex: link[int], link[Node] (where Node is a pod)
+> tree, ex: tree[Node] (where Node is a pod with left and right child)
+
 ## Variable Syntax Update: before -> after
 
-> int x; -> dec x: int;
-> int y = 10; -> y: int = 10;
+> int x; -> dec x: num;
+> int y = 10; -> dec y: num= 10;
 > y = y + 10; -> y = y + 10;
 > y += 1; -> y += 1;
 > y++; -> y++;
-> float f = 1.001; -> f: float = 1.001;
+> float f = 1.001; -> dec f: real = 1.001;
 
 ## Function Syntax Update
 
 > declaration:
 a. int function_name();
-b. fun function_name(): int;
+b. fun function_name(): num;
 
 > definition:
 I.
@@ -22,24 +44,131 @@ a. void function_name(int x, float w) {
     float z = 2.0f;
     y = x + 1;
 }
-b(1). fun function_name(x: int, w: float): void {
-    dec y: int;
+b(1). fun function_name(x: num, w: real): void {
+    dec y: num;
     dec z := 2.0;
-    dec z: float = 2.0;
+    dec z: real = 2.0;
     y = x + 1;
 }
-b(2). fun function_name(x: int, w: float) {
-    dec y: int;
-    dec z := 2.0;
-    dec z: float = 2.0;
+b(2). fun function_name(x: num, w: real) {
+    dec y: num;
+    dec z := 2.0; // there can be no space between : and =, it has to be :=
+    dec z: real = 2.0;
     y = x + 1;
 }
 
 II.
 a. void function_name();
 b(1). fun function_name();
-b(2). fun function_name(): void;
+b(2). fun function_name(): zil;
 
 III.
 a. int function_name();
-b. fun function_name(): int;
+b. fun function_name(): num;
+
+## Hashmap
+
+> 
+dec m: map(num, str) = {
+    2: "two",
+    3: "three",
+}
+
+>
+dec m1: map(num, list(str)) = {}
+
+>
+dec m1: map(num, list(str));
+m1[1] = ["a", "b"]
+log(m1[2]) // error
+m1[2] = ["ab"]
+if (m1[1]) {
+    log("Hello World");
+}
+
+
+## Queue
+
+> 
+dec q: que(str) = ["one", "two", "three"]
+
+# Control flow
+
+## If/Else statements
+
+if (!x 
+   and y or z
+   and a 
+   and b) {
+
+}
+
+## Loops
+
+### While loops:
+loop (condition) {
+    // code
+}
+
+### Infinite loops:
+loop {
+    // code
+    if (done) break;
+}
+
+### For loops:
+
+C-style (traditional):
+for (dec i: num = 0; i < 10; i++) {
+    // code
+}
+
+Range-based:
+for (i in 0..10) {
+    log(i);
+}
+
+for (item in my_vec) {
+    log(item);
+}
+
+for (key, val in my_map) {
+    log(key, val);
+}
+
+Breaks/Continue:
+
+1. 
+for (i in 0..10) {
+    if (
+        i is 5
+        or i is 8
+    ) skip;
+}
+
+2. 
+for (i in 0..10) {
+    if (
+        i is 5
+        or i is 8
+    ) 
+    break; // ERROR, if statement ends anywhere below 
+    // the closing paranthesis (not on the same line), 
+    // say 'missing brackets or statement'
+}
+
+3.
+for (item in my_items) {
+    if (
+        item == 0
+    ) exit; // process.qxit()
+}
+
+
+
+// holy fuck i just thought about this. 
+// there should be "downloadable" packages for W-Lang which can be brew installed 
+// or whatever is used to install the language.
+// then based on user choice, they can "pip install" 
+// these extra W-Lang predefined open-source files,
+// that will then be a part of their registry they can then "import".

@@ -10,27 +10,49 @@
 %option yylineno
 
 %%
-"w"         { yylval.string = strdup("main"); return MAIN; }
-"int"       { yylval.string = strdup("int"); return INT; }
-"void"      { yylval.string = strdup("void"); return VOID; }
-"float"     { yylval.string = strdup("float"); return FLOAT; }
-"char"      { yylval.string = strdup("char"); return CHAR; }
-"string"    { yylval.string = strdup("string"); return STRING; }
+"w"         { yylval.string = strdup("w"); return MAIN; }
+"num"       { yylval.string = strdup("num"); return NUM; }
+"zil"      { yylval.string = strdup("zil"); return ZIL; }
+"real"     { yylval.string = strdup("real"); return REAL; }
+"chr"      { yylval.string = strdup("chr"); return CHR; }
+"str"    { yylval.string = strdup("str"); return STR; }
 "bool"      { yylval.string = strdup("bool"); return BOOL; }
 "true"      { yylval.bool_val = true; return BOOL_LITERAL; }
 "false"     { yylval.bool_val = false; return BOOL_LITERAL; }
 "log"       { return LOG; }
+
+"vec"	    { yylval.string = strdup("vec"); return VEC; }
+"map"	    { yylval.string = strdup("map"); return MAP; }
+"set" 	    { yylval.string = strdup("set"); return SET; }
+"ref"       { yylval.string = strdup("ref"); return REF; }
+"heap" 	    { yylval.string = strdup("heap"); return HEAP; }
+"stack"	    { yylval.string = strdup("stack"); return STACK; }
+"que"	    { yylval.string = strdup("que"); return QUE; }
+"link" 	    { yylval.string = strdup("link"); return LINK; }
+"tree"	    { yylval.string = strdup("tree"); return TREE; }
+"pod"	    { yylval.string = strdup("pod"); return POD; }
+
+"dec" 	    { yylval.string = strdup("dec"); return DEC; }
+"fun"	    { yylval.string = strdup("fun"); return FUN; }
+"use"	    { yylval.string = strdup("use"); return USE; }
+
+"ret"       { return RETURN; }
+
+":"	    { return COLON; }
+":="	    { return INFER_ASSIGN; }
 "="         { return ASSIGNMENT; }
+"["	    { return LBRACKET; }
+"]"	    { return RBRACKET; }
 "("         { return LPAREN; }
 ")"         { return RPAREN; }
 "{"         { return LBRACE; }
 "}"         { return RBRACE; }
+","	    { return COMMA; }
 ";"         { return SEMICOLON; }
 "+"         { return PLUS; }
 "-"         { return MINUS; }
 "*"         { return MULTIPLY; }
 "/"         { return DIVIDE; }
-"return"    { return RETURN; }
 
 [0-9]+      { yylval.number = atoi(yytext); return INT_LITERAL; }
 [0-9]+\.[0-9]+ { 

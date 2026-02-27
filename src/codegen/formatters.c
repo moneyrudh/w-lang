@@ -1,0 +1,100 @@
+#include "codegen/formatters.h"
+#include "codegen/c_syntax.h"
+#include "transpiler/type_registry.h"
+#include <string.h>
+#include <stdbool.h>
+#include <stdio.h>
+
+// ==================== mangling helper ====================
+
+static const char* mangle_identifier(const char* w_name, bool is_function) {
+    // Special case: entry point w() becomes main
+    if (strcmp(w_name, "w") == 0 && is_function) {
+        return C_MAIN;
+    }
+
+    // Mangle: W__name_v (variables) or W__name_f (functions)
+    static char buffer[512];
+    snprintf(buffer, sizeof(buffer), "W__%s_%c", w_name, is_function ? 'f' : 'v');
+    return buffer;
+}
+
+// ==================== output helpers ====================
+
+void emit_indent(FILE* out, int level) {
+    for (int i = 0; i < level; i++) {
+        fprintf(out, C_INDENT);
+    }
+}
+
+void emit_c_includes(FILE* out) {
+    fprintf(out, C_INCLUDES_BLOCK);
+}
+
+// ==================== function generation ====================
+
+void emit_function_signature(FILE* out, const char* return_type, const char* name,
+                             Parameter* params, int param_count) {
+    fprintf(out, "%s %s" C_LPAREN, return_type, name);
+
+    if (param_count == 0) {
+        fprintf(out, C_VOID);
+    } else {
+        Parameter* param = params;
+        bool first = true;
+        while (param) {
+            if (!first) {
+                fprintf(out, C_COMMA);
+            }
+            fprintf(out, "%s %s", get_c_type_from_enum(param->type),
+                    mangle_identifier(param->name, false));
+            first = false;
+            param = param->next;
+        }
+    }
+
+    fprintf(out, C_RPAREN C_LBRACE);
+}
+
+void emit_function_declaration(FILE* out, const char* return_type, const char* name,
+                                Parameter* params, int param_count) {
+    fprintf(out, "%s %s" C_LPAREN, return_type, name);
+
+    if (param_count == 0) {
+        fprintf(out, C_VOID);
+    } else {
+        Parameter* param = params;
+        bool first = true;
+        while (param) {
+            if (!first) {
+                fprintf(out, C_COMMA);
+            }
+            fprintf(out, "%s %s", get_c_type_from_enum(param->type),
+                    mangle_identifier(param->name, false));
+            first = false;
+            param = param->next;
+        }
+    }
+
+    fprintf(out, C_RPAREN C_SEMICOLON_NL);
+}
+
+// ==================== type conversion ====================
+
+void emit_cast(FILE* out, DataType from_type, DataType to_type) {
+    if (from_type == to_type) return;
+
+    fprintf(out, C_LPAREN "%s" C_RPAREN, get_c_type_from_enum(to_type));
+}
+
+// ==================== operator formatting ====================
+
+const char* get_binary_operator_string(char op) {
+    switch (op) {
+        case '+': return C_PLUS;
+        case '-': return C_MINUS;
+        case '*': return C_MULTIPLY;
+        case '/': return C_DIVIDE;
+        default:  return C_SPACE;
+    }
+}

@@ -5,31 +5,54 @@
 #include <stdbool.h>
 
 typedef enum {
-    INT = 258,
-    VOID,
-    IDENTIFIER,
+    NUM = 258,
+    ZIL,
+    REAL,
+    CHR,
+    STR,
+    BOOL,
+
+    VEC,
+    MAP,
+    SET,
+    REF,
+    HEAP,
+    STACK,
+    QUE,
+    LINK,
+    TREE,
+    POD,
+
+    DEC,
+    FUN,
+    USE,
+    MAIN,
+    RETURN,
     LOG,
+
+    IDENTIFIER,
+    INT_LITERAL,
+    FLOAT_LITERAL,
+    STRING_LITERAL,
+    CHAR_LITERAL,
+    BOOL_LITERAL,
+
+    COLON,
+    INFER_ASSIGN,
+    ASSIGNMENT,
+    LBRACKET,
+    RBRACKET,
     LPAREN,
     RPAREN,
     LBRACE,
     RBRACE,
+    COMMA,
     SEMICOLON,
-    STRING_LITERAL,
-    INT_LITERAL,
+
     PLUS,
     MINUS,
     MULTIPLY,
-    DIVIDE,
-    MAIN,
-    ASSIGNMENT,
-    RETURN,
-    FLOAT,
-    FLOAT_LITERAL,
-    CHAR,
-    STRING,
-    CHAR_LITERAL,
-    BOOL,
-    BOOL_LITERAL
+    DIVIDE
 } TokenType;
 
 typedef struct {
@@ -47,12 +70,23 @@ extern int yylineno;
 extern TokenType token;
 
 typedef enum {
-    TYPE_INT,
-    TYPE_FLOAT,
-    TYPE_CHAR,
+    TYPE_NUM,
+    TYPE_REAL,
+    TYPE_CHR,
     TYPE_BOOL,
-    TYPE_STRING,
-    TYPE_VOID
+    TYPE_STR,
+    TYPE_ZIL,
+
+    TYPE_VEC,
+    TYPE_MAP,
+    TYPE_SET,
+    TYPE_REF,
+    TYPE_HEAP,
+    TYPE_STACK,
+    TYPE_QUE,
+    TYPE_LINK,
+    TYPE_TREE,
+    TYPE_POD
 } DataType;
 
 typedef enum {

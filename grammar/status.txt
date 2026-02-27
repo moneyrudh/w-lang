@@ -13,28 +13,6 @@
 8. Variable declarations
 9. Basic expression handling
 
-### Current Focus
-The development team is currently working on:
-1. Function parsing improvements
-   - Error checking for function definitions
-   - Brace matching validation
-   - Return type verification
-2. Parser enhancements
-   - Making parser more dynamic
-   - Improving error recovery
-3. Basic expression support
-   - Arithmetic operations
-   - Variable declarations
-
-### Planned Features
-Next implementation priorities:
-1. Function error checking improvements
-2. Complete arithmetic operations
-3. Enhanced variable declarations
-4. Type system expansion
-5. Control flow statements
-6. Standard library implementation
-
 ## Known Issues
 
 ### Parser Limitations
@@ -78,20 +56,25 @@ Next implementation priorities:
 
 ### Next Steps
 
-#### Short Term
-1. Complete function parsing
-2. Implement missing operators
-3. Add basic control structures
-4. Improve error messages
+#### High Priority: Complete Basic Type System
 
-#### Medium Term
-1. Enhance type system
-2. Add standard library
-3. Implement optimizations
-4. Add more language features
+3. Function parameters - implement parameter support => fun function_name(x: num, w: real)
+4. Return statement type checking - Verify return types match function declarations
+5. Type inference => dec z := 2.0;
 
-#### Long Term
-1. Full language specification
-2. Comprehensive test suite
-3. Documentation system
-4. Performance optimization
+#### Medium Priority: Essential Language Features
+
+6. Control flow - if/else, while loops, for loops (critical for any useful program)
+7. Comparison & logical operators - ==, !=, <, >, &&, ||, !
+8. Arrays/Vectors - vec[int], vec[float]
+9. String type proper implementation - Right now str maps to char*, but needs proper string operations
+
+#### Lower Priority: Use the Map
+
+10. Implement W Lang map syntax - Allow users to write dec m: map(num, str) = {1: "one"} in W Lang code
+11. Map operations - m.get(), m.put(), m.contains(), etc.
+
+#### Completed
+
+1. String concatenation in log statements - Variables now properly referenced instead of garbage values
+2. Log statement parsing - Both ',' (space separator) and '+' (concatenation) now work correctly in log statements

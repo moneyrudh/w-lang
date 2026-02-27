@@ -15,6 +15,12 @@ typedef struct {
     DataType expr_type;
 } Expression;
 
+typedef struct Parameter {
+    char* name;
+    DataType type;
+    struct Parameter* next;
+} Parameter;
+
 typedef struct ASTNode {
     NodeType type;
     SourceLocation location;
@@ -26,6 +32,8 @@ typedef struct ASTNode {
         struct {
             char* return_type;
             char* name;
+            Parameter* parameters;
+            int param_count;
             struct ASTNode* body;
             int has_return;
         } function;
@@ -54,7 +62,7 @@ typedef struct ASTNode {
         struct {
             Expression base;
             char* name;
-            struct ASTNode** args;    // Array of argument expressions
+            struct ASTNode** args;    // array of argument expressions
             int arg_count;
         } function_call;
         struct {
@@ -96,7 +104,7 @@ ASTNode* create_function_call_node(char* name, ASTNode** args, int arg_count, So
 void set_node_location(ASTNode* node, SourceLocation loc);
 
 ASTNode* create_program_node(SourceLocation loc);
-ASTNode* create_function_node(char* return_type, char* name, ASTNode* body, int has_return, SourceLocation loc);
+ASTNode* create_function_node(char* return_type, char* name, Parameter* parameters, int param_count, ASTNode* body, int has_return, SourceLocation loc);
 ASTNode* create_log_node(LogElement* elements);
 ASTNode* create_assignment_node(char* name, ASTNode* value, SourceLocation loc);
 ASTNode* create_binary_expr_node(ASTNode* left, ASTNode* right, char operator, SourceLocation loc);

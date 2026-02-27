@@ -1,9 +1,0 @@
-{
-    "files.associations": {
-        "*.r2py": "python",
-        "symbol_table.h": "c",
-        "types.h": "c",
-        "ast.h": "c"
-    },
-    "C_Cpp.errorSquiggles": "disabled"
-}

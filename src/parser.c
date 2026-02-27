@@ -8,6 +8,8 @@
 #include "types.h"
 #include "ast.h"
 #include "parser.h"
+#include "transpiler/type_registry.h"
+#include "transpiler/token_registry.h"
 
 ParserState parser_state;
 
@@ -26,6 +28,7 @@ void init_parser_state() {
 
 void init_parser() {
     create_symbol_table();
+    create_function_table();
     init_parser_state();
 }
 
@@ -40,71 +43,32 @@ void cleanup_parser_state() {
 
 void cleanup_parser() {
     free_symbol_table();
+    free_function_table();
     cleanup_parser_state();
 }
 
+// convert DataType enums to string representations
+const char* type_to_string(DataType type) {
+    return get_wlang_type_from_enum(type);
+}
+
+// convert type tokens to their string representations
+const char* token_to_type_string(TokenType token) {
+    const TypeMapping* mapping = type_registry_get_by_token(token);
+    return mapping ? mapping->w_lang_name : NULL;
+}
+
+// convert type tokens to DataType enum values
+DataType token_to_data_type(TokenType token) {
+    return convert_token_to_data_type(token);
+}
+
+bool is_type_token(TokenType token) {
+    return token_registry_is_type(token);
+}
+
 const char *tokenToString(TokenType token) {
-    static char single_char[2] = {0, 0};
-
-    if (token < 256) {
-        single_char[0] = (char)token;
-        return single_char;
-    }
-
-    switch (token) {
-        case INT:
-            return "INT";
-        case VOID:
-            return "VOID";
-        case IDENTIFIER:
-            return "IDENTIFIER";
-        case LOG:
-            return "LOG";
-        case LPAREN:
-            return "LPAREN";
-        case RPAREN:
-            return "RPAREN";
-        case LBRACE:
-            return "LBRACE";
-        case RBRACE:
-            return "RBRACE";
-        case SEMICOLON:
-            return "SEMICOLON";
-        case STRING_LITERAL:
-            return "STRING_LITERAL";
-        case INT_LITERAL:
-            return "INT_LITERAL";
-        case PLUS:
-            return "PLUS";
-        case MINUS:
-            return "MINUS";
-        case MULTIPLY:
-            return "MULTIPLY";
-        case DIVIDE:
-            return "DIVIDE";
-        case MAIN:
-            return "MAIN";
-        case RETURN:
-            return "RETURN";
-        case ASSIGNMENT:
-            return "ASSIGNMENT";
-        case FLOAT:
-            return "FLOAT";
-        case FLOAT_LITERAL:
-            return "FLOAT_LITERAL";
-        case CHAR:
-            return "CHAR";
-        case CHAR_LITERAL:
-            return "CHAR_LITERAL";
-        case STRING:
-            return "STRING";
-        case BOOL:
-            return "BOOL";
-        case BOOL_LITERAL:
-            return "BOOL_LITERAL";
-        default:
-            return "UNKNOWN";
-    }
+    return token_registry_get_display_name(token);
 }
 
 void parser_error(const char* message) {
@@ -170,9 +134,51 @@ ASTNode* parse_factor() {
             }
         case IDENTIFIER:
             {
-                ASTNode* node = create_variable_node(yylval.string, loc);
+                char* name = strdup(yylval.string);
                 eat(IDENTIFIER);
-                return node;
+
+                // check if this is a function call
+                if (token == LPAREN) {
+                    eat(LPAREN);
+
+                    // parse arguments
+                    ASTNode** args = NULL;
+                    int arg_count = 0;
+                    int arg_capacity = 4;
+
+                    if (token != RPAREN) {
+                        args = malloc(sizeof(ASTNode*) * arg_capacity);
+
+                        while (1) {
+                            if (arg_count >= arg_capacity) {
+                                arg_capacity *= 2;
+                                args = realloc(args, sizeof(ASTNode*) * arg_capacity);
+                            }
+
+                            args[arg_count++] = parse_expression();
+
+                            if (token == COMMA) {
+                                eat(COMMA);
+                            } else if (token == RPAREN) {
+                                break;
+                            } else {
+                                parser_error("Expected ',' or ')' in function call");
+                                break;
+                            }
+                        }
+                    }
+
+                    eat(RPAREN);
+                    ASTNode* node = create_function_call_node(name, args, arg_count, loc);
+                    free(name);
+                    if (args) free(args);
+                    return node;
+                } else {
+                    // just a variable reference
+                    ASTNode* node = create_variable_node(name, loc);
+                    free(name);
+                    return node;
+                }
             }
         case LPAREN:
             {
@@ -209,38 +215,50 @@ ASTNode* parse_expression() {
     return node;
 }
 
+DataType parse_type_specifier() {
+    if (!is_type_token(token)) {
+        parser_error("Expected type specifier (num, real, chr, str, bool, zil)");
+        return TYPE_ZIL;
+    }
+
+    DataType var_type = token_to_data_type(token);
+    eat(token);
+    return var_type;
+}
+
 ASTNode* parse_variable_declaration() {
     SourceLocation loc = {yylineno, 0, NULL};
-    
+    bool has_dec_keyword = false;
 
-    DataType var_type;
-    if (token == INT) {
-        var_type = TYPE_INT;
-        eat(INT);
-    } else if (token == FLOAT) {
-        var_type = TYPE_FLOAT;
-        eat(FLOAT);
-    } else if (token == CHAR) {
-        var_type = TYPE_CHAR;
-        eat(CHAR);
-    } else if (token == STRING) {
-        var_type = TYPE_STRING;
-        eat(STRING);
-    } else if (token == BOOL) {
-        var_type = TYPE_BOOL;
-        eat(BOOL);
-    } else {
-        parser_error("Expected type specifier");
-        return NULL;
+    // check if this is a dec declared variable
+    if (token == DEC) {
+        has_dec_keyword = true;
+        eat(DEC);
     }
 
+    // parse variable name
     if (token != IDENTIFIER) {
-        parser_error("Expected identifier after type");
+        parser_error("Expected identifier in variable declaration");
         return NULL;
     }
-
+    
     char* var_name = strdup(yylval.string);
     eat(IDENTIFIER);
+
+    // expect colon for type annotation
+    if (token != COLON) {
+        parser_error("Expected ':' after variable name in declaration");
+        free(var_name);
+        return NULL;
+    }
+
+    eat(COLON);
+
+    DataType var_type = parse_type_specifier();
+    if (var_type == TYPE_ZIL) {
+        free(var_name);
+        return NULL;
+    }
 
     ASTNode* init_expr = NULL;
     if (token == ASSIGNMENT) {
@@ -282,18 +300,6 @@ ASTNode* parse_variable_declaration() {
     return create_var_declaration_node(var_name, var_type, init_expr, loc);
 }
 
-const char* type_to_string(DataType type) {
-    switch (type) {
-        case TYPE_INT: return "int";
-        case TYPE_FLOAT: return "float";
-        case TYPE_CHAR: return "char";
-        case TYPE_BOOL: return "bool";
-        case TYPE_STRING: return "string";
-        case TYPE_VOID: return "void";
-        default: return "unknown";
-    }
-}
-
 ASTNode* parse_log() {
     eat(LOG);
     eat(LPAREN);
@@ -308,29 +314,32 @@ ASTNode* parse_log() {
             element->type = NODE_STRING;
             element->value.string = strdup(yylval.string);
             eat(STRING_LITERAL);
+        } else if (token == COMMA) {
+            // comma adds a space between elements
+            element->type = NODE_STRING;
+            element->value.string = strdup(" ");
+            eat(COMMA);
         } else if (token == PLUS) {
-            if (current->type == NODE_STRING) {
-                element->type = NODE_STRING;
-                element->value.string = strdup(" ");
-                eat(PLUS);
-            }
+            // plus concatenates without space
+            eat(PLUS);
+            continue; // Don't create an element, just continue to next token
+        } else if (token == IDENTIFIER) {
+            // handle variable reference
+            element->type = NODE_VARIABLE;
+            element->value.string = strdup(yylval.string);
+            eat(IDENTIFIER);
+        } else if (token == INT_LITERAL) {
+            // handle number literal
+            element->type = NODE_NUMBER;
+            element->value.number = yylval.number;
+            eat(INT_LITERAL);
         } else {
-            ASTNode* expr = parse_expression();
-            DataType type = get_expression_type(expr, getSymbolTable());
-
-            if (type == TYPE_INT) {
-                element->type = NODE_NUMBER;
-                element->value.number = expr->data.number.value;
-            } else if (type == TYPE_STRING) {
-                element->type = NODE_STRING;
-                element->value.string = strdup(expr->data.string.value);
-            } else {
-                parser_error("Invalid type in log statement");
-            }
-
-            free_ast(expr);
+            parser_error("Invalid token in log statement");
+            free(element);
+            break;
         }
 
+        element->next = NULL;
         if (head == NULL) {
             head = element;
             current = element;
@@ -350,6 +359,7 @@ ASTNode* parse_return_statement() {
     eat(RETURN);
     ASTNode* expr = NULL;
     int has_value = 0;
+
     if (token != SEMICOLON) {
         expr = parse_expression();
         has_value = 1;
@@ -360,14 +370,14 @@ ASTNode* parse_return_statement() {
     if (parser_state.function_context) {
         parser_state.function_context->has_return = 1;
 
-        if (strcmp(parser_state.function_context->current_return_type, "void") == 0) {
+        if (strcmp(parser_state.function_context->current_return_type, "zil") == 0) {
             if (has_value) {
                 char error_msg[100];
                 snprintf(error_msg, sizeof(error_msg),
                     "Function '%s' declared as void, cannot return a value",
                     parser_state.function_context->current_name);
                 parser_error(error_msg);
-            } 
+            }
         } else {
             if (!has_value) {
                 char error_msg[100];
@@ -375,18 +385,10 @@ ASTNode* parse_return_statement() {
                     "Function '%s' with return type '%s' must return a value",
                     parser_state.function_context->current_name,
                     parser_state.function_context->current_return_type);
-                parser_error(error_msg);    
+                parser_error(error_msg);
             } else if (expr) {
                 DataType expr_type = get_expression_type(expr, getSymbolTable());
-                DataType func_type;
-
-                if (strcmp(parser_state.function_context->current_return_type, "int") == 0) {
-                    func_type = TYPE_INT;
-                } else if (strcmp(parser_state.function_context->current_return_type, "string") == 0) {
-                    func_type = TYPE_STRING;
-                } else {
-                    func_type = TYPE_VOID;
-                }
+                DataType func_type = type_registry_string_to_enum(parser_state.function_context->current_return_type);
 
                 if (expr_type != func_type) {
                     char error_msg[100];
@@ -394,8 +396,7 @@ ASTNode* parse_return_statement() {
                         "Return type mismatch in function '%s'. Expected %s, got %s",
                         parser_state.function_context->current_name,
                         parser_state.function_context->current_return_type,
-                        expr_type == TYPE_INT ? "int" :
-                        expr_type == TYPE_STRING ? "string" : "unknown");
+                        get_wlang_type_from_enum(expr_type));
                     parser_error(error_msg);
                 }
             }
@@ -405,7 +406,82 @@ ASTNode* parse_return_statement() {
     ASTNode* node = malloc(sizeof(ASTNode));
     node->type = NODE_RETURN;
     node->data.return_statement.expression = expr;
+    node->next = NULL;
     return node;
+}
+
+Parameter* parse_parameter_list(int* param_count) {
+    Parameter* head = NULL;
+    Parameter* tail = NULL;
+    *param_count = 0;
+
+    // if next token is RPAREN, no parameters
+    if (token == RPAREN) {
+        return NULL;
+    }
+
+    while (1) {
+        // expect parameter name
+        if (token != IDENTIFIER) {
+            parser_error("Expected parameter name");
+            return head;
+        }
+
+        char* param_name = strdup(yylval.string);
+        eat(IDENTIFIER);
+
+        // expect colon
+        if (token != COLON) {
+            parser_error("Expected ':' after parameter name");
+            free(param_name);
+            return head;
+        }
+        eat(COLON);
+
+        // parse parameter type
+        DataType param_type = parse_type_specifier();
+
+        // create parameter node
+        Parameter* param = malloc(sizeof(Parameter));
+        if (!param) {
+            parser_error("Memory allocation failed for parameter");
+            free(param_name);
+            return head;
+        }
+        param->name = param_name;
+        param->type = param_type;
+        param->next = NULL;
+
+        // add to symbol table
+        if (!add_symbol(getSymbolTable(), param_name, param_type)) {
+            parser_error("Duplicate parameter name");
+            free(param);
+            return head;
+        }
+
+        // add to linked list
+        if (head == NULL) {
+            head = param;
+            tail = param;
+        } else {
+            tail->next = param;
+            tail = param;
+        }
+        (*param_count)++;
+
+        // check for comma (more parameters) or closing paren
+        if (token == COMMA) {
+            eat(COMMA);
+            continue;
+        } else if (token == RPAREN) {
+            break;
+        } else {
+            parser_error("Expected ',' or ')' after parameter");
+            break;
+        }
+    }
+
+    return head;
 }
 
 ASTNode* parse_statement() {
@@ -433,11 +509,7 @@ ASTNode* parse_statement() {
                 eat(SEMICOLON);
                 return expr;
             }
-        case INT:
-        case FLOAT:
-        case CHAR:
-        case STRING:
-        case BOOL:
+        case DEC:
             return parse_variable_declaration();
         case RETURN:
             return parse_return_statement();
@@ -449,14 +521,46 @@ ASTNode* parse_statement() {
                 eat(ASSIGNMENT);
                 ASTNode* value = parse_expression();
                 eat(SEMICOLON);
-                return create_assignment_node(name, value, loc);
+                ASTNode* node = create_assignment_node(name, value, loc);
+                free(name);
+                return node;
             } else if (token == LPAREN) {
                 // handle function call
                 eat(LPAREN);
+
                 // parse arguments
+                ASTNode** args = NULL;
+                int arg_count = 0;
+                int arg_capacity = 4;
+
+                if (token != RPAREN) {
+                    args = malloc(sizeof(ASTNode*) * arg_capacity);
+
+                    while (1) {
+                        if (arg_count >= arg_capacity) {
+                            arg_capacity *= 2;
+                            args = realloc(args, sizeof(ASTNode*) * arg_capacity);
+                        }
+
+                        args[arg_count++] = parse_expression();
+
+                        if (token == COMMA) {
+                            eat(COMMA);
+                        } else if (token == RPAREN) {
+                            break;
+                        } else {
+                            parser_error("Expected ',' or ')' in function call");
+                            break;
+                        }
+                    }
+                }
+
                 eat(RPAREN);
                 eat(SEMICOLON);
-                return create_function_call_node(name, NULL, 0, loc);
+                ASTNode* node = create_function_call_node(name, args, arg_count, loc);
+                free(name);
+                if (args) free(args);
+                return node;
             }
 
             parser_error("Expected '=' or '(' after identifier");
@@ -473,23 +577,60 @@ ASTNode* parse_statement() {
 
 ASTNode* parse_function() {
     SourceLocation loc = {yylineno, 0, NULL};
-    char* return_type = strdup(yylval.string);
-    if (!return_type) {
-        parser_error("Memory allocation error");
+    
+    if (token != FUN) {
+        parser_error("Expected 'fun' keyword for function definition");
         return NULL;
     }
-    
-    if (token == INT) {
-        eat(INT);
-    } else if (token == VOID) {
-        eat(VOID);
+    eat(FUN);
+
+    if (token != MAIN && token != IDENTIFIER) {
+        parser_error("Expected function name after 'fun'");
+        return NULL;
     }
-    
+
     char* name = strdup(yylval.string);
     // printf("Function name: %s\n", name);
-    eat(MAIN);
+    // eat "main" or identifier
+    eat(token);
     eat(LPAREN);
+
+    // ====================================
+    // TODO: SCOPED SYMBOL TABLE
+    // ====================================
+
+    // parse parameters
+    int param_count = 0;
+    Parameter* parameters = parse_parameter_list(&param_count);
+
     eat(RPAREN);
+
+    char* return_type = strdup("zil");
+    DataType return_data_type = TYPE_ZIL;
+    if (token == COLON) {
+        eat(COLON);
+
+        const char* type_str = token_to_type_string(token);
+        if (type_str) {
+            free(return_type);
+            return_type = strdup(type_str);
+            return_data_type = token_to_data_type(token);
+            eat(token);
+        } else {
+            parser_error("Expected return type after ':'");
+            free(name);
+            free(return_type);
+            return NULL;
+        }
+    }
+
+    // register function in function table
+    if (!add_function(getFunctionTable(), name, return_data_type)) {
+        char error_msg[100];
+        snprintf(error_msg, sizeof(error_msg),
+            "Function '%s' already declared", name);
+        parser_error(error_msg);
+    }
 
     if (parser_state.function_context) {
         free(parser_state.function_context->current_name);
@@ -497,11 +638,13 @@ ASTNode* parse_function() {
         parser_state.function_context->current_name = strdup(name);
         parser_state.function_context->current_return_type = strdup(return_type);
         parser_state.function_context->has_return = 0;
-        parser_state.function_context->return_value_required = strcmp(return_type, "void") != 0;
+        parser_state.function_context->return_value_required = strcmp(return_type, "zil") != 0;
     }
 
     if (token != LBRACE) {
         parser_error("Expected '{' to begin function boddy");
+        free(name);
+        free(return_type);
         return NULL;
     }
     eat(LBRACE);
@@ -530,6 +673,8 @@ ASTNode* parse_function() {
 
     if (token == EOF) {
         parser_error("Unexpected end of file.");
+        free(name);
+        free(return_type);
         return NULL;
     }
 
@@ -549,18 +694,23 @@ ASTNode* parse_function() {
         if (parser_state.function_context->return_value_required &&
             !parser_state.function_context->has_return) {
             char error_msg[200];
-            snprintf(error_msg, sizeof(error_msg),
+            snprintf(
+                error_msg, 
+                sizeof(error_msg),
                 "Function '%s' with return type '%s' must return a value",
                 name,
-                return_type);
+                return_type
+            );
             parser_error(error_msg);
         }
     }
 
     return create_function_node(
-        return_type, 
-        name, 
-        body, 
+        return_type,
+        name,
+        parameters,
+        param_count,
+        body,
         parser_state.function_context->has_return,
         loc
     );
@@ -574,8 +724,7 @@ ASTNode* parse() {
     ASTNode* last_function = NULL;
     while (token != EOF) {
         switch(token) {
-            case INT:
-            case VOID: {
+            case FUN: {
                 ASTNode* function = parse_function();
                 if (function) {
                     if (last_function == NULL) {
@@ -598,7 +747,7 @@ ASTNode* parse() {
 
                 char error_msg[100];
                 snprintf(error_msg, sizeof(error_msg),
-                    "Unexpected token %s at top level",
+                    "Unexpected token %s at top level. Expected 'fun' for function definition.",
                     tokenToString(token));
                 parser_error(error_msg);
                 printf("Current token: %d, %s\n", token, tokenToString(token));
