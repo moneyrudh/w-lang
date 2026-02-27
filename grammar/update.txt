@@ -82,7 +82,7 @@ dec m1: map(num, list(str));
 m1[1] = ["a", "b"]
 log(m1[2]) // error
 m1[2] = ["ab"]
-if (m1[1]) {
+say (m1[1]) {
     log("Hello World");
 }
 
@@ -94,13 +94,43 @@ dec q: que(str) = ["one", "two", "three"]
 
 # Control flow
 
-## If/Else statements
+## Conditional Keywords
 
-if (!x 
-   and y or z
-   and a 
-   and b) {
+| W Lang      | Role          | C output                | Notes                          |
+|-------------|---------------|-------------------------|--------------------------------|
+| `say`       | if            | `if (cond)`             | casual "suppose that"          |
+| `when`      | if            | `if (cond)`             | synonym, reactive feel         |
+| `lest`      | if not        | `if (!(cond))`          | "unless"                       |
+| `elf`       | else if       | `else if (cond)`        |                                |
+| `elf lest`  | else if not   | `else if (!(cond))`     | verbose form                   |
+| `nor`       | else if not   | `else if (!(cond))`     | short form of `elf lest`       |
+| `else`      | else          | `else`                  |                                |
 
+### Illegal combos (parser errors):
+- `elf nor` -> error, use `nor` or `elf lest`
+- `elf say` -> error, just use `elf`
+- `elf when` -> error, just use `elf`
+
+### Examples:
+
+lest (new_user) {
+    log("welcome back");
+} elf (new_user and new_account) {
+    log("welcome");
+} else {
+    log("who is this?");
+}
+
+say (x > 10 and not is_error) {
+    log("big and safe");
+} elf (x > 5 or is_admin) {
+    log("medium or admin");
+} elf lest (is_blocked) {
+    log("not blocked");
+} nor (logged_out) {
+    log("not logged out");
+} else {
+    log("fallback");
 }
 
 ## Loops
@@ -113,7 +143,7 @@ loop (condition) {
 ### Infinite loops:
 loop {
     // code
-    if (done) break;
+    say (done) break;
 }
 
 ### For loops:
@@ -140,18 +170,18 @@ Breaks/Continue:
 
 1. 
 for (i in 0..10) {
-    if (
+    say (
         i is 5
         or i is 8
     ) skip;
 }
 
-2. 
+2.
 for (i in 0..10) {
-    if (
+    say (
         i is 5
         or i is 8
-    ) 
+    )
     break; // ERROR, if statement ends anywhere below 
     // the closing paranthesis (not on the same line), 
     // say 'missing brackets or statement'
@@ -159,7 +189,7 @@ for (i in 0..10) {
 
 3.
 for (item in my_items) {
-    if (
+    say (
         item == 0
     ) exit; // process.qxit()
 }
