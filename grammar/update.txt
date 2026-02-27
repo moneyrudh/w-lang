@@ -92,6 +92,40 @@ say (m1[1]) {
 > 
 dec q: que(str) = ["one", "two", "three"]
 
+# Comments
+
+## Comment Keywords
+
+| Type                  | Syntax                  | Notes                              |
+|-----------------------|-------------------------|------------------------------------|
+| Single throwaway      | `-- comment`            | Quick disposable comment           |
+| Multi throwaway       | `--- ... ---`           | Block disposable comment           |
+| Single doc            | `note comment`          | Single line documentation          |
+| Multi doc             | `note: ... done`        | Block documentation                |
+
+### Examples:
+
+-- this is a quick throwaway comment
+
+---
+this is a multiline
+throwaway comment
+---
+
+note this documents what the function does
+fun add(a: num, b: num): num {
+    ret a + b;
+}
+
+note:
+    This function handles authentication.
+    Checks user credentials and returns bool.
+    Even "quotes" are fine here — no escaping needed.
+done
+fun authenticate(user: str): bool {
+    ret true;
+}
+
 # Control flow
 
 ## Conditional Keywords
