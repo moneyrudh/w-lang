@@ -52,7 +52,28 @@ typedef enum {
     PLUS,
     MINUS,
     MULTIPLY,
-    DIVIDE
+    DIVIDE,
+
+    EQUAL,
+    NOT_EQUAL,
+    LESS,
+    GREATER,
+    LESS_EQUAL,
+    GREATER_EQUAL,
+
+    EQ,
+    NE,
+    GT,
+    LT,
+    GE,
+    LE,
+
+    AND,
+    OR,
+    NOT,
+    BANG,
+
+    IS
 } TokenType;
 
 typedef struct {

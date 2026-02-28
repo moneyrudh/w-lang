@@ -38,9 +38,29 @@
 
 "ret"       { return RETURN; }
 
+"is"        { return IS; }
+"eq"        { return EQ; }
+"ne"        { return NE; }
+"gt"        { return GT; }
+"lt"        { return LT; }
+"ge"        { return GE; }
+"le"        { return LE; }
+"and"       { return AND; }
+"or"        { return OR; }
+"not"       { return NOT; }
+
 ":"	    { return COLON; }
 ":="	    { return INFER_ASSIGN; }
+"=="        { return EQUAL; }
+"!="        { return NOT_EQUAL; }
+"<="        { return LESS_EQUAL; }
+">="        { return GREATER_EQUAL; }
+"&&"        { return AND; }
+"||"        { return OR; }
 "="         { return ASSIGNMENT; }
+"<"         { return LESS; }
+">"         { return GREATER; }
+"!"         { return BANG; }
 "["	    { return LBRACKET; }
 "]"	    { return RBRACKET; }
 "("         { return LPAREN; }
