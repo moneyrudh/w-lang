@@ -1,7 +1,9 @@
 /transpiler
-output.c
 commands.txt
 extras/
 .vscode/
 /*.txt
 CLAUDE.md
+
+supabase/.temp/
+*.c
