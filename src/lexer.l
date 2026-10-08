@@ -5,7 +5,7 @@
 
     YYSTYPE yylval;
 
-    // line where the currently open block comment started, for error messages
+    // line where the currently open '---' comment started, for error messages
     static int comment_start_line = 0;
 %}
 
@@ -13,28 +13,16 @@
 %option yylineno
 
 %x THROWAWAY_BLOCK
-%x DOC_BLOCK
 
 %%
 "---"       { comment_start_line = yylineno; BEGIN(THROWAWAY_BLOCK); }
 "--"([^-\n].*)? { /* single-line throwaway comment */ }
-"note:"     { comment_start_line = yylineno; BEGIN(DOC_BLOCK); }
-"note"([ \t].*)? { /* single-line doc comment */ }
+"note"([^a-zA-Z0-9_\n].*)? { /* doc comment (stack lines for multi-line docs) */ }
 
 <THROWAWAY_BLOCK>"---"  { BEGIN(INITIAL); }
 <THROWAWAY_BLOCK>\n|.   { /* skip comment body */ }
 <THROWAWAY_BLOCK><<EOF>> {
     fprintf(stderr, "Error on line %d: Unterminated '---' comment\n", comment_start_line);
-    parser_state.error_count++;
-    BEGIN(INITIAL);
-    return 0;
-}
-
-<DOC_BLOCK>"done"       { BEGIN(INITIAL); }
-<DOC_BLOCK>[a-zA-Z0-9_]+ { /* whole words, so 'abandoned' doesn't close the block */ }
-<DOC_BLOCK>\n|.         { /* skip comment body */ }
-<DOC_BLOCK><<EOF>> {
-    fprintf(stderr, "Error on line %d: Unterminated 'note:' comment (missing 'done')\n", comment_start_line);
     parser_state.error_count++;
     BEGIN(INITIAL);
     return 0;
