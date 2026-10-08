@@ -17,7 +17,7 @@ void exit_block();
 void eat(TokenType _token);
 
 ASTNode* parse(void);
-ASTNode* parser_factor(void);
+ASTNode* parse_factor(void);
 ASTNode* parse_term(void);
 ASTNode* parse_expression(void);
 ASTNode* parse_variable_declaration(void);

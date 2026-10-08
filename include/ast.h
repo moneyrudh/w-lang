@@ -52,12 +52,12 @@ typedef struct ASTNode {
             Expression base;
             struct ASTNode* left;
             struct ASTNode* right;
-            char operator;
+            OperatorType operator;
         } binary_expr;
         struct {
             Expression base;
             struct ASTNode* operand;
-            char operator;
+            OperatorType operator;
         } unary_expr;
         struct {
             Expression base;
@@ -98,7 +98,7 @@ typedef struct ASTNode {
     struct ASTNode* next;
 } ASTNode;
 
-ASTNode* create_unary_expr_node(char operator, ASTNode* operand, SourceLocation loc);
+ASTNode* create_unary_expr_node(OperatorType operator, ASTNode* operand, SourceLocation loc);
 ASTNode* create_function_call_node(char* name, ASTNode** args, int arg_count, SourceLocation loc);
 
 void set_node_location(ASTNode* node, SourceLocation loc);
@@ -107,7 +107,7 @@ ASTNode* create_program_node(SourceLocation loc);
 ASTNode* create_function_node(char* return_type, char* name, Parameter* parameters, int param_count, ASTNode* body, int has_return, SourceLocation loc);
 ASTNode* create_log_node(LogElement* elements);
 ASTNode* create_assignment_node(char* name, ASTNode* value, SourceLocation loc);
-ASTNode* create_binary_expr_node(ASTNode* left, ASTNode* right, char operator, SourceLocation loc);
+ASTNode* create_binary_expr_node(ASTNode* left, ASTNode* right, OperatorType operator, SourceLocation loc);
 ASTNode* create_number_node(int value, SourceLocation loc);
 ASTNode* create_string_node(char* value, SourceLocation loc);
 ASTNode* create_variable_node(char* name, SourceLocation loc);

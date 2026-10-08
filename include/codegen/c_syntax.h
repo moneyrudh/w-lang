@@ -41,12 +41,21 @@
 #define C_MINUS               " - "
 #define C_MULTIPLY            " * "
 #define C_DIVIDE              " / "
+#define C_EQUAL               " == "
+#define C_NOT_EQUAL           " != "
+#define C_LESS                " < "
+#define C_GREATER             " > "
+#define C_LESS_EQUAL          " <= "
+#define C_GREATER_EQUAL       " >= "
+#define C_AND                 " && "
+#define C_OR                  " || "
 
 // ===== single character operators (no spacing) =====
 #define C_OP_PLUS             "+"
 #define C_OP_MINUS            "-"
 #define C_OP_MULTIPLY         "*"
 #define C_OP_DIVIDE           "/"
+#define C_OP_NOT              "!"
 
 // ===== string escape sequences (for code generation) =====
 #define C_ESC_NEWLINE         "\\n"
@@ -69,5 +78,7 @@
 
 // ===== printf/function names =====
 #define C_PRINTF              "printf"
+#define C_STRCMP              "strcmp"
+#define C_ZERO                "0"
 
 #endif // C_SYNTAX_H

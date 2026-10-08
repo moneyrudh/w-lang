@@ -31,6 +31,6 @@ void emit_cast(FILE* out, DataType from_type, DataType to_type);
 // ==================== operator formatting ====================
 
 // get binary operator string with proper spacing (e.g., " + ", " * ")
-const char* get_binary_operator_string(char op);
+const char* get_binary_operator_string(OperatorType op);
 
 #endif // FORMATTERS_H

@@ -114,7 +114,18 @@ typedef enum {
     OP_ADD,
     OP_SUB,
     OP_MUL,
-    OP_DIV
+    OP_DIV,
+
+    OP_EQ,
+    OP_NE,
+    OP_LT,
+    OP_GT,
+    OP_LE,
+    OP_GE,
+
+    OP_AND,
+    OP_OR,
+    OP_NOT
 } OperatorType;
 
 typedef enum {
