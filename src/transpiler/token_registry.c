@@ -41,6 +41,29 @@ static TokenMetadata token_metadata[] = {
     {MULTIPLY,  "MULTIPLY",     "*",        TOKEN_CAT_OPERATOR},
     {DIVIDE,    "DIVIDE",       "/",        TOKEN_CAT_OPERATOR},
 
+    // comparison operators (symbol form)
+    {EQUAL,         "EQUAL",         "==",  TOKEN_CAT_OPERATOR},
+    {NOT_EQUAL,     "NOT_EQUAL",     "!=",  TOKEN_CAT_OPERATOR},
+    {LESS,          "LESS",          "<",   TOKEN_CAT_OPERATOR},
+    {GREATER,       "GREATER",       ">",   TOKEN_CAT_OPERATOR},
+    {LESS_EQUAL,    "LESS_EQUAL",    "<=",  TOKEN_CAT_OPERATOR},
+    {GREATER_EQUAL, "GREATER_EQUAL", ">=",  TOKEN_CAT_OPERATOR},
+
+    // comparison operators (word form)
+    {EQ,        "EQ",           "eq",       TOKEN_CAT_OPERATOR},
+    {NE,        "NE",           "ne",       TOKEN_CAT_OPERATOR},
+    {GT,        "GT",           "gt",       TOKEN_CAT_OPERATOR},
+    {LT,        "LT",           "lt",       TOKEN_CAT_OPERATOR},
+    {GE,        "GE",           "ge",       TOKEN_CAT_OPERATOR},
+    {LE,        "LE",           "le",       TOKEN_CAT_OPERATOR},
+    {IS,        "IS",           "is",       TOKEN_CAT_OPERATOR},
+
+    // logical operators ('&&' and '||' lex to AND / OR)
+    {AND,       "AND",          "and",      TOKEN_CAT_OPERATOR},
+    {OR,        "OR",           "or",       TOKEN_CAT_OPERATOR},
+    {NOT,       "NOT",          "not",      TOKEN_CAT_OPERATOR},
+    {BANG,      "BANG",         "!",        TOKEN_CAT_OPERATOR},
+
     // punctuation
     {LPAREN,    "LPAREN",       "(",        TOKEN_CAT_PUNCTUATION},
     {RPAREN,    "RPAREN",       ")",        TOKEN_CAT_PUNCTUATION},

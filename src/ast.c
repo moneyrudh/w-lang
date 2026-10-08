@@ -150,7 +150,7 @@ ASTNode* create_assignment_node(char* target, ASTNode* value, SourceLocation loc
 }
 
 
-ASTNode* create_binary_expr_node(ASTNode* left, ASTNode* right, char operator, SourceLocation loc) {
+ASTNode* create_binary_expr_node(ASTNode* left, ASTNode* right, OperatorType operator, SourceLocation loc) {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (!node) {
         parser_error("Memory allocation failed");
@@ -165,7 +165,7 @@ ASTNode* create_binary_expr_node(ASTNode* left, ASTNode* right, char operator, S
     return node;
 }
 
-ASTNode* create_unary_expr_node(char operator, ASTNode* operand, SourceLocation loc) {
+ASTNode* create_unary_expr_node(OperatorType operator, ASTNode* operand, SourceLocation loc) {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (!node) {
         parser_error("Memory allocation failed");
@@ -349,6 +349,7 @@ void free_ast(ASTNode* node) {
                 break;
             case NODE_UNARY_EXPR:
                 free_ast(node->data.unary_expr.operand);
+                break;
             case NODE_STRING:
                 free(node->data.string.value);
                 break;

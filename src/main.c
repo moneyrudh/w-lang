@@ -49,6 +49,7 @@ int main(int argc, char* argv[]) {
     }
 
     generate_code(output, ast);
+    int error_count = getParserState().error_count;
 
     free_ast(ast);
     fclose(input);
@@ -58,10 +59,10 @@ int main(int argc, char* argv[]) {
     token_registry_cleanup();
     type_registry_cleanup();
 
-    // if (getParserState().error_count > 0) {
-    //     unlink(output_file_name);
-    //     return 1;
-    // }
+    // output file is kept on error so it can be inspected
+    if (error_count > 0) {
+        return 1;
+    }
 
     return 0;
 }

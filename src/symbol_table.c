@@ -144,11 +144,17 @@ DataType get_expression_type(ASTNode* node, SymbolTable* table) {
         case NODE_BINARY_EXPR: {
             DataType left = get_expression_type(node->data.binary_expr.left, table);
             DataType right = get_expression_type(node->data.binary_expr.right, table);
-            return get_operation_type(
-                left, 
-                right,
-                char_to_operator(node->data.binary_expr.operator)
-            );
+            return get_operation_type(left, right, node->data.binary_expr.operator);
+        }
+        case NODE_UNARY_EXPR: {
+            DataType operand = get_expression_type(node->data.unary_expr.operand, table);
+            if (operand == TYPE_STR || operand == TYPE_ZIL) {
+                char error_msg[100];
+                snprintf(error_msg, sizeof(error_msg), "Cannot apply 'not' to %s", type_to_string(operand));
+                parser_error(error_msg);
+                return TYPE_ZIL;
+            }
+            return TYPE_BOOL;
         }
         case NODE_ASSIGNMENT: {
             // for x = (y + z) * f, the AST would look like:
@@ -259,6 +265,26 @@ DataType get_operation_type(DataType left, DataType right, OperatorType op) {
     if (left == TYPE_ZIL || right == TYPE_ZIL) {
         parser_error("Cannot perform operations on zil type");
         return TYPE_ZIL;
+    }
+
+    OperatorCategory category = get_operator_category(op);
+
+    // and / or: any non-str operand is truthy in C
+    if (category == OP_CAT_LOGICAL) {
+        if (left == TYPE_STR || right == TYPE_STR) {
+            parser_error("Logical operators (and, or) cannot be used on str");
+            return TYPE_ZIL;
+        }
+        return TYPE_BOOL;
+    }
+
+    // comparisons: str only compares with str (emitted via strcmp)
+    if (category == OP_CAT_COMPARISON) {
+        if ((left == TYPE_STR) != (right == TYPE_STR)) {
+            parser_error("Cannot compare str with a non-str value");
+            return TYPE_ZIL;
+        }
+        return TYPE_BOOL;
     }
 
     // string concat between string 1 and string 2

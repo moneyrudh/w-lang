@@ -89,12 +89,22 @@ void emit_cast(FILE* out, DataType from_type, DataType to_type) {
 
 // ==================== operator formatting ====================
 
-const char* get_binary_operator_string(char op) {
-    switch (op) {
-        case '+': return C_PLUS;
-        case '-': return C_MINUS;
-        case '*': return C_MULTIPLY;
-        case '/': return C_DIVIDE;
-        default:  return C_SPACE;
-    }
+static const char* binary_operator_strings[] = {
+    [OP_ADD] = C_PLUS,
+    [OP_SUB] = C_MINUS,
+    [OP_MUL] = C_MULTIPLY,
+    [OP_DIV] = C_DIVIDE,
+    [OP_EQ]  = C_EQUAL,
+    [OP_NE]  = C_NOT_EQUAL,
+    [OP_LT]  = C_LESS,
+    [OP_GT]  = C_GREATER,
+    [OP_LE]  = C_LESS_EQUAL,
+    [OP_GE]  = C_GREATER_EQUAL,
+    [OP_AND] = C_AND,
+    [OP_OR]  = C_OR,
+};
+
+const char* get_binary_operator_string(OperatorType op) {
+    const char* str = binary_operator_strings[op];
+    return str ? str : C_SPACE;
 }

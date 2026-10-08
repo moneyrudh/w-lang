@@ -109,30 +109,60 @@ static void generate_cast_if_needed(FILE* output, DataType from, DataType to) {
     }
 }
 
+// emits an operand, wrapped in parens if it is itself a binary expression so
+// that grouping from the source (e.g. a * (b + c)) is preserved
+static void generate_operand(FILE* output, ASTNode* operand, int indent_level) {
+    bool needs_parens = operand->type == NODE_BINARY_EXPR;
+    if (needs_parens) fprintf(output, C_LPAREN);
+    generate(output, operand, indent_level);
+    if (needs_parens) fprintf(output, C_RPAREN);
+}
+
 static void generate_binary_expr(FILE* output, ASTNode* node, int indent_level) {
     if (!node || node->type != NODE_BINARY_EXPR) return;
 
-    DataType left_type = get_expression_type(node->data.binary_expr.left, getSymbolTable());
-    DataType right_type = get_expression_type(node->data.binary_expr.right, getSymbolTable());
-    DataType result_type = get_operation_type(left_type, right_type, char_to_operator(node->data.binary_expr.operator));
+    ASTNode* left = node->data.binary_expr.left;
+    ASTNode* right = node->data.binary_expr.right;
+    OperatorType op = node->data.binary_expr.operator;
+    const char* op_string = get_binary_operator_string(op);
 
-    bool needs_parens = node->data.binary_expr.left->type == NODE_BINARY_EXPR ||
-                        node->data.binary_expr.right->type == NODE_BINARY_EXPR;
+    DataType left_type = get_expression_type(left, getSymbolTable());
+    DataType right_type = get_expression_type(right, getSymbolTable());
+    OperatorCategory category = get_operator_category(op);
 
-    if (needs_parens && node->data.binary_expr.left->type == NODE_BINARY_EXPR) {
-        fprintf(output, C_LPAREN);
-        generate_cast_if_needed(output, left_type, result_type);
-        generate(output, node->data.binary_expr.left, indent_level);
-        fprintf(output, C_RPAREN);
-    } else {
-        generate_cast_if_needed(output, left_type, result_type);
-        generate(output, node->data.binary_expr.left, indent_level);
+    // str comparisons: strcmp(a, b) <op> 0
+    if (category == OP_CAT_COMPARISON && left_type == TYPE_STR && right_type == TYPE_STR) {
+        fprintf(output, C_STRCMP C_LPAREN);
+        generate(output, left, indent_level);
+        fprintf(output, C_COMMA);
+        generate(output, right, indent_level);
+        fprintf(output, C_RPAREN "%s" C_ZERO, op_string);
+        return;
     }
 
-    fprintf(output, "%s", get_binary_operator_string(node->data.binary_expr.operator));
+    // arithmetic operands are cast to the result type; comparisons and logic
+    // operate on the operands as-is (casting x > y to bool operands would be wrong)
+    if (category == OP_CAT_ARITHMETIC) {
+        DataType result_type = get_operation_type(left_type, right_type, op);
+        generate_cast_if_needed(output, left_type, result_type);
+        generate_operand(output, left, indent_level);
+        fprintf(output, "%s", op_string);
+        generate_cast_if_needed(output, right_type, result_type);
+        generate_operand(output, right, indent_level);
+        return;
+    }
 
-    generate_cast_if_needed(output, right_type, result_type);
-    generate(output, node->data.binary_expr.right, indent_level);
+    generate_operand(output, left, indent_level);
+    fprintf(output, "%s", op_string);
+    generate_operand(output, right, indent_level);
+}
+
+static void generate_unary_expr(FILE* output, ASTNode* node, int indent_level) {
+    if (!node || node->type != NODE_UNARY_EXPR) return;
+
+    // OP_NOT is currently the only unary operator
+    fprintf(output, C_OP_NOT);
+    generate_operand(output, node->data.unary_expr.operand, indent_level);
 }
 
 static void generate_assignment(FILE* output, ASTNode* node, int indent_level) {
@@ -264,6 +294,9 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
         }
         case NODE_BINARY_EXPR:
             generate_binary_expr(output, node, indent_level);
+            break;
+        case NODE_UNARY_EXPR:
+            generate_unary_expr(output, node, indent_level);
             break;
         case NODE_NUMBER:
             fprintf(output, "%d", node->data.number.value);
