@@ -1,0 +1,15 @@
+say ok
+when ok
+lest ok
+chain 5 => 5
+one-liner chain 10 => 10
+lest/nor 2 => 2
+comma before block 99 => 99
+else one-liner 42 => 42
+shadow t 105 => 105
+outer t 1 => 1
+while sum 25 => 25 i 8 => 8
+until n 5 => 5
+forever k 4 => 4
+nested stop total 6 => 6
+calls ok

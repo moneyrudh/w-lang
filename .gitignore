@@ -7,3 +7,6 @@ extras/
 supabase/.temp/
 /*.c
 grammar/
+/transpiler_asan
+*.dSYM/
+/output

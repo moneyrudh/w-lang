@@ -2456,6 +2456,11 @@ static void schedule_indentation(int indent, int line) {
     if (indent != indent_stack[indent_top]) {
         fprintf(stderr, "Error on line %d: Indentation doesn't line up with any enclosing block\n", line);
         parser_state.error_count++;
+
+        // recover by keeping the line in the deeper block it fell short of,
+        // rather than closing that block and cascading errors
+        indent_top++;
+        pending_dedents--;
     }
 }
 

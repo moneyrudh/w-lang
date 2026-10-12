@@ -18,8 +18,21 @@ all: $(TARGET)
 $(TARGET): $(SRCS)
 	$(CC) $(CFLAGS) $(SRCS) -o $(TARGET)
 
+# Tests (see tests/run.sh)
+test: $(TARGET)
+	./tests/run.sh
+
+# Same tests with the transpiler built under AddressSanitizer + UBSan
+ASAN_TARGET = transpiler_asan
+
+$(ASAN_TARGET): $(SRCS)
+	$(CC) $(CFLAGS) -g -fsanitize=address,undefined $(SRCS) -o $(ASAN_TARGET)
+
+test-asan: $(ASAN_TARGET)
+	ASAN_OPTIONS=detect_leaks=0:exitcode=99 UBSAN_OPTIONS=halt_on_error=1:exitcode=99 TRANSPILER=./$(ASAN_TARGET) ./tests/run.sh
+
 # Clean
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) $(ASAN_TARGET)
 
-.PHONY: all clean
+.PHONY: all clean test test-asan

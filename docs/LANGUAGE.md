@@ -2,7 +2,7 @@
 
 This is the single source of truth for what W Lang **is**, what **works today**, and what is **decided but not built yet**.
 
-**Rule:** every change that adds, removes, or changes a language feature updates this file in the same commit. Status reflects what was *verified by running it*, not what the code looks like it should do.
+**Rule:** every change that adds, removes, or changes a language feature updates this file in the same commit. Status reflects what was *verified by running it*, not what the code looks like it should do. A ✅ should be covered by a test in `tests/` (`make test`).
 
 Legend: ✅ works end-to-end (transpiles, compiles with gcc, runs correctly) · 🚧 partial / buggy · 📐 decided, not built · 💭 idea, not decided
 
@@ -13,7 +13,7 @@ Legend: ✅ works end-to-end (transpiles, compiles with gcc, runs correctly) · 
 | Feature | Status | Notes |
 |---|---|---|
 | Entry point `fun w(): num` → C `main()` | ✅ | Return value becomes the process exit code |
-| Functions in any order (auto forward declarations) | ✅ | |
+| Functions in any order | 🚧 | C forward declarations are emitted, but W's checker is single-pass: a function must be defined above its first call. Needs a signature pre-pass |
 | Name mangling (`x` → `W__x_v`, `f` → `W__f_f`) | ✅ | Lets W names like `main` coexist with C |
 | Global variables (`dec` at top level) | 🚧 | AST/codegen support exists; parser rejects `dec` at top level |
 | `use` imports | 💭 | Token exists, nothing parses it |
@@ -191,6 +191,7 @@ Arguments after the `.w` file are passed to the program (reading them from W is 
 
 ## 12. Known bugs
 
+- Calling a function defined further down the file is an "Undefined function" error (§1)
 - `str + str` emits invalid C (§4)
 - `+` inside `log` is always string concatenation (§8)
 - Return checking isn't per-path: any `ret` anywhere satisfies "must return a value" (§6)
