@@ -40,11 +40,23 @@ typedef struct ASTNode {
         struct {
             Expression base;
             char* target;
+            DataType target_type;     // resolved at parse time
             struct ASTNode* value;
         } assignment;
         struct {
             struct ASTNode* expression;
         } return_statement;
+        struct {
+            struct ASTNode* condition;    // NULL for a plain 'else'
+            bool negated;                 // lest / elf lest / nor
+            struct ASTNode* body;
+            struct ASTNode* else_branch;  // next elf / nor / else in the chain
+        } if_statement;
+        struct {
+            struct ASTNode* condition;    // NULL for 'loop forever'
+            bool negated;                 // loop until
+            struct ASTNode* body;
+        } loop_statement;
         struct {
             LogElement* elements;
         } log;
@@ -109,6 +121,9 @@ ASTNode* create_log_node(LogElement* elements);
 ASTNode* create_assignment_node(char* name, ASTNode* value, SourceLocation loc);
 ASTNode* create_binary_expr_node(ASTNode* left, ASTNode* right, OperatorType operator, SourceLocation loc);
 ASTNode* create_number_node(int value, SourceLocation loc);
+ASTNode* create_if_node(ASTNode* condition, bool negated, ASTNode* body, SourceLocation loc);
+ASTNode* create_loop_node(ASTNode* condition, bool negated, ASTNode* body, SourceLocation loc);
+ASTNode* create_jump_node(NodeType type, SourceLocation loc);   // NODE_SKIP or NODE_STOP
 ASTNode* create_string_node(char* value, SourceLocation loc);
 ASTNode* create_variable_node(char* name, SourceLocation loc);
 ASTNode* create_float_node(double value, SourceLocation loc);

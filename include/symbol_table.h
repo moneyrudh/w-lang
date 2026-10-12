@@ -12,8 +12,13 @@ typedef struct Symbol {
     struct Symbol* next;
 } Symbol;
 
+#define MAX_SCOPE_DEPTH 128
+
+// symbols form a stack; each scope remembers where the stack stood when it opened
 typedef struct SymbolTable {
     Symbol* head;
+    Symbol* scope_starts[MAX_SCOPE_DEPTH];
+    int scope_depth;
 } SymbolTable;
 
 typedef struct FunctionSymbol {
@@ -31,6 +36,8 @@ void create_symbol_table(void);
 void free_symbol_table(void);
 bool add_symbol(SymbolTable* table, const char* name, DataType type);
 Symbol* lookup_symbol(SymbolTable* table, const char* name);
+void push_scope(SymbolTable* table);
+void pop_scope(SymbolTable* table);
 DataType get_expression_type(ASTNode* node, SymbolTable* table);
 
 FunctionTable* getFunctionTable(void);

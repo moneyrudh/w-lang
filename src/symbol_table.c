@@ -15,6 +15,7 @@ SymbolTable* getSymbolTable(void) {
 void create_symbol_table() {
     symbol_table = malloc(sizeof(SymbolTable));
     symbol_table->head = NULL;
+    symbol_table->scope_depth = 0;
     return;
 }
 
@@ -77,20 +78,46 @@ void free_function_table(void) {
     function_table = NULL;
 }
 
+static void free_symbol(Symbol* symbol) {
+    free(symbol->name);
+    free(symbol);
+}
+
 void free_symbol_table(void) {
     Symbol* current = symbol_table->head;
     while (current != NULL) {
         Symbol* next = current->next;
-        free(current->name);
-        free(current);
+        free_symbol(current);
         current = next;
     }
     free(symbol_table);
 }
 
+void push_scope(SymbolTable* table) {
+    if (table->scope_depth >= MAX_SCOPE_DEPTH) {
+        parser_error("Blocks nested too deeply");
+        return;
+    }
+    table->scope_starts[table->scope_depth++] = table->head;
+}
+
+void pop_scope(SymbolTable* table) {
+    if (table->scope_depth == 0) return;
+    Symbol* scope_start = table->scope_starts[--table->scope_depth];
+    while (table->head != scope_start) {
+        Symbol* next = table->head->next;
+        free_symbol(table->head);
+        table->head = next;
+    }
+}
+
+// a name may shadow an outer scope, but not repeat within its own scope
 bool add_symbol(SymbolTable* table, const char* name, DataType type) {
-    if (lookup_symbol(table, name) != NULL) {
-        return false;
+    Symbol* scope_start = table->scope_depth > 0 ? table->scope_starts[table->scope_depth - 1] : NULL;
+    for (Symbol* s = table->head; s != scope_start; s = s->next) {
+        if (strcmp(s->name, name) == 0) {
+            return false;
+        }
     }
 
     Symbol* symbol = malloc(sizeof(Symbol));
@@ -126,21 +153,9 @@ DataType get_expression_type(ASTNode* node, SymbolTable* table) {
             return TYPE_CHR;
         case NODE_BOOL:
             return TYPE_BOOL;
-        case NODE_VARIABLE: {
-            Symbol* symbol = lookup_symbol(table, node->data.variable.name);
-            if (!symbol) {
-                char error_msg[100];
-                snprintf(
-                    error_msg, 
-                    sizeof(error_msg),
-                    "Undefined variable: '%s'",
-                    node->data.variable.name
-                );
-                parser_error(error_msg);
-                return TYPE_ZIL;
-            }
-            return symbol->type;
-        }
+        case NODE_VARIABLE:
+            // resolved when the node was created (TYPE_ZIL if undefined)
+            return node->data.variable.base.expr_type;
         case NODE_BINARY_EXPR: {
             DataType left = get_expression_type(node->data.binary_expr.left, table);
             DataType right = get_expression_type(node->data.binary_expr.right, table);
@@ -156,45 +171,9 @@ DataType get_expression_type(ASTNode* node, SymbolTable* table) {
             }
             return TYPE_BOOL;
         }
-        case NODE_ASSIGNMENT: {
-            // for x = (y + z) * f, the AST would look like:
-            // NODE_ASSIGNMENT
-            // ├── target: "x"
-            // └── value: NODE_BINARY_EXPR (*)
-            //     ├── left: NODE_BINARY_EXPR (+)
-            //     │   ├── left: NODE_VARIABLE ("y")
-            //     │   └── right: NODE_VARIABLE ("z")
-            //     └── right: NODE_VARIABLE ("f")
-
-            Symbol* symbol = lookup_symbol(table, node->data.assignment.target);
-            if (!symbol) {
-                char error_msg[100];
-                snprintf(
-                    error_msg,
-                    sizeof(error_msg),
-                    "Assignment to undefined variable '%s'",
-                    node->data.assignment.target
-                );
-                parser_error(error_msg);
-                return TYPE_ZIL;
-            }
-
-            DataType value_type = get_expression_type(node->data.assignment.value, table);
-            if (!can_convert_type(value_type, symbol->type)) {
-                char error_msg[100];
-                snprintf(
-                    error_msg,
-                    sizeof(error_msg),
-                    "Cannot assign %s to %s",
-                    type_to_string(value_type),
-                    type_to_string(symbol->type)
-                );
-                parser_error(error_msg);
-                return TYPE_ZIL;
-            }
-
-            return symbol->type;
-        }
+        case NODE_ASSIGNMENT:
+            // resolved and type-checked when the node was created
+            return node->data.assignment.target_type;
         case NODE_FUNCTION_CALL: {
             FunctionSymbol* func = lookup_function(getFunctionTable(), node->data.function_call.name);
             if (!func) {

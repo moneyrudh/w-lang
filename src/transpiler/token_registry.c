@@ -35,6 +35,20 @@ static TokenMetadata token_metadata[] = {
     {RETURN,    "RETURN",       "ret",      TOKEN_CAT_KEYWORD},
     {LOG,       "LOG",          "log",      TOKEN_CAT_KEYWORD},
 
+    // control flow
+    {SAY,       "SAY",          "say",      TOKEN_CAT_KEYWORD},
+    {WHEN,      "WHEN",         "when",     TOKEN_CAT_KEYWORD},
+    {LEST,      "LEST",         "lest",     TOKEN_CAT_KEYWORD},
+    {ELF,       "ELF",          "elf",      TOKEN_CAT_KEYWORD},
+    {NOR,       "NOR",          "nor",      TOKEN_CAT_KEYWORD},
+    {ELSE,      "ELSE",         "else",     TOKEN_CAT_KEYWORD},
+    {LOOP,      "LOOP",         "loop",     TOKEN_CAT_KEYWORD},
+    {WHILE,     "WHILE",        "while",    TOKEN_CAT_KEYWORD},
+    {UNTIL,     "UNTIL",        "until",    TOKEN_CAT_KEYWORD},
+    {FOREVER,   "FOREVER",      "forever",  TOKEN_CAT_KEYWORD},
+    {SKIP,      "SKIP",         "skip",     TOKEN_CAT_KEYWORD},
+    {STOP,      "STOP",         "stop",     TOKEN_CAT_KEYWORD},
+
     // operators
     {PLUS,      "PLUS",         "+",        TOKEN_CAT_OPERATOR},
     {MINUS,     "MINUS",        "-",        TOKEN_CAT_OPERATOR},
@@ -74,6 +88,11 @@ static TokenMetadata token_metadata[] = {
     {COMMA,     "COMMA",        ",",        TOKEN_CAT_PUNCTUATION},
     {LBRACKET,  "LBRACKET",     "[",        TOKEN_CAT_PUNCTUATION},
     {RBRACKET,  "RBRACKET",     "]",        TOKEN_CAT_PUNCTUATION},
+
+    // layout
+    {NEWLINE,   "NEWLINE",      NULL,       TOKEN_CAT_LAYOUT},
+    {INDENT,    "INDENT",       NULL,       TOKEN_CAT_LAYOUT},
+    {DEDENT,    "DEDENT",       NULL,       TOKEN_CAT_LAYOUT},
 
     // assignment
     {ASSIGNMENT,      "ASSIGNMENT",    "=",   TOKEN_CAT_ASSIGNMENT},

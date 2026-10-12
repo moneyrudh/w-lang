@@ -11,9 +11,6 @@ void cleanup_parser();
 
 void parser_error(const char* message);
 
-void enter_block();
-void exit_block();
-
 void eat(TokenType _token);
 
 ASTNode* parse(void);
@@ -24,6 +21,8 @@ ASTNode* parse_variable_declaration(void);
 ASTNode* parse_log(void);
 ASTNode* parse_return_statement(void);
 ASTNode* parse_statement(void);
+ASTNode* parse_block(void);
+void expect_end_of_statement(void);
 ASTNode* parse_function(void);
 
 const char* token_to_string(TokenType token);

@@ -11,6 +11,7 @@
 #include "transpiler/type_registry.h"
 #include "codegen/c_syntax.h"
 #include "codegen/formatters.h"
+#include "codegen/control_flow.h"
 
 const char* get_c_type_string(DataType type) {
     return get_c_type_from_enum(type);
@@ -55,17 +56,10 @@ void generate_log_statement(FILE* output, LogElement* elements, int indent_level
                 fputs(C_FMT_INT, output);
                 arg_count++;
                 break;
-            case NODE_VARIABLE: {
-                Symbol* symbol = lookup_symbol(getSymbolTable(), current->value.string);
-                if (symbol == NULL) {
-                    parser_error("Undefined variable in log statement");
-                } else {
-                    const char* fmt = get_format_spec_from_enum(symbol->type);
-                    fputs(fmt, output);
-                    arg_count++;
-                }
+            case NODE_VARIABLE:
+                fputs(get_format_spec_from_enum(current->var_type), output);
+                arg_count++;
                 break;
-            }
             default:
                 parser_error("Unknown node type in log statement");
         }
@@ -170,8 +164,7 @@ static void generate_assignment(FILE* output, ASTNode* node, int indent_level) {
 
     emit_indent(output, indent_level);
 
-    Symbol* target_symbol = lookup_symbol(getSymbolTable(), node->data.assignment.target);
-    DataType target_type = target_symbol->type;
+    DataType target_type = node->data.assignment.target_type;
     DataType value_type = get_expression_type(node->data.assignment.value, getSymbolTable());
 
     fprintf(output, "%s" C_ASSIGN, mangle_identifier(node->data.assignment.target, false));
@@ -180,6 +173,12 @@ static void generate_assignment(FILE* output, ASTNode* node, int indent_level) {
 
     generate(output, node->data.assignment.value, 0);
     fprintf(output, C_SEMICOLON_NL);
+}
+
+void generate_block(FILE* output, ASTNode* statements, int indent_level) {
+    for (ASTNode* statement = statements; statement != NULL; statement = statement->next) {
+        generate(output, statement, indent_level);
+    }
 }
 
 void generate(FILE* output, ASTNode* node, int indent_level) {
@@ -256,12 +255,7 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
             emit_function_signature(output, c_return_type, c_func_name,
                                    node->data.function.parameters, node->data.function.param_count);
 
-            // generate function body
-            ASTNode* statement = node->data.function.body;
-            while (statement != NULL) {
-                generate(output, statement, indent_level + 1);
-                statement = statement->next;
-            }
+            generate_block(output, node->data.function.body, indent_level + 1);
             fprintf(output, C_RBRACE);
             break;
         }
@@ -297,6 +291,16 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
             break;
         case NODE_UNARY_EXPR:
             generate_unary_expr(output, node, indent_level);
+            break;
+        case NODE_IF:
+            generate_if(output, node, indent_level);
+            break;
+        case NODE_LOOP:
+            generate_loop(output, node, indent_level);
+            break;
+        case NODE_SKIP:
+        case NODE_STOP:
+            generate_loop_jump(output, node, indent_level);
             break;
         case NODE_NUMBER:
             fprintf(output, "%d", node->data.number.value);

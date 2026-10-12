@@ -82,6 +82,7 @@ ASTNode* create_log_node(LogElement* elements) {
     }
     node->type = NODE_LOG;
     node->data.log.elements = elements;
+    node->next = NULL;
     return node;
 }
 
@@ -131,9 +132,12 @@ ASTNode* create_assignment_node(char* target, ASTNode* value, SourceLocation loc
         free(node);
         return NULL;
     }
+    node->data.assignment.target_type = symbol->type;
 
     // check type compatibility
-    if (!compare_types(symbol->type, node->data.assignment.base.expr_type)) {
+    // zil means the value already reported an error
+    if (node->data.assignment.base.expr_type != TYPE_ZIL &&
+        !compare_types(symbol->type, node->data.assignment.base.expr_type)) {
         char error_msg[100];
         snprintf(error_msg, sizeof(error_msg),
                 "Type mismatch in assignment to '%s': cannot assign %s to %s",
@@ -175,6 +179,49 @@ ASTNode* create_unary_expr_node(OperatorType operator, ASTNode* operand, SourceL
     init_expression(&node->data.unary_expr.base, NODE_UNARY_EXPR, loc);
     node->data.unary_expr.operator = operator;
     node->data.unary_expr.operand = operand;
+    node->next = NULL;
+    return node;
+}
+
+ASTNode* create_if_node(ASTNode* condition, bool negated, ASTNode* body, SourceLocation loc) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    if (!node) {
+        parser_error("Memory allocation failed");
+        return NULL;
+    }
+    node->type = NODE_IF;
+    node->location = loc;
+    node->data.if_statement.condition = condition;
+    node->data.if_statement.negated = negated;
+    node->data.if_statement.body = body;
+    node->data.if_statement.else_branch = NULL;
+    node->next = NULL;
+    return node;
+}
+
+ASTNode* create_loop_node(ASTNode* condition, bool negated, ASTNode* body, SourceLocation loc) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    if (!node) {
+        parser_error("Memory allocation failed");
+        return NULL;
+    }
+    node->type = NODE_LOOP;
+    node->location = loc;
+    node->data.loop_statement.condition = condition;
+    node->data.loop_statement.negated = negated;
+    node->data.loop_statement.body = body;
+    node->next = NULL;
+    return node;
+}
+
+ASTNode* create_jump_node(NodeType type, SourceLocation loc) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    if (!node) {
+        parser_error("Memory allocation failed");
+        return NULL;
+    }
+    node->type = type;
+    node->location = loc;
     node->next = NULL;
     return node;
 }
@@ -280,6 +327,17 @@ ASTNode* create_variable_node(char* name, SourceLocation loc) {
     init_expression(&node->data.variable.base, NODE_VARIABLE, loc);
     node->data.variable.name = strdup(name);
     node->next = NULL;
+
+    // resolve the type now: scopes are popped once their block is parsed,
+    // so codegen can't look it up later
+    Symbol* symbol = lookup_symbol(getSymbolTable(), name);
+    if (!symbol) {
+        char error_msg[100];
+        snprintf(error_msg, sizeof(error_msg), "Undefined variable: '%s'", name);
+        parser_error(error_msg);
+    } else {
+        node->data.variable.base.expr_type = symbol->type;
+    }
     return node;
 }
 
@@ -367,13 +425,25 @@ void free_ast(ASTNode* node) {
             case NODE_RETURN:
                 free_ast(node->data.return_statement.expression);
                 break;
+            case NODE_IF:
+                free_ast(node->data.if_statement.condition);
+                free_ast(node->data.if_statement.body);
+                free_ast(node->data.if_statement.else_branch);
+                break;
+            case NODE_LOOP:
+                free_ast(node->data.loop_statement.condition);
+                free_ast(node->data.loop_statement.body);
+                break;
+            case NODE_SKIP:
+            case NODE_STOP:
+                break;
             case NODE_NUMBER:
             case NODE_FLOAT:
             case NODE_CHAR:
             case NODE_BOOL:
                 break;
         }
-        if (node->next) free(node->next);
+        free_ast(node->next);
         free(node);
     }
 }

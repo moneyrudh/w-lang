@@ -14,6 +14,8 @@
 #define C_IF                  "if"
 #define C_ELSE                "else"
 #define C_WHILE               "while"
+#define C_BREAK               "break"
+#define C_CONTINUE            "continue"
 #define C_FOR                 "for"
 #define C_TRUE                "true"
 #define C_FALSE               "false"
@@ -23,6 +25,7 @@
 #define C_RPAREN              ")"
 #define C_LBRACE              " {\n"
 #define C_RBRACE              "}\n"
+#define C_RBRACE_INLINE       "}"
 #define C_SEMICOLON           ";"
 #define C_SEMICOLON_NL        ";\n"
 #define C_COMMA               ", "
@@ -56,6 +59,7 @@
 #define C_OP_MULTIPLY         "*"
 #define C_OP_DIVIDE           "/"
 #define C_OP_NOT              "!"
+#define C_NOT_OPEN            "!("
 
 // ===== string escape sequences (for code generation) =====
 #define C_ESC_NEWLINE         "\\n"

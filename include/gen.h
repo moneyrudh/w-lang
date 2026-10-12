@@ -9,6 +9,9 @@
 
 void generate(FILE* output, ASTNode* node, int indent_level);
 void generate_code(FILE* output, ASTNode* node);
+
+// generates each statement in a linked list at the given indent
+void generate_block(FILE* output, ASTNode* statements, int indent_level);
 void generate_log_statement(FILE* output, LogElement* elements, int indent_level);
 
 #endif

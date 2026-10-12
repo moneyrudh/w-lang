@@ -48,8 +48,13 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    generate_code(output, ast);
+    // a program with errors isn't generated: codegen would re-run the same
+    // type checks and report every error twice
     int error_count = getParserState().error_count;
+    if (error_count == 0) {
+        generate_code(output, ast);
+        error_count = getParserState().error_count;
+    }
 
     free_ast(ast);
     fclose(input);
@@ -59,7 +64,6 @@ int main(int argc, char* argv[]) {
     token_registry_cleanup();
     type_registry_cleanup();
 
-    // output file is kept on error so it can be inspected
     if (error_count > 0) {
         return 1;
     }

@@ -30,6 +30,20 @@ typedef enum {
     RETURN,
     LOG,
 
+    // control flow
+    SAY,
+    WHEN,
+    LEST,
+    ELF,
+    NOR,
+    ELSE,
+    LOOP,
+    WHILE,
+    UNTIL,
+    FOREVER,
+    SKIP,
+    STOP,
+
     IDENTIFIER,
     INT_LITERAL,
     FLOAT_LITERAL,
@@ -48,6 +62,11 @@ typedef enum {
     RBRACE,
     COMMA,
     SEMICOLON,
+
+    // layout tokens produced from newlines and indentation
+    NEWLINE,
+    INDENT,
+    DEDENT,
 
     PLUS,
     MINUS,
@@ -88,6 +107,7 @@ typedef struct {
 
 extern YYSTYPE yylval;
 extern int yylineno;
+extern int token_line;   // source line of the current lookahead token
 extern TokenType token;
 
 typedef enum {
@@ -143,7 +163,11 @@ typedef enum {
     NODE_VARIABLE,
     NODE_VAR_DECLARATION,
     NODE_ASSIGNMENT,
-    NODE_RETURN
+    NODE_RETURN,
+    NODE_IF,
+    NODE_LOOP,
+    NODE_SKIP,
+    NODE_STOP
 } NodeType;
 
 typedef struct LogElement {
@@ -156,6 +180,7 @@ typedef struct LogElement {
         bool bool_val;
         char* variable;
     } value;
+    DataType var_type;   // for NODE_VARIABLE elements, resolved at parse time
     struct LogElement* next;
 } LogElement;
 
@@ -167,10 +192,8 @@ typedef struct {
 } FunctionContext;
 
 typedef struct {
-    int brace_depth;
-    int* block_lines;
-    int block_capacity;
     int error_count;
+    int loop_depth;      // > 0 while parsing a loop body (skip / stop are valid)
     int in_function_body;
     FunctionContext* function_context;
 } ParserState;

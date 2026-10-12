@@ -9,16 +9,15 @@
 #include "ast.h"
 #include "parser.h"
 #include "operator_utils.h"
+#include "parser/control_flow.h"
 #include "transpiler/type_registry.h"
 #include "transpiler/token_registry.h"
 
 ParserState parser_state;
 
 void init_parser_state() {
-    parser_state.brace_depth = 0;
-    parser_state.block_capacity = 10;
-    parser_state.block_lines = malloc(sizeof(int) * parser_state.block_capacity);
     parser_state.error_count = 0;
+    parser_state.loop_depth = 0;
     parser_state.in_function_body = 0;
     parser_state.function_context = malloc(sizeof(FunctionContext));
     parser_state.function_context->current_name = NULL;
@@ -34,7 +33,6 @@ void init_parser() {
 }
 
 void cleanup_parser_state() {
-    free(parser_state.block_lines);
     if (parser_state.function_context) {
         free(parser_state.function_context->current_name);
         free(parser_state.function_context->current_return_type);
@@ -73,7 +71,7 @@ const char *tokenToString(TokenType token) {
 }
 
 void parser_error(const char* message) {
-    fprintf(stderr, "Error on line %d: %s\n", yylineno, message);
+    fprintf(stderr, "Error on line %d: %s\n", token_line, message);
     parser_state.error_count++;
     if (parser_state.error_count >= 5) {
         fprintf(stderr, "Too many errors, exiting.\n");
@@ -84,20 +82,62 @@ void parser_error(const char* message) {
     }
 }
 
-void enter_block() {
-    if (parser_state.brace_depth >= parser_state.block_capacity) {
-        parser_state.block_capacity *= 2;
-        parser_state.block_lines = realloc(parser_state.block_lines, sizeof(int) * parser_state.block_capacity);
+// ==================== statements & blocks ====================
+
+// error recovery: drop the rest of the current line
+static void skip_rest_of_line(void) {
+    while (token != NEWLINE && token != DEDENT && token != 0) {
+        token = yylex();
     }
-    parser_state.block_lines[parser_state.brace_depth++] = yylineno;
+    if (token == NEWLINE) eat(NEWLINE);
 }
 
-void exit_block() {
-    if (parser_state.brace_depth <= 0) {
-        parser_error("Unexpected closing brace");
+// a statement ends at the end of its line
+void expect_end_of_statement(void) {
+    if (token == NEWLINE) {
+        eat(NEWLINE);
         return;
     }
-    parser_state.brace_depth--;
+    if (token == SEMICOLON) {
+        parser_error("W doesn't use ';' - end the statement with a new line");
+    } else {
+        parser_error("Expected end of line after statement");
+    }
+    skip_rest_of_line();
+}
+
+// parses statements up to the DEDENT that closes the current block
+static ASTNode* parse_block_statements(void) {
+    if (token == NEWLINE) eat(NEWLINE);
+    if (token != INDENT) {
+        parser_error("Expected an indented block");
+        return NULL;
+    }
+    eat(INDENT);
+
+    ASTNode* head = NULL;
+    ASTNode* tail = NULL;
+    while (token != DEDENT && token != 0) {
+        ASTNode* statement = parse_statement();
+        if (!statement) continue;
+        if (head == NULL) {
+            head = statement;
+        } else {
+            tail->next = statement;
+        }
+        tail = statement;
+    }
+
+    if (token == DEDENT) eat(DEDENT);
+    return head;
+}
+
+// an indented block with its own variable scope
+ASTNode* parse_block(void) {
+    push_scope(getSymbolTable());
+    ASTNode* body = parse_block_statements();
+    pop_scope(getSymbolTable());
+    return body;
 }
 
 ASTNode* parse_factor() {
@@ -320,7 +360,8 @@ ASTNode* parse_variable_declaration() {
 
         if (init_expr) {
             DataType expr_type = get_expression_type(init_expr, getSymbolTable());
-            if (!compare_types(var_type, expr_type)) {
+            // zil means the expression already reported an error
+            if (expr_type != TYPE_ZIL && !compare_types(var_type, expr_type)) {
                 char error_msg[100];
                 snprintf(error_msg, sizeof(error_msg),
                     "Type mismatch in initialization: cannot assign %s to %s",
@@ -334,21 +375,15 @@ ASTNode* parse_variable_declaration() {
         }
     }
 
-    if (token != SEMICOLON) {
-        parser_error("Expected semicolon after variable declaration");
-        if (init_expr) free_ast(init_expr);
-        free(var_name);
-        return NULL;
-    }
-
-    eat(SEMICOLON);
-
     if (!add_symbol(getSymbolTable(), var_name, var_type)) {
         parser_error("Variable already declared in this scope");
+        skip_rest_of_line();
         if (init_expr) free_ast(init_expr);
         free(var_name);
         return NULL;
     }
+
+    expect_end_of_statement();
 
     return create_var_declaration_node(var_name, var_type, init_expr, loc);
 }
@@ -380,6 +415,15 @@ ASTNode* parse_log() {
             // handle variable reference
             element->type = NODE_VARIABLE;
             element->value.string = strdup(yylval.string);
+            Symbol* symbol = lookup_symbol(getSymbolTable(), yylval.string);
+            if (!symbol) {
+                char error_msg[100];
+                snprintf(error_msg, sizeof(error_msg), "Undefined variable in log statement: '%s'", yylval.string);
+                parser_error(error_msg);
+                element->var_type = TYPE_ZIL;
+            } else {
+                element->var_type = symbol->type;
+            }
             eat(IDENTIFIER);
         } else if (token == INT_LITERAL) {
             // handle number literal
@@ -403,7 +447,7 @@ ASTNode* parse_log() {
     }
 
     eat(RPAREN);
-    eat(SEMICOLON);
+    expect_end_of_statement();
 
     return create_log_node(head);
 }
@@ -413,12 +457,11 @@ ASTNode* parse_return_statement() {
     ASTNode* expr = NULL;
     int has_value = 0;
 
-    if (token != SEMICOLON) {
+    if (token != NEWLINE) {
         expr = parse_expression();
         has_value = 1;
     }
 
-    eat(SEMICOLON);
 
     if (parser_state.function_context) {
         parser_state.function_context->has_return = 1;
@@ -443,7 +486,7 @@ ASTNode* parse_return_statement() {
                 DataType expr_type = get_expression_type(expr, getSymbolTable());
                 DataType func_type = type_registry_string_to_enum(parser_state.function_context->current_return_type);
 
-                if (expr_type != func_type) {
+                if (expr_type != TYPE_ZIL && expr_type != func_type) {
                     char error_msg[100];
                     snprintf(error_msg, sizeof(error_msg),
                         "Return type mismatch in function '%s'. Expected %s, got %s",
@@ -455,6 +498,8 @@ ASTNode* parse_return_statement() {
             }
         }
     }
+
+    expect_end_of_statement();
 
     ASTNode* node = malloc(sizeof(ASTNode));
     node->type = NODE_RETURN;
@@ -540,32 +585,43 @@ Parameter* parse_parameter_list(int* param_count) {
 ASTNode* parse_statement() {
     SourceLocation loc = {yylineno, 0, NULL};
     switch (token) {
-        case LBRACE:
-            eat(LBRACE);
-            enter_block();
-            while (token != RBRACE && token != EOF) {
-                parse_statement();
-            }
-            if (token == EOF) {
-                parser_error("Unexpected end of file. Missing closing brace.");
-                return NULL;
-            }
-            eat(RBRACE);
-            exit_block();
+        case NEWLINE:
+            // left over after an error that stopped at the end of a line
+            eat(NEWLINE);
             return NULL;
+        case INDENT: {
+            parser_error("Unexpected indentation");
+            // parse the stray block anyway so its contents get checked
+            ASTNode* stray = parse_block();
+            free_ast(stray);
+            return NULL;
+        }
         case LOG:
             return parse_log();
         case INT_LITERAL:
         case LPAREN:
             {
                 ASTNode* expr = parse_expression();
-                eat(SEMICOLON);
+                expect_end_of_statement();
                 return expr;
             }
         case DEC:
             return parse_variable_declaration();
         case RETURN:
             return parse_return_statement();
+        case SAY:
+        case WHEN:
+        case LEST:
+            return parse_conditional();
+        case ELF:
+        case NOR:
+        case ELSE:
+            return parse_stray_branch();
+        case LOOP:
+            return parse_loop();
+        case SKIP:
+        case STOP:
+            return parse_loop_jump();
         case IDENTIFIER: {
             char*name = strdup(yylval.string);
             eat(IDENTIFIER);
@@ -573,7 +629,7 @@ ASTNode* parse_statement() {
             if (token == ASSIGNMENT) {
                 eat(ASSIGNMENT);
                 ASTNode* value = parse_expression();
-                eat(SEMICOLON);
+                expect_end_of_statement();
                 ASTNode* node = create_assignment_node(name, value, loc);
                 free(name);
                 return node;
@@ -609,7 +665,7 @@ ASTNode* parse_statement() {
                 }
 
                 eat(RPAREN);
-                eat(SEMICOLON);
+                expect_end_of_statement();
                 ASTNode* node = create_function_call_node(name, args, arg_count, loc);
                 free(name);
                 if (args) free(args);
@@ -622,8 +678,8 @@ ASTNode* parse_statement() {
         }
         default: {
             parser_error("Unexpected token in statement.");
-            eat(token);
-            return NULL;    
+            skip_rest_of_line();
+            return NULL;
         }
     }
 }
@@ -648,9 +704,8 @@ ASTNode* parse_function() {
     eat(token);
     eat(LPAREN);
 
-    // ====================================
-    // TODO: SCOPED SYMBOL TABLE
-    // ====================================
+    // parameters and the body share one scope (as in C)
+    push_scope(getSymbolTable());
 
     // parse parameters
     int param_count = 0;
@@ -671,6 +726,7 @@ ASTNode* parse_function() {
             eat(token);
         } else {
             parser_error("Expected return type after ':'");
+            pop_scope(getSymbolTable());
             free(name);
             free(return_type);
             return NULL;
@@ -694,50 +750,10 @@ ASTNode* parse_function() {
         parser_state.function_context->return_value_required = strcmp(return_type, "zil") != 0;
     }
 
-    if (token != LBRACE) {
-        parser_error("Expected '{' to begin function boddy");
-        free(name);
-        free(return_type);
-        return NULL;
-    }
-    eat(LBRACE);
-    enter_block();
     parser_state.in_function_body = 1;
-
-    int has_return = 0;
-    ASTNode* body = NULL;
-    ASTNode* last = NULL;
-
-    while (token != RBRACE && token != EOF) {
-        ASTNode* statement = parse_statement();
-        if (statement) {
-            if (statement->type == NODE_RETURN) {
-                has_return = 1;
-            }
-            if (body == NULL) {
-                body = statement;
-                last = statement;
-            } else {
-                last->next = statement;
-                last = statement;
-            }
-        }
-    }
-
-    if (token == EOF) {
-        parser_error("Unexpected end of file.");
-        free(name);
-        free(return_type);
-        return NULL;
-    }
-
-    eat(RBRACE);
-    exit_block();
+    ASTNode* body = parse_block_statements();
     parser_state.in_function_body = 0;
-
-    // if (parser_state.brace_depth != 0) {
-    //     parser_error("Mismatched braces in function body.");
-    // }
+    pop_scope(getSymbolTable());
 
     // if (strcmp(return_type, "void")!=0 && has_return == 0) { 
     //     error("Function must have a return statement.");
@@ -803,7 +819,6 @@ ASTNode* parse() {
                     "Unexpected token %s at top level. Expected 'fun' for function definition.",
                     tokenToString(token));
                 parser_error(error_msg);
-                printf("Current token: %d, %s\n", token, tokenToString(token));
 
                 while (token != 0 && token != EOF) {
                     token = yylex();

@@ -11,7 +11,8 @@ typedef enum {
     TOKEN_CAT_PUNCTUATION, // (, ), {, }, ;, :, ,, [, ]
     TOKEN_CAT_LITERAL,     // INT_LITERAL, STRING_LITERAL, etc.
     TOKEN_CAT_IDENTIFIER,  // IDENTIFIER
-    TOKEN_CAT_ASSIGNMENT   // =, :=
+    TOKEN_CAT_ASSIGNMENT,  // =, :=
+    TOKEN_CAT_LAYOUT       // NEWLINE, INDENT, DEDENT
 } TokenCategory;
 
 typedef struct {
