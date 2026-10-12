@@ -3,7 +3,7 @@ commands.txt
 extras/
 .vscode/
 /*.txt
-CLAUDE.md
 
 supabase/.temp/
-*.c
+/*.c
+grammar/

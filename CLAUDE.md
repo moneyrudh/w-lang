@@ -1,0 +1,69 @@
+# W Lang Transpiler
+
+## What This Is
+A transpiler that converts W Lang (`.w` files) into C code. The pipeline is: **Lexer → Parser → AST → Code Generator → `.c` output file**. The generated C is then compiled with gcc.
+
+## How It Works
+- `src/lexer.l` — Flex-based lexer, tokenizes W Lang source
+- `src/parser.c` — Recursive descent parser, builds AST from token stream
+- `src/ast.c` — AST node creation and memory management
+- `src/gen.c` — Walks the AST and emits C code via `fprintf` to an output file
+- `src/codegen/formatters.c` — Helper functions for emitting C constructs (signatures, casts, operators, indentation)
+- `src/transpiler/token_registry.c` — Map-backed registry of all token metadata (display names, lexemes, categories)
+- `src/transpiler/type_registry.c` — Map-backed registry mapping W Lang types to C types, format specifiers, defaults
+- `src/symbol_table.c` — Tracks variable and function declarations for type checking
+- `src/data_structures/map.c` — Generic hashmap used internally by registries, and will also back W Lang's `map` type
+- `include/codegen/c_syntax.h` — `#define` constants for all C syntax strings (keywords, operators, punctuation, escapes)
+- `include/types.h` — All enums: `TokenType`, `DataType`, `NodeType`, `OperatorType`, plus shared structs
+- `src/operator_utils.c` — Table mapping operator tokens (symbol and word forms) to `OperatorType`, plus operator categories
+
+## Goal
+W Lang should feel like a modern, expressive language while transpiling cleanly to C. Keywords should be creative and intentional — not just copies of C/Java/Python. The language should have its own identity.
+
+## Code Style & Conventions
+
+### Reading Files
+- Never read entire files unless necessary. Read specific functions, specific line ranges, or whatever is relevant to the current task.
+- But don't be so conservative that you miss context or rewrite something that already exists. If unsure, read more.
+
+### Dynamic Over Hardcoded
+- Avoid raw string `fprintf` calls in codegen whenever possible.
+- C syntax strings belong in `include/codegen/c_syntax.h` as `#define` constants (e.g., `C_IF`, `C_ASSIGN`, `C_SEMICOLON_NL`).
+- Use the formatter helpers in `src/codegen/formatters.c` for emitting structured C constructs.
+- If a string is used more than once in codegen, it should be a constant or a helper function.
+- The registries (`token_registry`, `type_registry`) are map-backed. New tokens/types should be registered there, not handled via ad-hoc switch statements.
+
+### Name Mangling
+- All W Lang identifiers are mangled in the output: `W__name_v` for variables, `W__name_f` for functions.
+- The entry point `w()` maps to C `main()`.
+
+### AST Pattern
+- Each new language construct needs: a `NodeType` enum value, a union member in `ASTNode`, a `create_*_node()` function, and a `free_ast()` case.
+- Nodes are linked via `node->next` for statement lists.
+
+### Parser Pattern
+- Expression parsing uses recursive descent with precedence levels: `parse_expression()` → `parse_or()` → `parse_and()` → `parse_equality()` → `parse_comparison()` → `parse_additive()` → `parse_term()` → `parse_factor()`, all built on `parse_binary_level()`.
+- Statement parsing is in `parse_statement()` with a switch on the current token.
+- `eat(TokenType)` consumes and advances. The global `token` holds the current lookahead.
+
+### Adding a New Feature (checklist)
+1. **Tokens** — Add to `TokenType` enum in `types.h`, add lexer rule in `lexer.l`, register in `token_registry.c`
+2. **C syntax constants** — Add output strings to `c_syntax.h`
+3. **AST** — Add `NodeType`, union member, `create_*_node()` in `ast.h`/`ast.c`, update `free_ast()`
+4. **Parser** — Handle in `parse_statement()` or expression parser as appropriate
+5. **Codegen** — Add case in `generate()` in `gen.c`, use formatters/constants
+6. **Build & test** — `make clean && make`, run transpiler on a `.w` test file, compile output with gcc
+7. **Status** — Update `docs/LANGUAGE.md`
+
+### Build
+```
+make clean && make
+./transpiler hello_world.w output.c
+gcc output.c -o output && ./output
+```
+
+## Language Status — `docs/LANGUAGE.md`
+`docs/LANGUAGE.md` is the single source of truth for W Lang syntax and what is supported, partial, decided, or just an idea.
+- **Read it before any language work.** Don't infer features from the code or from `grammar/` (older drafts).
+- **Update it in the same change** whenever a feature is added, changed, removed, or found broken. Only mark ✅ after transpiling, compiling, and running a test program.
+- Don't duplicate its tables here.
