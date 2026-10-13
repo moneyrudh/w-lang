@@ -4,21 +4,9 @@
 #include "lexer.h"
 #include "parser.h"
 #include "parser/internal.h"
-#include "checker.h"
 #include "language/token_registry.h"
 
 // ==================== shared helpers ====================
-
-static void check_condition(ASTNode* condition) {
-    if (!condition) return;
-
-    DataType type = get_expression_type(condition, getSymbolTable());
-    if (type == TYPE_STR) {
-        parser_error("A condition can't be a str - compare it instead (e.g. name is \"bob\")");
-    } else if (type == TYPE_ZIL && condition->type == NODE_FUNCTION_CALL) {
-        parser_error("A condition can't be a call to a zil function");
-    }
-}
 
 // the body after a condition: an indented block, or ", statement" on the same line.
 // a comma before an indented block is allowed. after 'else' / 'loop forever' there's
@@ -38,25 +26,21 @@ static ASTNode* parse_body(bool comma_required) {
         parser_error("Expected ',' or a new line after the condition");
     }
 
-    // one-line body: its own scope, like a block
-    push_scope(getSymbolTable());
-    ASTNode* statement = parse_statement();
-    pop_scope(getSymbolTable());
-    return statement;
+    // one-line body (a scope of its own, like a block)
+    return parse_statement();
 }
 
 // ==================== conditionals ====================
 
 static ASTNode* parse_conditional_branch(bool negated, SourceLocation loc) {
     ASTNode* condition = parse_expression();
-    check_condition(condition);
     ASTNode* body = parse_body(true);
     return create_if_node(condition, negated, body, loc);
 }
 
 // elf / elf lest / nor / else
 static ASTNode* parse_else_branch(void) {
-    SourceLocation loc = {token_line, 0, NULL};
+    SourceLocation loc = current_location();
 
     switch (token) {
         case ELSE:
@@ -93,7 +77,7 @@ static ASTNode* parse_else_branch(void) {
 }
 
 ASTNode* parse_conditional(void) {
-    SourceLocation loc = {token_line, 0, NULL};
+    SourceLocation loc = current_location();
     bool negated = (token == LEST);
     eat(token);   // SAY, WHEN or LEST
 
@@ -127,7 +111,7 @@ ASTNode* parse_stray_branch(void) {
 // ==================== loops ====================
 
 ASTNode* parse_loop(void) {
-    SourceLocation loc = {token_line, 0, NULL};
+    SourceLocation loc = current_location();
     eat(LOOP);
 
     ASTNode* condition = NULL;
@@ -156,25 +140,14 @@ ASTNode* parse_loop(void) {
             break;
     }
 
-    check_condition(condition);
-
-    parser_state.loop_depth++;
     ASTNode* body = parse_body(comma_required);
-    parser_state.loop_depth--;
 
     return create_loop_node(condition, negated, body, loc);
 }
 
 ASTNode* parse_loop_jump(void) {
-    SourceLocation loc = {token_line, 0, NULL};
+    SourceLocation loc = current_location();
     NodeType type = (token == SKIP) ? NODE_SKIP : NODE_STOP;
-
-    if (parser_state.loop_depth == 0) {
-        char error_msg[100];
-        snprintf(error_msg, sizeof(error_msg), "'%s' can only be used inside a loop",
-                 token_registry_get_lexeme(token));
-        parser_error(error_msg);
-    }
 
     eat(token);   // SKIP or STOP
     expect_end_of_statement();

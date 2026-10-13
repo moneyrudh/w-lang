@@ -11,6 +11,12 @@ extern TokenType token;
 
 // ==================== parser.c: tokens, statements, blocks ====================
 
+// reports a syntax error on the current token's line
+void parser_error(const char* message);
+
+// the current token's line, for the node being built
+SourceLocation current_location(void);
+
 // consumes the current token, which must be _token
 void eat(TokenType _token);
 
@@ -22,11 +28,8 @@ void expect_end_of_statement(void);
 
 ASTNode* parse_statement(void);
 
-// an indented block with its own variable scope
+// an indented block: statements up to the DEDENT that closes it
 ASTNode* parse_block(void);
-
-// statements up to the DEDENT that closes the current block (no new scope)
-ASTNode* parse_block_statements(void);
 
 // ==================== expressions.c ====================
 
@@ -34,7 +37,7 @@ ASTNode* parse_expression(void);
 
 // ==================== statements.c ====================
 
-// num, real, chr, str, bool, zil
+// num, real, chr, str, bool, zil (TYPE_ERROR after reporting if it isn't a type)
 DataType parse_type_specifier(void);
 
 ASTNode* parse_variable_declaration(void);

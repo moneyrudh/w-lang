@@ -5,8 +5,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "parser/internal.h"
-#include "checker.h"
-#include "language/type_registry.h"
+#include "language/token_registry.h"
 
 // ==================== definitions ====================
 
@@ -38,35 +37,18 @@ static Parameter* parse_parameter_list(int* param_count) {
         }
         eat(COLON);
 
-        // parse parameter type
-        DataType param_type = parse_type_specifier();
-
-        // create parameter node
         Parameter* param = malloc(sizeof(Parameter));
-        if (!param) {
-            parser_error("Memory allocation failed for parameter");
-            free(param_name);
-            return head;
-        }
         param->name = param_name;
-        param->type = param_type;
+        param->type = parse_type_specifier();
         param->next = NULL;
-
-        // add to symbol table
-        if (!add_symbol(getSymbolTable(), param_name, param_type)) {
-            parser_error("Duplicate parameter name");
-            free(param);
-            return head;
-        }
 
         // add to linked list
         if (head == NULL) {
             head = param;
-            tail = param;
         } else {
             tail->next = param;
-            tail = param;
         }
+        tail = param;
         (*param_count)++;
 
         // check for comma (more parameters) or closing paren
@@ -84,13 +66,9 @@ static Parameter* parse_parameter_list(int* param_count) {
     return head;
 }
 
+// fun name(params) [: type] block
 ASTNode* parse_function(void) {
-    SourceLocation loc = {yylineno, 0, NULL};
-    
-    if (token != FUN) {
-        parser_error("Expected 'fun' keyword for function definition");
-        return NULL;
-    }
+    SourceLocation loc = current_location();
     eat(FUN);
 
     if (token != MAIN && token != IDENTIFIER) {
@@ -99,85 +77,28 @@ ASTNode* parse_function(void) {
     }
 
     char* name = strdup(yylval.string);
-    // eat "main" or identifier
-    eat(token);
+    eat(token);   // w or identifier
     eat(LPAREN);
 
-    // parameters and the body share one scope (as in C)
-    push_scope(getSymbolTable());
-
-    // parse parameters
     int param_count = 0;
     Parameter* parameters = parse_parameter_list(&param_count);
 
     eat(RPAREN);
 
-    char* return_type = strdup("zil");
-    DataType return_data_type = TYPE_ZIL;
+    // omitted return type means zil
+    DataType return_type = TYPE_ZIL;
     if (token == COLON) {
         eat(COLON);
-
-        const TypeMapping* mapping = type_registry_get_by_token(token);
-        if (mapping) {
-            free(return_type);
-            return_type = strdup(mapping->w_lang_name);
-            return_data_type = mapping->enum_value;
-            eat(token);
-        } else {
+        if (!token_registry_is_type(token)) {
             parser_error("Expected return type after ':'");
-            pop_scope(getSymbolTable());
             free(name);
-            free(return_type);
             return NULL;
         }
+        return_type = parse_type_specifier();
     }
 
-    // register function in function table
-    if (!add_function(getFunctionTable(), name, return_data_type)) {
-        char error_msg[100];
-        snprintf(error_msg, sizeof(error_msg),
-            "Function '%s' already declared", name);
-        parser_error(error_msg);
-    }
-
-    if (parser_state.function_context) {
-        free(parser_state.function_context->current_name);
-        free(parser_state.function_context->current_return_type);
-        parser_state.function_context->current_name = strdup(name);
-        parser_state.function_context->current_return_type = strdup(return_type);
-        parser_state.function_context->has_return = 0;
-        parser_state.function_context->return_value_required = strcmp(return_type, "zil") != 0;
-    }
-
-    parser_state.in_function_body = 1;
-    ASTNode* body = parse_block_statements();
-    parser_state.in_function_body = 0;
-    pop_scope(getSymbolTable());
-
-    if (parser_state.function_context) {
-        if (parser_state.function_context->return_value_required &&
-            !parser_state.function_context->has_return) {
-            char error_msg[200];
-            snprintf(
-                error_msg, 
-                sizeof(error_msg),
-                "Function '%s' with return type '%s' must return a value",
-                name,
-                return_type
-            );
-            parser_error(error_msg);
-        }
-    }
-
-    return create_function_node(
-        return_type,
-        name,
-        parameters,
-        param_count,
-        body,
-        parser_state.function_context->has_return,
-        loc
-    );
+    ASTNode* body = parse_block();
+    return create_function_node(return_type, name, parameters, param_count, body, loc);
 }
 
 // ==================== calls ====================
@@ -219,57 +140,16 @@ ASTNode* parse_function_call(char* name, SourceLocation loc) {
 
 // ==================== return ====================
 
+// ret [expr]
 ASTNode* parse_return_statement(void) {
+    SourceLocation loc = current_location();
     eat(RETURN);
-    ASTNode* expr = NULL;
-    int has_value = 0;
 
+    ASTNode* expr = NULL;
     if (token != NEWLINE) {
         expr = parse_expression();
-        has_value = 1;
-    }
-
-    if (parser_state.function_context) {
-        parser_state.function_context->has_return = 1;
-
-        if (strcmp(parser_state.function_context->current_return_type, "zil") == 0) {
-            if (has_value) {
-                char error_msg[100];
-                snprintf(error_msg, sizeof(error_msg),
-                    "Function '%s' declared as void, cannot return a value",
-                    parser_state.function_context->current_name);
-                parser_error(error_msg);
-            }
-        } else {
-            if (!has_value) {
-                char error_msg[100];
-                snprintf(error_msg, sizeof(error_msg),
-                    "Function '%s' with return type '%s' must return a value",
-                    parser_state.function_context->current_name,
-                    parser_state.function_context->current_return_type);
-                parser_error(error_msg);
-            } else if (expr) {
-                DataType expr_type = get_expression_type(expr, getSymbolTable());
-                DataType func_type = type_registry_string_to_enum(parser_state.function_context->current_return_type);
-
-                if (expr_type != TYPE_ZIL && expr_type != func_type) {
-                    char error_msg[100];
-                    snprintf(error_msg, sizeof(error_msg),
-                        "Return type mismatch in function '%s'. Expected %s, got %s",
-                        parser_state.function_context->current_name,
-                        parser_state.function_context->current_return_type,
-                        get_wlang_type_from_enum(expr_type));
-                    parser_error(error_msg);
-                }
-            }
-        }
     }
 
     expect_end_of_statement();
-
-    ASTNode* node = malloc(sizeof(ASTNode));
-    node->type = NODE_RETURN;
-    node->data.return_statement.expression = expr;
-    node->next = NULL;
-    return node;
+    return create_return_node(expr, loc);
 }

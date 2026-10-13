@@ -5,49 +5,47 @@
 #include "lexer.h"
 #include "parser.h"
 #include "parser/internal.h"
-#include "checker.h"
 #include "language/token_registry.h"
 #include "language/type_registry.h"
 
 DataType parse_type_specifier(void) {
     if (!token_registry_is_type(token)) {
         parser_error("Expected type specifier (num, real, chr, str, bool, zil)");
-        return TYPE_ZIL;
+        return TYPE_ERROR;
     }
 
-    DataType var_type = convert_token_to_data_type(token);
+    DataType type = convert_token_to_data_type(token);
     eat(token);
-    return var_type;
+    return type;
 }
 
 // ==================== variables ====================
 
+// dec name: type [= expr]
 ASTNode* parse_variable_declaration(void) {
-    SourceLocation loc = {yylineno, 0, NULL};
-
+    SourceLocation loc = current_location();
     eat(DEC);
 
-    // parse variable name
     if (token != IDENTIFIER) {
         parser_error("Expected identifier in variable declaration");
+        skip_rest_of_line();
         return NULL;
     }
-    
-    char* var_name = strdup(yylval.string);
+    char* name = strdup(yylval.string);
     eat(IDENTIFIER);
 
-    // expect colon for type annotation
     if (token != COLON) {
         parser_error("Expected ':' after variable name in declaration");
-        free(var_name);
+        skip_rest_of_line();
+        free(name);
         return NULL;
     }
-
     eat(COLON);
 
-    DataType var_type = parse_type_specifier();
-    if (var_type == TYPE_ZIL) {
-        free(var_name);
+    DataType type = parse_type_specifier();
+    if (type == TYPE_ERROR) {
+        skip_rest_of_line();
+        free(name);
         return NULL;
     }
 
@@ -55,35 +53,13 @@ ASTNode* parse_variable_declaration(void) {
     if (token == ASSIGNMENT) {
         eat(ASSIGNMENT);
         init_expr = parse_expression();
-
-        if (init_expr) {
-            DataType expr_type = get_expression_type(init_expr, getSymbolTable());
-            // zil means the expression already reported an error
-            if (expr_type != TYPE_ZIL && !compare_types(var_type, expr_type)) {
-                char error_msg[100];
-                snprintf(error_msg, sizeof(error_msg),
-                    "Type mismatch in initialization: cannot assign %s to %s",
-                    get_wlang_type_from_enum(expr_type),
-                    get_wlang_type_from_enum(var_type));
-                parser_error(error_msg);
-                free_ast(init_expr);
-                free(var_name);
-                return NULL;
-            }
-        }
-    }
-
-    if (!add_symbol(getSymbolTable(), var_name, var_type)) {
-        parser_error("Variable already declared in this scope");
-        skip_rest_of_line();
-        if (init_expr) free_ast(init_expr);
-        free(var_name);
-        return NULL;
     }
 
     expect_end_of_statement();
 
-    return create_var_declaration_node(var_name, var_type, init_expr, loc);
+    ASTNode* node = create_var_declaration_node(name, type, init_expr, loc);
+    free(name);
+    return node;
 }
 
 ASTNode* parse_assignment(char* name, SourceLocation loc) {
@@ -96,6 +72,7 @@ ASTNode* parse_assignment(char* name, SourceLocation loc) {
 // ==================== log ====================
 
 ASTNode* parse_log(void) {
+    SourceLocation loc = current_location();
     eat(LOG);
     eat(LPAREN);
 
@@ -120,18 +97,10 @@ ASTNode* parse_log(void) {
             free(element);
             continue;
         } else if (token == IDENTIFIER) {
-            // handle variable reference
+            // variable reference: its type is filled in by the checker
             element->type = NODE_VARIABLE;
             element->value.string = strdup(yylval.string);
-            Symbol* symbol = lookup_symbol(getSymbolTable(), yylval.string);
-            if (!symbol) {
-                char error_msg[100];
-                snprintf(error_msg, sizeof(error_msg), "Undefined variable in log statement: '%s'", yylval.string);
-                parser_error(error_msg);
-                element->var_type = TYPE_ZIL;
-            } else {
-                element->var_type = symbol->type;
-            }
+            element->var_type = TYPE_ERROR;
             eat(IDENTIFIER);
         } else if (token == INT_LITERAL) {
             // handle number literal
@@ -157,5 +126,5 @@ ASTNode* parse_log(void) {
     eat(RPAREN);
     expect_end_of_statement();
 
-    return create_log_node(head);
+    return create_log_node(head, loc);
 }

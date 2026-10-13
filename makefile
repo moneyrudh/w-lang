@@ -6,12 +6,13 @@ OBJ = $(BUILD)/obj
 
 # Sources, by stage
 SRCS = src/main.c \
-       src/core/ast.c \
+       src/core/ast.c src/core/diagnostics.c \
        src/language/token_registry.c src/language/type_registry.c src/language/operators.c \
        src/lexer/layout.c \
        src/parser/parser.c src/parser/expressions.c src/parser/statements.c \
        src/parser/functions.c src/parser/control_flow.c \
-       src/checker/scopes.c src/checker/types.c \
+       src/checker/checker.c src/checker/expressions.c src/checker/statements.c \
+       src/checker/functions.c src/checker/control_flow.c src/checker/scopes.c src/checker/types.c \
        src/codegen/codegen.c src/codegen/expressions.c src/codegen/statements.c \
        src/codegen/functions.c src/codegen/control_flow.c src/codegen/formatters.c \
        src/util/map.c \

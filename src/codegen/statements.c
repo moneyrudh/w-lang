@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "parser.h"
-#include "checker.h"
 #include "codegen/internal.h"
 #include "codegen/c_syntax.h"
 #include "language/type_registry.h"
@@ -37,7 +35,7 @@ void generate_assignment(FILE* output, ASTNode* node, int indent_level) {
     emit_indent(output, indent_level);
 
     DataType target_type = node->data.assignment.target_type;
-    DataType value_type = get_expression_type(node->data.assignment.value, getSymbolTable());
+    DataType value_type = node->data.assignment.value->expr_type;
 
     fprintf(output, "%s" C_ASSIGN, mangle_identifier(node->data.assignment.target, false));
 
@@ -64,7 +62,7 @@ void generate_log_statement(FILE* output, LogElement* elements, int indent_level
                 fputs(get_format_spec_from_enum(current->var_type), output);
                 break;
             default:
-                parser_error("Unknown node type in log statement");
+                break;
         }
         current = current->next;
     }

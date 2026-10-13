@@ -1,56 +1,22 @@
 #ifndef W_CHECKER_H
 #define W_CHECKER_H
 
-// scopes.c: variable and function tables
-// types.c:  expression types and conversion rules
-
 #include <stdbool.h>
 
 #include "types.h"
 #include "ast.h"
 
-typedef struct Symbol {
-    char* name;
-    DataType type;
-    struct Symbol* next;
-} Symbol;
+// Resolves every name, fills in expr_type / target_type / LogElement.var_type,
+// and reports semantic errors. Functions may be called before they're defined:
+// all signatures are collected before any body is checked.
+void check_program(ASTNode* program);
 
-#define MAX_SCOPE_DEPTH 128
+// ==================== type rules (also used by codegen) ====================
 
-// symbols form a stack; each scope remembers where the stack stood when it opened
-typedef struct SymbolTable {
-    Symbol* head;
-    Symbol* scope_starts[MAX_SCOPE_DEPTH];
-    int scope_depth;
-} SymbolTable;
+// can a value of type `value` be stored in / passed as `target`?
+bool compare_types(DataType target, DataType value);
 
-typedef struct FunctionSymbol {
-    char* name;
-    DataType return_type;
-    struct FunctionSymbol* next;
-} FunctionSymbol;
-
-typedef struct FunctionTable {
-    FunctionSymbol* head;
-} FunctionTable;
-
-SymbolTable* getSymbolTable(void);
-void create_symbol_table(void);
-void free_symbol_table(void);
-bool add_symbol(SymbolTable* table, const char* name, DataType type);
-Symbol* lookup_symbol(SymbolTable* table, const char* name);
-void push_scope(SymbolTable* table);
-void pop_scope(SymbolTable* table);
-
-FunctionTable* getFunctionTable(void);
-void create_function_table(void);
-void free_function_table(void);
-bool add_function(FunctionTable* table, const char* name, DataType return_type);
-FunctionSymbol* lookup_function(FunctionTable* table, const char* name);
-
-DataType get_expression_type(ASTNode* node, SymbolTable* table);
-bool compare_types(DataType left, DataType right);
-DataType get_operation_type(DataType left, DataType right, OperatorType op);
+// can `from` be cast to `to` in the generated C?
 bool can_convert_type(DataType from, DataType to);
 
 #endif

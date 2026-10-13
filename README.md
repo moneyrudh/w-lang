@@ -73,11 +73,11 @@ Key items:
 ```
 src/
   main.c       driver
-  core/        AST
+  core/        AST, error reporting
   language/    token, type and operator tables
   lexer/       flex rules + indentation layout
   parser/      recursive descent parser
-  checker/     scopes and type rules
+  checker/     name resolution and type checking
   codegen/     C code generation
   util/        hashmap
   runtime/     helpers for generated programs

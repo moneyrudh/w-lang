@@ -1,119 +1,67 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "checker.h"
-#include "parser.h"
 
-static SymbolTable* symbol_table;
-static FunctionTable* function_table;
+#include "checker/internal.h"
+#include "diagnostics.h"
 
-SymbolTable* getSymbolTable(void) {
-    return symbol_table;
-}
+#define MAX_SCOPE_DEPTH 128
 
-void create_symbol_table() {
-    symbol_table = malloc(sizeof(SymbolTable));
-    symbol_table->head = NULL;
-    symbol_table->scope_depth = 0;
-    return;
-}
+// variables form a stack; each scope remembers where the stack stood when it opened
+static Symbol* variables = NULL;
+static Symbol* scope_starts[MAX_SCOPE_DEPTH];
+static int scope_depth = 0;
 
-FunctionTable* getFunctionTable(void) {
-    return function_table;
-}
-
-void create_function_table() {
-    function_table = malloc(sizeof(FunctionTable));
-    function_table->head = NULL;
-}
-
-bool add_function(FunctionTable* table, const char* name, DataType return_type) {
-    if (!table) return false;
-
-    // check if function already exists
-    FunctionSymbol* current = table->head;
-    while (current != NULL) {
-        if (strcmp(current->name, name) == 0) {
-            return false;  // Function already declared
-        }
-        current = current->next;
-    }
-
-    // create new function symbol
-    FunctionSymbol* func = malloc(sizeof(FunctionSymbol));
-    if (!func) return false;
-
-    func->name = strdup(name);
-    func->return_type = return_type;
-    func->next = table->head;
-    table->head = func;
-    return true;
-}
-
-FunctionSymbol* lookup_function(FunctionTable* table, const char* name) {
-    if (!table) return NULL;
-
-    FunctionSymbol* current = table->head;
-    while (current != NULL) {
-        if (strcmp(current->name, name) == 0) {
-            return current;
-        }
-        current = current->next;
-    }
-    return NULL;
-}
-
-void free_function_table(void) {
-    if (!function_table) return;
-
-    FunctionSymbol* current = function_table->head;
-    while (current != NULL) {
-        FunctionSymbol* next = current->next;
-        free(current->name);
-        free(current);
-        current = next;
-    }
-    free(function_table);
-    function_table = NULL;
-}
+static FunctionSymbol* functions = NULL;
 
 static void free_symbol(Symbol* symbol) {
     free(symbol->name);
     free(symbol);
 }
 
-void free_symbol_table(void) {
-    Symbol* current = symbol_table->head;
-    while (current != NULL) {
-        Symbol* next = current->next;
-        free_symbol(current);
-        current = next;
-    }
-    free(symbol_table);
+void init_scopes(void) {
+    variables = NULL;
+    scope_depth = 0;
+    functions = NULL;
 }
 
-void push_scope(SymbolTable* table) {
-    if (table->scope_depth >= MAX_SCOPE_DEPTH) {
-        parser_error("Blocks nested too deeply");
+void free_scopes(void) {
+    while (variables != NULL) {
+        Symbol* next = variables->next;
+        free_symbol(variables);
+        variables = next;
+    }
+    scope_depth = 0;
+
+    while (functions != NULL) {
+        FunctionSymbol* next = functions->next;
+        free(functions);
+        functions = next;
+    }
+}
+
+// ==================== variables ====================
+
+void push_scope(int line) {
+    if (scope_depth >= MAX_SCOPE_DEPTH) {
+        report_error(line, "Blocks nested too deeply");
         return;
     }
-    table->scope_starts[table->scope_depth++] = table->head;
+    scope_starts[scope_depth++] = variables;
 }
 
-void pop_scope(SymbolTable* table) {
-    if (table->scope_depth == 0) return;
-    Symbol* scope_start = table->scope_starts[--table->scope_depth];
-    while (table->head != scope_start) {
-        Symbol* next = table->head->next;
-        free_symbol(table->head);
-        table->head = next;
+void pop_scope(void) {
+    if (scope_depth == 0) return;
+    Symbol* scope_start = scope_starts[--scope_depth];
+    while (variables != scope_start) {
+        Symbol* next = variables->next;
+        free_symbol(variables);
+        variables = next;
     }
 }
 
-// a name may shadow an outer scope, but not repeat within its own scope
-bool add_symbol(SymbolTable* table, const char* name, DataType type) {
-    Symbol* scope_start = table->scope_depth > 0 ? table->scope_starts[table->scope_depth - 1] : NULL;
-    for (Symbol* s = table->head; s != scope_start; s = s->next) {
+bool declare_variable(const char* name, DataType type) {
+    Symbol* scope_start = scope_depth > 0 ? scope_starts[scope_depth - 1] : NULL;
+    for (Symbol* s = variables; s != scope_start; s = s->next) {
         if (strcmp(s->name, name) == 0) {
             return false;
         }
@@ -122,18 +70,39 @@ bool add_symbol(SymbolTable* table, const char* name, DataType type) {
     Symbol* symbol = malloc(sizeof(Symbol));
     symbol->name = strdup(name);
     symbol->type = type;
-    symbol->next = table->head;
-    table->head = symbol;
+    symbol->next = variables;
+    variables = symbol;
     return true;
 }
 
-Symbol* lookup_symbol(SymbolTable* table, const char* name) {
-    Symbol* current = table->head;
-    while (current != NULL) {
-        if (strcmp(current->name, name) == 0) {
-            return current;
+Symbol* lookup_variable(const char* name) {
+    for (Symbol* s = variables; s != NULL; s = s->next) {
+        if (strcmp(s->name, name) == 0) {
+            return s;
         }
-        current = current->next;
+    }
+    return NULL;
+}
+
+// ==================== functions ====================
+
+bool declare_function(ASTNode* function) {
+    if (lookup_function(function->data.function.name)) {
+        return false;
+    }
+
+    FunctionSymbol* symbol = malloc(sizeof(FunctionSymbol));
+    symbol->function = function;
+    symbol->next = functions;
+    functions = symbol;
+    return true;
+}
+
+FunctionSymbol* lookup_function(const char* name) {
+    for (FunctionSymbol* f = functions; f != NULL; f = f->next) {
+        if (strcmp(f->function->data.function.name, name) == 0) {
+            return f;
+        }
     }
     return NULL;
 }

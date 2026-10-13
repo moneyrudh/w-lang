@@ -8,7 +8,7 @@
 #include <stdbool.h>
 
 #include "lexer.h"
-#include "parser.h"
+#include "diagnostics.h"
 #include "lexer/internal.h"
 
 #define MAX_INDENT_DEPTH 128
@@ -27,8 +27,7 @@ static bool line_has_code = false;
 static void schedule_indentation(int indent, int line) {
     if (indent > indent_stack[indent_top]) {
         if (indent_top + 1 >= MAX_INDENT_DEPTH) {
-            fprintf(stderr, "Error on line %d: Blocks nested too deeply\n", line);
-            parser_state.error_count++;
+            report_error(line, "Blocks nested too deeply");
             return;
         }
         indent_stack[++indent_top] = indent;
@@ -42,8 +41,7 @@ static void schedule_indentation(int indent, int line) {
     }
 
     if (indent != indent_stack[indent_top]) {
-        fprintf(stderr, "Error on line %d: Indentation doesn't line up with any enclosing block\n", line);
-        parser_state.error_count++;
+        report_error(line, "Indentation doesn't line up with any enclosing block");
 
         // recover by keeping the line in the deeper block it fell short of,
         // rather than closing that block and cascading errors
