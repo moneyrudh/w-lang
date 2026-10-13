@@ -4,29 +4,14 @@
 #include "types.h"
 #include "ast.h"
 
-void init_parser_state();
-void init_parser();
-void cleanup_parser_state();
-void cleanup_parser();
+void init_parser(void);
+void cleanup_parser(void);
 
-void parser_error(const char* message);
-
-void eat(TokenType _token);
-
+// parses all of yyin into a NODE_PROGRAM (NULL if parsing gave up)
 ASTNode* parse(void);
-ASTNode* parse_factor(void);
-ASTNode* parse_term(void);
-ASTNode* parse_expression(void);
-ASTNode* parse_variable_declaration(void);
-ASTNode* parse_log(void);
-ASTNode* parse_return_statement(void);
-ASTNode* parse_statement(void);
-ASTNode* parse_block(void);
-void expect_end_of_statement(void);
-ASTNode* parse_function(void);
 
-const char* token_to_string(TokenType token);
-const char* type_to_string(DataType type);
+// reports an error on the current token's line and counts it
+void parser_error(const char* message);
 
 extern ParserState parser_state;
 

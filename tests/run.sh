@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
-# W Lang test runner.
+# W Lang test runner. Tests are grouped by language feature (the sections of
+# docs/LANGUAGE.md), e.g. tests/run/control_flow/, tests/errors/loops/.
 #
-#   tests/run/NAME.w     must transpile, compile with -Wall -Wextra -Werror, and run.
-#                        stdout must match NAME.out exactly; exit code must match
-#                        the "-- exit: N" line in NAME.w (default 0).
-#   tests/errors/NAME.w  must fail to transpile (exit 1). Every "-- error: TEXT"
-#                        line must appear in stderr, and there must be no other
-#                        errors (catches cascades).
+#   tests/run/**/NAME.w     must transpile, compile with -Wall -Wextra -Werror, and run.
+#                           stdout must match NAME.out exactly; exit code must match
+#                           the "-- exit: N" line in NAME.w (default 0).
+#   tests/errors/**/NAME.w  must fail to transpile (exit 1). Every "-- error: TEXT"
+#                           line must appear in stderr, and there must be no other
+#                           errors (catches cascades).
 #
-# Usage: tests/run.sh [filter]     (runs tests whose path contains filter)
-# Env:   TRANSPILER=path           (default ./transpiler)
+# Usage: tests/run.sh [filter]     (runs tests whose path contains filter,
+#                                   e.g. "loops" or "elf")
+# Env:   TRANSPILER=path           (default ./build/transpiler)
 
 set -u
 
 cd "$(dirname "$0")/.." || exit 1
 
-TRANSPILER="${TRANSPILER:-./transpiler}"
+TRANSPILER="${TRANSPILER:-./build/transpiler}"
 CC="${CC:-gcc}"
 FILTER="${1:-}"
 WORK="$(mktemp -d)"
@@ -109,12 +111,12 @@ error_test() {
     echo "ok    $src"
 }
 
-for src in tests/run/*.w; do
+while IFS= read -r src; do
     case "$src" in *"$FILTER"*) run_test "$src" ;; esac
-done
-for src in tests/errors/*.w; do
+done < <(find tests/run -name '*.w' | sort)
+while IFS= read -r src; do
     case "$src" in *"$FILTER"*) error_test "$src" ;; esac
-done
+done < <(find tests/errors -name '*.w' | sort)
 
 echo
 echo "$pass passed, $fail failed"

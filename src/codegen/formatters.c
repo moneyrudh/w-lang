@@ -1,13 +1,14 @@
-#include "codegen/formatters.h"
-#include "codegen/c_syntax.h"
-#include "transpiler/type_registry.h"
 #include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
 
+#include "codegen/internal.h"
+#include "codegen/c_syntax.h"
+#include "language/type_registry.h"
+
 // ==================== mangling helper ====================
 
-static const char* mangle_identifier(const char* w_name, bool is_function) {
+const char* mangle_identifier(const char* w_name, bool is_function) {
     // Special case: entry point w() becomes main
     if (strcmp(w_name, "w") == 0 && is_function) {
         return C_MAIN;
@@ -33,49 +34,33 @@ void emit_c_includes(FILE* out) {
 
 // ==================== function generation ====================
 
+// "type name, type name" or "void"
+static void emit_parameter_list(FILE* out, Parameter* params, int param_count) {
+    if (param_count == 0) {
+        fprintf(out, C_VOID);
+        return;
+    }
+
+    for (Parameter* param = params; param != NULL; param = param->next) {
+        if (param != params) {
+            fprintf(out, C_COMMA);
+        }
+        fprintf(out, "%s %s", get_c_type_from_enum(param->type),
+                mangle_identifier(param->name, false));
+    }
+}
+
 void emit_function_signature(FILE* out, const char* return_type, const char* name,
                              Parameter* params, int param_count) {
     fprintf(out, "%s %s" C_LPAREN, return_type, name);
-
-    if (param_count == 0) {
-        fprintf(out, C_VOID);
-    } else {
-        Parameter* param = params;
-        bool first = true;
-        while (param) {
-            if (!first) {
-                fprintf(out, C_COMMA);
-            }
-            fprintf(out, "%s %s", get_c_type_from_enum(param->type),
-                    mangle_identifier(param->name, false));
-            first = false;
-            param = param->next;
-        }
-    }
-
+    emit_parameter_list(out, params, param_count);
     fprintf(out, C_RPAREN C_LBRACE);
 }
 
 void emit_function_declaration(FILE* out, const char* return_type, const char* name,
                                 Parameter* params, int param_count) {
     fprintf(out, "%s %s" C_LPAREN, return_type, name);
-
-    if (param_count == 0) {
-        fprintf(out, C_VOID);
-    } else {
-        Parameter* param = params;
-        bool first = true;
-        while (param) {
-            if (!first) {
-                fprintf(out, C_COMMA);
-            }
-            fprintf(out, "%s %s", get_c_type_from_enum(param->type),
-                    mangle_identifier(param->name, false));
-            first = false;
-            param = param->next;
-        }
-    }
-
+    emit_parameter_list(out, params, param_count);
     fprintf(out, C_RPAREN C_SEMICOLON_NL);
 }
 

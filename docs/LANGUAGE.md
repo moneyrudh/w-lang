@@ -168,7 +168,7 @@ loop until n >= 5, n = n + 1
 
 | Feature | Status | Notes |
 |---|---|---|
-| `./transpiler in.w out.c` | ✅ | Exits 1 on any error. A program with errors isn't generated (output file is left empty) |
+| `build/transpiler in.w [out.c]` | ✅ | Output defaults to `build/<name>.c`. Exits 1 on any error. A program with errors isn't generated (output file is left empty) |
 | `wlang` CLI | 📐 | See below |
 
 ```

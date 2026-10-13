@@ -1,7 +1,7 @@
 #ifndef WLANG_RUNTIME_H
 #define WLANG_RUNTIME_H
 
-#include "data_structures/map.h"
+#include "util/map.h"
 #include <stdbool.h>
 
 // ==================== runtime map helpers ====================

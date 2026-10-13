@@ -1,7 +1,5 @@
-#include "gen.h"
-#include "codegen/control_flow.h"
+#include "codegen/internal.h"
 #include "codegen/c_syntax.h"
-#include "codegen/formatters.h"
 
 // (cond) or (!(cond))
 static void generate_condition(FILE* output, ASTNode* condition, bool negated) {

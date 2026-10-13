@@ -1,5 +1,5 @@
-#ifndef AST_H
-#define AST_H
+#ifndef W_AST_H
+#define W_AST_H
 
 #include "types.h"
 

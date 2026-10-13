@@ -1,23 +1,37 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+#include <sys/stat.h>
 
 #include "types.h"
-#include "symbol_table.h"
 #include "ast.h"
-#include "gen.h"
+#include "lexer.h"
 #include "parser.h"
-#include "transpiler/type_registry.h"
-#include "transpiler/token_registry.h"
+#include "codegen.h"
+#include "language/type_registry.h"
+#include "language/token_registry.h"
 
-YYSTYPE yylval;
-TokenType token;
-char* output_file_name;
+#define DEFAULT_OUTPUT_DIR "build"
+
+// build/<name>.c for input path .../<name>.w
+static char* default_output_path(const char* input_path) {
+    const char* name = strrchr(input_path, '/');
+    name = name ? name + 1 : input_path;
+
+    size_t name_len = strlen(name);
+    if (name_len > 2 && strcmp(name + name_len - 2, ".w") == 0) {
+        name_len -= 2;
+    }
+
+    size_t size = strlen(DEFAULT_OUTPUT_DIR) + 1 + name_len + 3;
+    char* path = malloc(size);
+    snprintf(path, size, DEFAULT_OUTPUT_DIR "/%.*s.c", (int)name_len, name);
+    return path;
+}
 
 int main(int argc, char* argv[]) {
-    if (argc != 3) {
-        fprintf(stderr, "Usage: %s input.w output.c\n", argv[0]);
+    if (argc != 2 && argc != 3) {
+        fprintf(stderr, "Usage: %s input.w [output.c]   (default output: " DEFAULT_OUTPUT_DIR "/<input>.c)\n", argv[0]);
         return 1;
     }
 
@@ -27,20 +41,27 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    output_file_name = argv[2];
-    FILE* output = fopen(output_file_name, "w");
+    char* output_path;
+    if (argc == 3) {
+        output_path = strdup(argv[2]);
+    } else {
+        mkdir(DEFAULT_OUTPUT_DIR, 0755);   // fails harmlessly if it exists
+        output_path = default_output_path(argv[1]);
+    }
+
+    FILE* output = fopen(output_path, "w");
     if (!output) {
         perror("Error opening output file.");
+        free(output_path);
         fclose(input);
         return 1;
     }
+    free(output_path);
 
     type_registry_init();
     token_registry_init();
     init_parser();
     yyin = input;
-    token = yylex();
-    // printf("Token: %d\n", token);
     ast = parse();
 
     if (!ast || ast->type != NODE_PROGRAM) {
