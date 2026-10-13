@@ -83,6 +83,6 @@ src/
   runtime/     helpers for generated programs
 include/       public header for each stage
 examples/      example W programs
-tests/         make test
+tests/         make test (run/ and errors/, grouped by language feature)
 docs/          LANGUAGE.md: syntax and feature status
 ```

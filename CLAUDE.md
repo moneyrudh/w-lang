@@ -66,7 +66,7 @@ W Lang should feel like a modern, expressive language while transpiling cleanly 
 3. **AST** — Add `NodeType`, union member, `create_*_node()` in `ast.h`/`ast.c`, update `free_ast()`
 4. **Parser** — Route from `parse_statement()` or the expression parser to the matching `src/parser/` file
 5. **Codegen** — Add a case in `generate()` (`src/codegen/codegen.c`) that calls into the matching `src/codegen/` file, use formatters/constants
-6. **Tests** — Add `tests/run/*.w` (+ `.out`) for what should work and `tests/errors/*.w` for each new error, then `make test` and `make test-asan`
+6. **Tests** — Add `tests/run/<feature>/*.w` (+ `.out`) for what should work and `tests/errors/<feature>/*.w` for each new error, then `make test` and `make test-asan`
 7. **Status** — Update `docs/LANGUAGE.md`
 
 ### Build
@@ -80,10 +80,11 @@ gcc build/hello.c -o build/hello && ./build/hello
 ```
 make test          # all tests
 make test-asan     # same tests, transpiler built with AddressSanitizer + UBSan
-tests/run.sh elf   # only tests whose path contains "elf"
+tests/run.sh loops # only tests whose path contains "loops" (a feature folder or a file name)
 ```
-- `tests/run/NAME.w` must transpile, compile with `-Wall -Wextra -Werror`, and print exactly `NAME.out`. Put `-- exit: N` at the top for a non-zero exit code.
-- `tests/errors/NAME.w` must fail. List every expected error as `-- error: line N: message`. Extra errors fail the test, so error cascades get caught.
+- Tests are grouped by language feature, named after the sections of `docs/LANGUAGE.md` (`blocks`, `comments`, `types`, `variables`, `functions`, `operators`, `control_flow`, `loops`, …), not by compiler stage: every test runs the whole pipeline. Add a new folder when a new section gets its first test.
+- `tests/run/<feature>/NAME.w` must transpile, compile with `-Wall -Wextra -Werror`, and print exactly `NAME.out`. Put `-- exit: N` at the top for a non-zero exit code.
+- `tests/errors/<feature>/NAME.w` must fail. List every expected error as `-- error: line N: message`. Extra errors fail the test, so error cascades get caught.
 - Never generate a `.out` file without checking its contents by hand first. Prefer output lines like `label EXPECTED => ACTUAL` so the file shows its own correctness.
 - `playground/` is the user's private scratch space (gitignored). Don't put tests there.
 - `examples/` holds public, tracked example programs. Keep them working: transpile and run them after language changes.

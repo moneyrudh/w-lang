@@ -3,7 +3,6 @@ extras/
 .vscode/
 /*.txt
 
-supabase/.temp/
 /*.c
 grammar/
 *.dSYM/
