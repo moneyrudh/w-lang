@@ -61,7 +61,7 @@ void generate_variable(FILE* output, ASTNode* node) {
 void generate_expression_with_cast(FILE* output, ASTNode* expr, DataType target_type) {
     if (!expr) return;
 
-    DataType expr_type = get_expression_type(expr, getSymbolTable());
+    DataType expr_type = expr->expr_type;
 
     if (expr_type != target_type && compare_types(target_type, expr_type)) {
         fprintf(output, C_LPAREN "%s" C_RPAREN C_LPAREN, get_c_type_from_enum(target_type));
@@ -99,8 +99,8 @@ void generate_binary_expr(FILE* output, ASTNode* node, int indent_level) {
     OperatorType op = node->data.binary_expr.operator;
     const char* op_string = get_binary_operator_string(op);
 
-    DataType left_type = get_expression_type(left, getSymbolTable());
-    DataType right_type = get_expression_type(right, getSymbolTable());
+    DataType left_type = left->expr_type;
+    DataType right_type = right->expr_type;
     OperatorCategory category = get_operator_category(op);
 
     // str comparisons: strcmp(a, b) <op> 0
@@ -116,7 +116,7 @@ void generate_binary_expr(FILE* output, ASTNode* node, int indent_level) {
     // arithmetic operands are cast to the result type; comparisons and logic
     // operate on the operands as-is (casting x > y to bool operands would be wrong)
     if (category == OP_CAT_ARITHMETIC) {
-        DataType result_type = get_operation_type(left_type, right_type, op);
+        DataType result_type = node->expr_type;
         generate_cast_if_needed(output, left_type, result_type);
         generate_operand(output, left, indent_level);
         fprintf(output, "%s", op_string);

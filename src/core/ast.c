@@ -3,357 +3,153 @@
 #include <string.h>
 
 #include "ast.h"
-#include "parser.h"
-#include "checker.h"
-#include "language/type_registry.h"
+
+// Constructors only build nodes: names are resolved and types filled in by the checker.
 
 ASTNode* ast = NULL;
 
-void set_node_location(ASTNode* node, SourceLocation loc) {
-    if (node) {
-        node->location = loc;
-    }
-}
-
-static void init_expression(Expression* expr, NodeType type, SourceLocation loc) {
-    expr->type = type;
-    expr->location = loc;
-    expr->expr_type = TYPE_ZIL;
-}
-
-ASTNode* create_program_node(SourceLocation loc) {
+// a node with every common field set; the caller fills in node->data
+static ASTNode* new_node(NodeType type, SourceLocation loc) {
     ASTNode* node = malloc(sizeof(ASTNode));
     if (!node) {
-        parser_error("Memory allocation failed");
-        return NULL;
+        fprintf(stderr, "Out of memory\n");
+        exit(1);
     }
-    node->type = NODE_PROGRAM;
-    set_node_location(node, loc);
-    node->data.program.functions = NULL;
-    node->data.program.globals = NULL;
+    node->type = type;
+    node->location = loc;
+    node->expr_type = TYPE_ERROR;
     node->next = NULL;
     return node;
 }
 
-ASTNode* create_function_node(char* return_type, char* name, Parameter* parameters, int param_count, ASTNode* body, int has_return, SourceLocation loc) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (!node) {
-        parser_error("Memory allocation failed");
-        return NULL;
-    }
-    node->type = NODE_FUNCTION;
-    set_node_location(node, loc);
+ASTNode* create_program_node(SourceLocation loc) {
+    ASTNode* node = new_node(NODE_PROGRAM, loc);
+    node->data.program.functions = NULL;
+    node->data.program.globals = NULL;
+    return node;
+}
+
+// takes ownership of name and parameters
+ASTNode* create_function_node(DataType return_type, char* name, Parameter* parameters, int param_count, ASTNode* body, SourceLocation loc) {
+    ASTNode* node = new_node(NODE_FUNCTION, loc);
     node->data.function.return_type = return_type;
     node->data.function.name = name;
     node->data.function.parameters = parameters;
     node->data.function.param_count = param_count;
     node->data.function.body = body;
-    node->data.function.has_return = has_return;
-    node->next = NULL;
     return node;
 }
 
+// copies name and the args array (the argument nodes themselves are owned by the call)
 ASTNode* create_function_call_node(char* name, ASTNode** args, int arg_count, SourceLocation loc) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (!node) {
-        parser_error("Memory allocation failed");
-        return NULL;
-    }
-    node->type = NODE_FUNCTION_CALL;
-    init_expression(&node->data.function_call.base, NODE_FUNCTION_CALL, loc);
+    ASTNode* node = new_node(NODE_FUNCTION_CALL, loc);
     node->data.function_call.name = strdup(name);
-    node->data.function_call.args = malloc(sizeof(ASTNode*) * arg_count);
-    if (!node->data.function_call.args) {
-        free(node->data.function_call.name);
-        free(node);
-        parser_error("Memory allocation failed for function arguments");
-        return NULL;
+    node->data.function_call.args = NULL;
+    if (arg_count > 0) {
+        node->data.function_call.args = malloc(sizeof(ASTNode*) * arg_count);
+        memcpy(node->data.function_call.args, args, sizeof(ASTNode*) * arg_count);
     }
-    memcpy(node->data.function_call.args, args, sizeof(ASTNode*) * arg_count);
     node->data.function_call.arg_count = arg_count;
-    node->next = NULL;
     return node;
 }
 
-ASTNode* create_log_node(LogElement* elements) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (!node) {
-        parser_error("Memory allocation failed");
-        return NULL;
-    }
-    node->type = NODE_LOG;
+ASTNode* create_log_node(LogElement* elements, SourceLocation loc) {
+    ASTNode* node = new_node(NODE_LOG, loc);
     node->data.log.elements = elements;
-    node->next = NULL;
+    return node;
+}
+
+ASTNode* create_return_node(ASTNode* expression, SourceLocation loc) {
+    ASTNode* node = new_node(NODE_RETURN, loc);
+    node->data.return_statement.expression = expression;
     return node;
 }
 
 ASTNode* create_assignment_node(char* target, ASTNode* value, SourceLocation loc) {
-    // first, validate our inputs
-    if (!target || !value) {
-        parser_error("Invalid assignment: missing target or value");
-        return NULL;
-    }
-
-    // create and initialize the node
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (!node) {
-        parser_error("Memory allocation failed for assignment node");
-        return NULL;
-    }
-
-    // set up the node's basic properties
-    node->type = NODE_ASSIGNMENT;
-    node->location = loc;
-
-    // initialize the base expression
-    init_expression(&node->data.assignment.base, NODE_ASSIGNMENT, loc);
-
-    // set up the assignment-specific data
-    node->data.assignment.target = strdup(target);  // Make a copy of the target name
-    if (!node->data.assignment.target) {
-        parser_error("Memory allocation failed for assignment target");
-        free(node);
-        return NULL;
-    }
-    
+    ASTNode* node = new_node(NODE_ASSIGNMENT, loc);
+    node->data.assignment.target = strdup(target);
+    node->data.assignment.target_type = TYPE_ERROR;
     node->data.assignment.value = value;
-    node->next = NULL;
-
-    // the type of an assignment expression is the type of its value
-    node->data.assignment.base.expr_type = get_expression_type(value, getSymbolTable());
-
-    // verify that the target exists in the symbol table
-    Symbol* symbol = lookup_symbol(getSymbolTable(), target);
-    if (!symbol) {
-        char error_msg[100];
-        snprintf(error_msg, sizeof(error_msg), 
-                "Assignment to undeclared variable '%s'", target);
-        parser_error(error_msg);
-        free(node->data.assignment.target);
-        free(node);
-        return NULL;
-    }
-    node->data.assignment.target_type = symbol->type;
-
-    // check type compatibility
-    // zil means the value already reported an error
-    if (node->data.assignment.base.expr_type != TYPE_ZIL &&
-        !compare_types(symbol->type, node->data.assignment.base.expr_type)) {
-        char error_msg[100];
-        snprintf(error_msg, sizeof(error_msg),
-                "Type mismatch in assignment to '%s': cannot assign %s to %s",
-                target,
-                get_wlang_type_from_enum(node->data.assignment.base.expr_type),
-                get_wlang_type_from_enum(symbol->type));
-        parser_error(error_msg);
-        free(node->data.assignment.target);
-        free(node);
-        return NULL;
-    }
-
     return node;
 }
 
-
 ASTNode* create_binary_expr_node(ASTNode* left, ASTNode* right, OperatorType operator, SourceLocation loc) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (!node) {
-        parser_error("Memory allocation failed");
-        return NULL;
-    }
-    node->type = NODE_BINARY_EXPR;
-    init_expression(&node->data.binary_expr.base, NODE_BINARY_EXPR, loc);
+    ASTNode* node = new_node(NODE_BINARY_EXPR, loc);
     node->data.binary_expr.left = left;
     node->data.binary_expr.right = right;
     node->data.binary_expr.operator = operator;
-    node->next = NULL;
     return node;
 }
 
 ASTNode* create_unary_expr_node(OperatorType operator, ASTNode* operand, SourceLocation loc) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (!node) {
-        parser_error("Memory allocation failed");
-        return NULL;
-    }
-    node->type = NODE_UNARY_EXPR;
-    init_expression(&node->data.unary_expr.base, NODE_UNARY_EXPR, loc);
+    ASTNode* node = new_node(NODE_UNARY_EXPR, loc);
     node->data.unary_expr.operator = operator;
     node->data.unary_expr.operand = operand;
-    node->next = NULL;
     return node;
 }
 
 ASTNode* create_if_node(ASTNode* condition, bool negated, ASTNode* body, SourceLocation loc) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (!node) {
-        parser_error("Memory allocation failed");
-        return NULL;
-    }
-    node->type = NODE_IF;
-    node->location = loc;
+    ASTNode* node = new_node(NODE_IF, loc);
     node->data.if_statement.condition = condition;
     node->data.if_statement.negated = negated;
     node->data.if_statement.body = body;
     node->data.if_statement.else_branch = NULL;
-    node->next = NULL;
     return node;
 }
 
 ASTNode* create_loop_node(ASTNode* condition, bool negated, ASTNode* body, SourceLocation loc) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (!node) {
-        parser_error("Memory allocation failed");
-        return NULL;
-    }
-    node->type = NODE_LOOP;
-    node->location = loc;
+    ASTNode* node = new_node(NODE_LOOP, loc);
     node->data.loop_statement.condition = condition;
     node->data.loop_statement.negated = negated;
     node->data.loop_statement.body = body;
-    node->next = NULL;
     return node;
 }
 
 ASTNode* create_jump_node(NodeType type, SourceLocation loc) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (!node) {
-        parser_error("Memory allocation failed");
-        return NULL;
-    }
-    node->type = type;
-    node->location = loc;
-    node->next = NULL;
-    return node;
+    return new_node(type, loc);
 }
 
 ASTNode* create_number_node(int value, SourceLocation loc) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (!node) {
-        parser_error("Memory allocation failed");
-        return NULL;
-    }
-    node->type = NODE_NUMBER;
-    init_expression(&node->data.number.base, NODE_NUMBER, loc);
-    node->data.number.base.expr_type = TYPE_NUM;  // Numbers are always int type
+    ASTNode* node = new_node(NODE_NUMBER, loc);
     node->data.number.value = value;
-    node->next = NULL;
     return node;
 }
 
 ASTNode* create_string_node(char* value, SourceLocation loc) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (!node) {
-        parser_error("Memory allocation failed");
-        return NULL;
-    }
-    node->type = NODE_STRING;
-    init_expression(&node->data.string.base, NODE_STRING, loc);
-    node->data.string.base.expr_type = TYPE_STR;
+    ASTNode* node = new_node(NODE_STRING, loc);
     node->data.string.value = strdup(value);
-    node->next = NULL;
     return node;
 }
 
 ASTNode* create_float_node(double value, SourceLocation loc) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (!node) {
-        parser_error("Memory allocation failed for float node");
-        return NULL;
-    }
-    
-    node->type = NODE_FLOAT;
-    node->location = loc;
-
-    // initialize the base expression fields
-    init_expression(&node->data.float_val.base, NODE_FLOAT, loc);
-    node->data.float_val.base.expr_type = TYPE_REAL;
-
-    // set the value
+    ASTNode* node = new_node(NODE_FLOAT, loc);
     node->data.float_val.value = value;
-    node->next = NULL;
-    
     return node;
 }
 
 ASTNode* create_char_node(char value, SourceLocation loc) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (!node) {
-        parser_error("Memory allocation failed for char node");
-        return NULL;
-    }
-    
-    node->type = NODE_CHAR;
-    node->location = loc;
-
-    // initialize the base expression fields
-    init_expression(&node->data.char_val.base, NODE_CHAR, loc);
-    node->data.char_val.base.expr_type = TYPE_CHR;
-
-    // set the value
+    ASTNode* node = new_node(NODE_CHAR, loc);
     node->data.char_val.value = value;
-    node->next = NULL;
-    
     return node;
 }
 
 ASTNode* create_bool_node(bool value, SourceLocation loc) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (!node) {
-        parser_error("Memory allocation failed for bool node");
-        return NULL;
-    }
-    
-    node->type = NODE_BOOL;
-    node->location = loc;
-
-    // initialize the base expression fields
-    init_expression(&node->data.bool_val.base, NODE_BOOL, loc);
-    node->data.bool_val.base.expr_type = TYPE_BOOL;
-
-    // set the value
+    ASTNode* node = new_node(NODE_BOOL, loc);
     node->data.bool_val.value = value;
-    node->next = NULL;
-    
     return node;
 }
 
 ASTNode* create_variable_node(char* name, SourceLocation loc) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (!node) {
-        parser_error("Memory allocation failed");
-        return NULL;
-    }
-    node->type = NODE_VARIABLE;
-    init_expression(&node->data.variable.base, NODE_VARIABLE, loc);
+    ASTNode* node = new_node(NODE_VARIABLE, loc);
     node->data.variable.name = strdup(name);
-    node->next = NULL;
-
-    // resolve the type now: scopes are popped once their block is parsed,
-    // so codegen can't look it up later
-    Symbol* symbol = lookup_symbol(getSymbolTable(), name);
-    if (!symbol) {
-        char error_msg[100];
-        snprintf(error_msg, sizeof(error_msg), "Undefined variable: '%s'", name);
-        parser_error(error_msg);
-    } else {
-        node->data.variable.base.expr_type = symbol->type;
-    }
     return node;
 }
 
 ASTNode* create_var_declaration_node(char* name, DataType type, ASTNode* init_expr, SourceLocation loc) {
-    ASTNode* node = malloc(sizeof(ASTNode));
-    if (!node) {
-        parser_error("Memory allocation failed");
-        return NULL;
-    }
-    node->type = NODE_VAR_DECLARATION;
-    set_node_location(node, loc);
+    ASTNode* node = new_node(NODE_VAR_DECLARATION, loc);
     node->data.var_declaration.name = strdup(name);
     node->data.var_declaration.type = type;
     node->data.var_declaration.init_expr = init_expr;
-    node->next = NULL;
     return node;
 }
 
@@ -361,7 +157,7 @@ void free_log_elements(LogElement* elements) {
     LogElement* current = elements;
     while (current != NULL) {
         LogElement* next = current->next;
-        if (current->type == NODE_STRING) {
+        if (current->type == NODE_STRING || current->type == NODE_VARIABLE) {
             free(current->value.string);
         }
         free(current);
@@ -377,7 +173,6 @@ void free_ast(ASTNode* node) {
                 free_ast(node->data.program.globals);
                 break;
             case NODE_FUNCTION: {
-                free(node->data.function.return_type);
                 free(node->data.function.name);
                 // free parameters
                 Parameter* param = node->data.function.parameters;

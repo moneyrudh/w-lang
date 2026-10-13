@@ -3,7 +3,7 @@
     #include <stdbool.h>
 
     #include "lexer.h"
-    #include "parser.h"
+    #include "diagnostics.h"
     #include "lexer/internal.h"
 
     YYSTYPE yylval;
@@ -32,8 +32,7 @@
 \r?\n[ \t]*  {
     if (bracket_depth == 0) {
         if (memchr(yytext, '\t', yyleng)) {
-            fprintf(stderr, "Error on line %d: Use spaces for indentation, not tabs\n", yylineno);
-            parser_state.error_count++;
+            report_error(yylineno, "Use spaces for indentation, not tabs");
         }
         line_indent = yyleng - (yytext[0] == '\r' ? 2 : 1);
         return NEWLINE;
@@ -44,8 +43,7 @@
 <THROWAWAY_BLOCK>"---"  { BEGIN(INITIAL); }
 <THROWAWAY_BLOCK>\n|.   { /* skip comment body */ }
 <THROWAWAY_BLOCK><<EOF>> {
-    fprintf(stderr, "Error on line %d: Unterminated '---' comment\n", comment_start_line);
-    parser_state.error_count++;
+    report_error(comment_start_line, "Unterminated '---' comment");
     BEGIN(INITIAL);
     return 0;
 }
@@ -163,8 +161,7 @@
 ^[ \t]+/[^ \t\r\n]  {
     // only reachable on line 1: later lines' indentation is consumed with their newline
     if (yylineno == 1) {
-        fprintf(stderr, "Error on line 1: Unexpected indentation\n");
-        parser_state.error_count++;
+        report_error(1, "Unexpected indentation");
     }
 }
 [ \t\r]+      { /* whitespace within a line */ }

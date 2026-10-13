@@ -13,7 +13,7 @@ Legend: ✅ works end-to-end (transpiles, compiles with gcc, runs correctly) · 
 | Feature | Status | Notes |
 |---|---|---|
 | Entry point `fun w(): num` → C `main()` | ✅ | Return value becomes the process exit code |
-| Functions in any order | 🚧 | C forward declarations are emitted, but W's checker is single-pass: a function must be defined above its first call. Needs a signature pre-pass |
+| Functions in any order | ✅ | The checker collects every signature before checking bodies, so calls may come before definitions (including mutual recursion) |
 | Name mangling (`x` → `W__x_v`, `f` → `W__f_f`) | ✅ | Lets W names like `main` coexist with C |
 | Global variables (`dec` at top level) | 🚧 | AST/codegen support exists; parser rejects `dec` at top level |
 | `use` imports | 💭 | Token exists, nothing parses it |
@@ -63,7 +63,7 @@ Gotcha: `x--1` is `x` followed by a comment.
 | `chr` | `char` | ✅ | Escapes `\n \t \\ \' \"` |
 | `str` | `char*` | 🚧 | Literals, variables, comparison work. `a + b` passes type check but emits invalid C |
 | `bool` | `bool` | ✅ | `true` / `false`. Prints as `1` / `0` |
-| `zil` | `void` | ✅ | Function return type only |
+| `zil` | `void` | ✅ | Function return type only: a `zil` variable or parameter is an error, and so is using a `zil` call's result as a value |
 | `vec map set ref heap stack que link tree pod` | — | 💭 | Tokens only. Spec drafts disagree on syntax: `map[num, str]` vs `map(num, str)` |
 | `pod` (struct with functions) vs `type` (plain data) | — | 💭 | |
 
@@ -96,6 +96,7 @@ Implicit conversions: `num ↔ chr`, `num ↔ bool`, `num/chr/bool → real`. `s
 | `ret` / `ret expr` | ✅ | Return type checked against the declaration |
 | Missing `ret` in non-`zil` function is an error | ✅ | Any `ret` anywhere counts; no per-path analysis |
 | Calls as expressions and statements | ✅ | |
+| Argument count and types checked against the signature | ✅ | Arguments convert like assignments (e.g. `num` → `real`) |
 
 ## 7. Operators
 
@@ -168,7 +169,7 @@ loop until n >= 5, n = n + 1
 
 | Feature | Status | Notes |
 |---|---|---|
-| `build/transpiler in.w [out.c]` | ✅ | Output defaults to `build/<name>.c`. Exits 1 on any error. A program with errors isn't generated (output file is left empty) |
+| `build/transpiler in.w [out.c]` | ✅ | Output defaults to `build/<name>.c`. Exits 1 on any error. A program with errors isn't generated (output file is left empty). Syntax errors are reported first; type errors only once there are none, so one typo doesn't cascade |
 | `wlang` CLI | 📐 | See below |
 
 ```
@@ -191,7 +192,6 @@ Arguments after the `.w` file are passed to the program (reading them from W is 
 
 ## 12. Known bugs
 
-- Calling a function defined further down the file is an "Undefined function" error (§1)
 - `str + str` emits invalid C (§4)
 - `+` inside `log` is always string concatenation (§8)
 - Return checking isn't per-path: any `ret` anywhere satisfies "must return a value" (§6)

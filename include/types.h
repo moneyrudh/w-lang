@@ -102,6 +102,7 @@ typedef enum {
     TYPE_BOOL,
     TYPE_STR,
     TYPE_ZIL,
+    TYPE_ERROR,     // internal: an error was already reported for this expression
 
     TYPE_VEC,
     TYPE_MAP,
@@ -165,22 +166,8 @@ typedef struct LogElement {
         bool bool_val;
         char* variable;
     } value;
-    DataType var_type;   // for NODE_VARIABLE elements, resolved at parse time
+    DataType var_type;   // for NODE_VARIABLE elements, filled in by the checker
     struct LogElement* next;
 } LogElement;
-
-typedef struct {
-    char* current_name;
-    char* current_return_type;
-    int has_return;
-    int return_value_required;
-} FunctionContext;
-
-typedef struct {
-    int error_count;
-    int loop_depth;      // > 0 while parsing a loop body (skip / stop are valid)
-    int in_function_body;
-    FunctionContext* function_context;
-} ParserState;
 
 #endif

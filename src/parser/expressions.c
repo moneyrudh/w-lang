@@ -9,7 +9,7 @@
 // ==================== operands ====================
 
 static ASTNode* parse_factor(void) {
-    SourceLocation loc = {yylineno, 0, NULL};
+    SourceLocation loc = current_location();
     switch (token) {
         case INT_LITERAL:
             {
@@ -95,7 +95,7 @@ static bool token_in(TokenType tok, const TokenType* set, size_t count) {
 
 // parses a left-associative chain: operand (op operand)*
 static ASTNode* parse_binary_level(ASTNode* (*parse_operand)(void), const TokenType* ops, size_t op_count) {
-    SourceLocation loc = {yylineno, 0, NULL};
+    SourceLocation loc = current_location();
     ASTNode* node = parse_operand();
     while (token_in(token, ops, op_count)) {
         TokenType op_token = token;

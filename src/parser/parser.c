@@ -5,52 +5,18 @@
 #include "lexer.h"
 #include "parser.h"
 #include "parser/internal.h"
-#include "checker.h"
+#include "diagnostics.h"
 #include "language/token_registry.h"
 
-ParserState parser_state;
 TokenType token;
 
-static void init_parser_state(void) {
-    parser_state.error_count = 0;
-    parser_state.loop_depth = 0;
-    parser_state.in_function_body = 0;
-    parser_state.function_context = malloc(sizeof(FunctionContext));
-    parser_state.function_context->current_name = NULL;
-    parser_state.function_context->current_return_type = NULL;
-    parser_state.function_context->has_return = 0;
-    parser_state.function_context->return_value_required = 0;
-}
-
-void init_parser(void) {
-    create_symbol_table();
-    create_function_table();
-    init_parser_state();
-}
-
-static void cleanup_parser_state(void) {
-    if (parser_state.function_context) {
-        free(parser_state.function_context->current_name);
-        free(parser_state.function_context->current_return_type);
-        free(parser_state.function_context);
-    }
-}
-
-void cleanup_parser(void) {
-    free_symbol_table();
-    free_function_table();
-    cleanup_parser_state();
-}
-
 void parser_error(const char* message) {
-    fprintf(stderr, "Error on line %d: %s\n", token_line, message);
-    parser_state.error_count++;
-    if (parser_state.error_count >= 5) {
-        fprintf(stderr, "Too many errors, exiting.\n");
-        free_ast(ast);
-        cleanup_parser();
-        exit(1);
-    }
+    report_error(token_line, "%s", message);
+}
+
+SourceLocation current_location(void) {
+    SourceLocation loc = {token_line, 0, NULL};
+    return loc;
 }
 
 // ==================== statements & blocks ====================
@@ -75,7 +41,7 @@ void expect_end_of_statement(void) {
     skip_rest_of_line();
 }
 
-ASTNode* parse_block_statements(void) {
+ASTNode* parse_block(void) {
     if (token == NEWLINE) eat(NEWLINE);
     if (token != INDENT) {
         parser_error("Expected an indented block");
@@ -100,15 +66,8 @@ ASTNode* parse_block_statements(void) {
     return head;
 }
 
-ASTNode* parse_block(void) {
-    push_scope(getSymbolTable());
-    ASTNode* body = parse_block_statements();
-    pop_scope(getSymbolTable());
-    return body;
-}
-
 ASTNode* parse_statement(void) {
-    SourceLocation loc = {yylineno, 0, NULL};
+    SourceLocation loc = current_location();
     switch (token) {
         case NEWLINE:
             // left over after an error that stopped at the end of a line
@@ -174,49 +133,41 @@ ASTNode* parse_statement(void) {
 ASTNode* parse(void) {
     token = yylex();
 
-    SourceLocation loc = {yylineno, 0, NULL};
-    ASTNode* program = create_program_node(loc);
-    if (!program) return NULL;
+    ASTNode* program = create_program_node(current_location());
 
+    // yylex() returns 0 at end of input
     ASTNode* last_function = NULL;
-    while (token != EOF) {
-        switch(token) {
-            case FUN: {
-                ASTNode* function = parse_function();
-                if (function) {
-                    if (last_function == NULL) {
-                        program->data.program.functions = function;
-                    } else {
-                        last_function->next = function;
-                    }
-                    last_function = function;
-                } else {
-                    parser_error("Failed to parse function");
-                    free_ast(program);
-                    return NULL;
-                }
-                break;
+    while (token != 0) {
+        if (token != FUN) {
+            char error_msg[100];
+            snprintf(error_msg, sizeof(error_msg),
+                "Unexpected token %s at top level. Expected 'fun' for function definition.",
+                token_registry_get_display_name(token));
+            parser_error(error_msg);
+
+            // nothing else can be recovered at the top level
+            while (token != 0) {
+                token = yylex();
             }
-            default: {
-                if (token == 0 || token == EOF) {
-                    goto end;
-                }
-
-                char error_msg[100];
-                snprintf(error_msg, sizeof(error_msg),
-                    "Unexpected token %s at top level. Expected 'fun' for function definition.",
-                    token_registry_get_display_name(token));
-                parser_error(error_msg);
-
-                while (token != 0 && token != EOF) {
-                    token = yylex();
-                }
-            } break;
+            break;
         }
+
+        ASTNode* function = parse_function();
+        if (!function) {
+            parser_error("Failed to parse function");
+            free_ast(program);
+            return NULL;
+        }
+
+        if (last_function == NULL) {
+            program->data.program.functions = function;
+        } else {
+            last_function->next = function;
+        }
+        last_function = function;
     }
 
-    end:
-        return program;
+    return program;
 }
 
 void eat(TokenType _token) {
@@ -233,6 +184,3 @@ void eat(TokenType _token) {
     }
 }
 
-ParserState getParserState(void) {
-    return parser_state;
-}

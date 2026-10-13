@@ -1,13 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <sys/stat.h>
 
 #include "types.h"
 #include "ast.h"
 #include "lexer.h"
 #include "parser.h"
+#include "checker.h"
 #include "codegen.h"
+#include "diagnostics.h"
 #include "language/type_registry.h"
 #include "language/token_registry.h"
 
@@ -60,34 +63,29 @@ int main(int argc, char* argv[]) {
 
     type_registry_init();
     token_registry_init();
-    init_parser();
+
+    // lex + parse -> check -> generate. Each stage runs only if the ones before it
+    // reported no errors, so a syntax error never cascades into type errors.
     yyin = input;
     ast = parse();
-
-    if (!ast || ast->type != NODE_PROGRAM) {
-        fprintf(stderr, "Failed to parse program.\n");
-        return 1;
+    if (ast && error_count() == 0) {
+        check_program(ast);
     }
-
-    // a program with errors isn't generated: codegen would re-run the same
-    // type checks and report every error twice
-    int error_count = getParserState().error_count;
-    if (error_count == 0) {
+    if (ast && error_count() == 0) {
         generate_code(output, ast);
-        error_count = getParserState().error_count;
     }
+
+    if (!ast && error_count() == 0) {
+        fprintf(stderr, "Failed to parse program.\n");
+    }
+    bool failed = !ast || error_count() > 0;
 
     free_ast(ast);
     fclose(input);
     fclose(output);
 
-    cleanup_parser();
     token_registry_cleanup();
     type_registry_cleanup();
 
-    if (error_count > 0) {
-        return 1;
-    }
-
-    return 0;
+    return failed ? 1 : 0;
 }

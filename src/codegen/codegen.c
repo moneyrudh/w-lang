@@ -21,12 +21,8 @@ static ASTNode* find_entry_point(ASTNode* functions) {
 
 // includes, globals, forward declarations, functions, then w() as main()
 static void generate_program(FILE* output, ASTNode* node, int indent_level) {
-    // validate entry point exists
+    // the checker has verified that w() exists
     ASTNode* entry_point = find_entry_point(node->data.program.functions);
-    if (entry_point == NULL) {
-        fprintf(stderr, "Error: Entry point function 'w()' not defined\n");
-        exit(1);
-    }
 
     emit_c_includes(output);
 

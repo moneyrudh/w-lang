@@ -9,12 +9,6 @@ typedef struct {
     const char* filename;
 } SourceLocation;
 
-typedef struct {
-    NodeType type;
-    SourceLocation location;
-    DataType expr_type;
-} Expression;
-
 typedef struct Parameter {
     char* name;
     DataType type;
@@ -23,24 +17,23 @@ typedef struct Parameter {
 
 typedef struct ASTNode {
     NodeType type;
-    SourceLocation location;
+    SourceLocation location;   // line the construct starts on
+    DataType expr_type;        // expressions only: filled in by the checker
     union {
         struct {
             struct ASTNode* functions;
             struct ASTNode* globals;
         } program;
         struct {
-            char* return_type;
+            DataType return_type;
             char* name;
             Parameter* parameters;
             int param_count;
             struct ASTNode* body;
-            int has_return;
         } function;
         struct {
-            Expression base;
             char* target;
-            DataType target_type;     // resolved at parse time
+            DataType target_type;     // filled in by the checker
             struct ASTNode* value;
         } assignment;
         struct {
@@ -61,44 +54,35 @@ typedef struct ASTNode {
             LogElement* elements;
         } log;
         struct {
-            Expression base;
             struct ASTNode* left;
             struct ASTNode* right;
             OperatorType operator;
         } binary_expr;
         struct {
-            Expression base;
             struct ASTNode* operand;
             OperatorType operator;
         } unary_expr;
         struct {
-            Expression base;
             char* name;
             struct ASTNode** args;    // array of argument expressions
             int arg_count;
         } function_call;
         struct {
-            Expression base;
             int value;
         } number;
         struct {
-            Expression base;
             char* value;
         } string;
         struct {
-            Expression base;
             char* name;
         } variable;
         struct {
-            Expression base;
             double value;
         } float_val;
         struct {
-            Expression base;
             char value;
         } char_val;
         struct {
-            Expression base;
             bool value;
         } bool_val;
         struct {
@@ -113,11 +97,10 @@ typedef struct ASTNode {
 ASTNode* create_unary_expr_node(OperatorType operator, ASTNode* operand, SourceLocation loc);
 ASTNode* create_function_call_node(char* name, ASTNode** args, int arg_count, SourceLocation loc);
 
-void set_node_location(ASTNode* node, SourceLocation loc);
-
 ASTNode* create_program_node(SourceLocation loc);
-ASTNode* create_function_node(char* return_type, char* name, Parameter* parameters, int param_count, ASTNode* body, int has_return, SourceLocation loc);
-ASTNode* create_log_node(LogElement* elements);
+ASTNode* create_function_node(DataType return_type, char* name, Parameter* parameters, int param_count, ASTNode* body, SourceLocation loc);
+ASTNode* create_log_node(LogElement* elements, SourceLocation loc);
+ASTNode* create_return_node(ASTNode* expression, SourceLocation loc);
 ASTNode* create_assignment_node(char* name, ASTNode* value, SourceLocation loc);
 ASTNode* create_binary_expr_node(ASTNode* left, ASTNode* right, OperatorType operator, SourceLocation loc);
 ASTNode* create_number_node(int value, SourceLocation loc);

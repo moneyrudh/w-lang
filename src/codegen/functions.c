@@ -4,10 +4,8 @@
 #include "codegen/c_syntax.h"
 #include "language/type_registry.h"
 
-// W Lang return type name -> C type
 static const char* c_return_type(ASTNode* function) {
-    const TypeMapping* mapping = type_registry_get_by_wlang_name(function->data.function.return_type);
-    return mapping ? mapping->c_equivalent : function->data.function.return_type;
+    return get_c_type_from_enum(function->data.function.return_type);
 }
 
 void generate_function_declaration(FILE* output, ASTNode* node) {
