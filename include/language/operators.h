@@ -1,6 +1,5 @@
-// operator_utils.h
-#ifndef OPERATOR_UTILS_H
-#define OPERATOR_UTILS_H
+#ifndef W_LANGUAGE_OPERATORS_H
+#define W_LANGUAGE_OPERATORS_H
 
 #include <stdbool.h>
 #include "types.h"

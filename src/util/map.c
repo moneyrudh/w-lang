@@ -1,4 +1,4 @@
-#include "data_structures/map.h"
+#include "util/map.h"
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>

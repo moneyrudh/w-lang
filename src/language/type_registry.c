@@ -1,4 +1,4 @@
-#include "transpiler/type_registry.h"
+#include "language/type_registry.h"
 #include <stdlib.h>
 #include <string.h>
 

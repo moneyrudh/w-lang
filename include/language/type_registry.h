@@ -1,8 +1,8 @@
-#ifndef TYPE_REGISTRY_H
-#define TYPE_REGISTRY_H
+#ifndef W_LANGUAGE_TYPE_REGISTRY_H
+#define W_LANGUAGE_TYPE_REGISTRY_H
 
 #include "types.h"
-#include "data_structures/map.h"
+#include "util/map.h"
 
 // type mapping structure - contains all information about a W Lang type
 typedef struct {
@@ -42,7 +42,7 @@ const TypeMapping* type_registry_get_by_c_name(const char* name);
 // get C type string from DataType enum (replaces get_c_type_string in gen.c)
 const char* get_c_type_from_enum(DataType type);
 
-// get W Lang type string from DataType enum (replaces type_to_string in parser.c)
+// get W Lang type string from DataType enum
 const char* get_wlang_type_from_enum(DataType type);
 
 // get format specifier for printf/scanf (e.g., "%d" for num)
@@ -51,7 +51,7 @@ const char* get_format_spec_from_enum(DataType type);
 // get default value for uninitialized variables (e.g., "0" for num)
 const char* get_default_value_from_enum(DataType type);
 
-// convert TokenType to DataType (replaces token_to_data_type in parser.c)
+// convert TokenType to DataType
 DataType convert_token_to_data_type(TokenType token);
 
 // convert DataType to TokenType
@@ -61,4 +61,4 @@ TokenType convert_data_type_to_token(DataType type);
 // replaces manual string->enum conversions in parser.c
 DataType type_registry_string_to_enum(const char* type_str);
 
-#endif // TYPE_REGISTRY_H
+#endif // W_LANGUAGE_TYPE_REGISTRY_H

@@ -1,5 +1,5 @@
-#ifndef C_SYNTAX_H
-#define C_SYNTAX_H
+#ifndef W_CODEGEN_C_SYNTAX_H
+#define W_CODEGEN_C_SYNTAX_H
 
 // ===== C standard library includes =====
 #define C_INCLUDE_STDIO       "#include <stdio.h>\n"
@@ -85,4 +85,4 @@
 #define C_STRCMP              "strcmp"
 #define C_ZERO                "0"
 
-#endif // C_SYNTAX_H
+#endif // W_CODEGEN_C_SYNTAX_H

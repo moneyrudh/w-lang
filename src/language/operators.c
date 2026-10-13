@@ -1,5 +1,5 @@
 #include <stddef.h>
-#include "operator_utils.h"
+#include "language/operators.h"
 
 // symbol and word forms map to the same operator (e.g. '==', 'eq', 'is' -> OP_EQ)
 static const struct {

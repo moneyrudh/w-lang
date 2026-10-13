@@ -1,5 +1,5 @@
-#ifndef TOKEN_REGISTRY_H
-#define TOKEN_REGISTRY_H
+#ifndef W_LANGUAGE_TOKEN_REGISTRY_H
+#define W_LANGUAGE_TOKEN_REGISTRY_H
 
 #include "types.h"
 #include <stdbool.h>
@@ -35,7 +35,7 @@ void token_registry_cleanup(void);
 // lookup token metadata by TokenType
 const TokenMetadata* token_registry_get(TokenType token);
 
-// get display name for error messages (replaces tokenToString in parser.c)
+// get display name for error messages
 const char* token_registry_get_display_name(TokenType token);
 
 // get lexeme (actual source text) for a token
@@ -46,10 +46,10 @@ TokenCategory token_registry_get_category(TokenType token);
 
 // ==================== utility functions ====================
 
-// check if token is a type keyword (replaces is_type_token in parser.c)
+// check if token is a type keyword
 bool token_registry_is_type(TokenType token);
 
 // check if token is an operator
 bool token_registry_is_operator(TokenType token);
 
-#endif // TOKEN_REGISTRY_H
+#endif // W_LANGUAGE_TOKEN_REGISTRY_H

@@ -1,4 +1,3 @@
-/transpiler
 commands.txt
 extras/
 .vscode/
@@ -7,6 +6,10 @@ extras/
 supabase/.temp/
 /*.c
 grammar/
-/transpiler_asan
 *.dSYM/
-/output
+
+# generated: objects, the flex lexer, binaries, transpiled output
+build/
+
+# personal scratch .w files
+playground/

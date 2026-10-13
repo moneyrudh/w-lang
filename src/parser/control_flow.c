@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#include "lexer.h"
 #include "parser.h"
-#include "parser/control_flow.h"
-#include "symbol_table.h"
-#include "transpiler/token_registry.h"
+#include "parser/internal.h"
+#include "checker.h"
+#include "language/token_registry.h"
 
 // ==================== shared helpers ====================
 

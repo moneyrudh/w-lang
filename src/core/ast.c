@@ -4,7 +4,8 @@
 
 #include "ast.h"
 #include "parser.h"
-#include "symbol_table.h"
+#include "checker.h"
+#include "language/type_registry.h"
 
 ASTNode* ast = NULL;
 
@@ -142,8 +143,8 @@ ASTNode* create_assignment_node(char* target, ASTNode* value, SourceLocation loc
         snprintf(error_msg, sizeof(error_msg),
                 "Type mismatch in assignment to '%s': cannot assign %s to %s",
                 target,
-                type_to_string(node->data.assignment.base.expr_type),
-                type_to_string(symbol->type));
+                get_wlang_type_from_enum(node->data.assignment.base.expr_type),
+                get_wlang_type_from_enum(symbol->type));
         parser_error(error_msg);
         free(node->data.assignment.target);
         free(node);

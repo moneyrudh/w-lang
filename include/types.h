@@ -95,21 +95,6 @@ typedef enum {
     IS
 } TokenType;
 
-typedef struct {
-    union {
-        char* string;
-        int number;
-        double float_val;
-        char char_val;
-        bool bool_val;
-    };
-} YYSTYPE;
-
-extern YYSTYPE yylval;
-extern int yylineno;
-extern int token_line;   // source line of the current lookahead token
-extern TokenType token;
-
 typedef enum {
     TYPE_NUM,
     TYPE_REAL,
@@ -197,9 +182,5 @@ typedef struct {
     int in_function_body;
     FunctionContext* function_context;
 } ParserState;
-
-extern int yylex();
-extern char* yytext;
-extern FILE* yyin;
 
 #endif

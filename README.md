@@ -42,10 +42,10 @@ zil  -> void
 ## Build & Run
 
 ```bash
-make
-./transpiler input.w output.c
-gcc output.c -o program
-./program
+make                                   # builds build/transpiler
+./build/transpiler examples/hello.w    # writes build/hello.c
+gcc build/hello.c -o build/hello
+./build/hello
 ```
 
 ## What Works
@@ -60,7 +60,7 @@ gcc output.c -o program
 
 ## What's Next
 
-See `grammar/status.txt` for implementation roadmap.
+See `docs/LANGUAGE.md` for syntax and feature status.
 
 Key items:
 - Function parameters
@@ -71,10 +71,18 @@ Key items:
 ## Structure
 
 ```
-/include
-  /data_structures   Generic HashMap (used internally & for map(T,U))
-  /transpiler        Type registry and utilities
-  /runtime           Helpers for generated code
-/src                 Implementation
-/grammar             Language specs and status
+src/
+  main.c       driver
+  core/        AST
+  language/    token, type and operator tables
+  lexer/       flex rules + indentation layout
+  parser/      recursive descent parser
+  checker/     scopes and type rules
+  codegen/     C code generation
+  util/        hashmap
+  runtime/     helpers for generated programs
+include/       public header for each stage
+examples/      example W programs
+tests/         make test
+docs/          LANGUAGE.md: syntax and feature status
 ```

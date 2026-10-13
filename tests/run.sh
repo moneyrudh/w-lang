@@ -9,13 +9,13 @@
 #                        errors (catches cascades).
 #
 # Usage: tests/run.sh [filter]     (runs tests whose path contains filter)
-# Env:   TRANSPILER=path           (default ./transpiler)
+# Env:   TRANSPILER=path           (default ./build/transpiler)
 
 set -u
 
 cd "$(dirname "$0")/.." || exit 1
 
-TRANSPILER="${TRANSPILER:-./transpiler}"
+TRANSPILER="${TRANSPILER:-./build/transpiler}"
 CC="${CC:-gcc}"
 FILTER="${1:-}"
 WORK="$(mktemp -d)"

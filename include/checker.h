@@ -1,5 +1,8 @@
-#ifndef SYMBOL_TABLE_H
-#define SYMBOL_TABLE_H
+#ifndef W_CHECKER_H
+#define W_CHECKER_H
+
+// scopes.c: variable and function tables
+// types.c:  expression types and conversion rules
 
 #include <stdbool.h>
 
@@ -38,7 +41,6 @@ bool add_symbol(SymbolTable* table, const char* name, DataType type);
 Symbol* lookup_symbol(SymbolTable* table, const char* name);
 void push_scope(SymbolTable* table);
 void pop_scope(SymbolTable* table);
-DataType get_expression_type(ASTNode* node, SymbolTable* table);
 
 FunctionTable* getFunctionTable(void);
 void create_function_table(void);
@@ -46,10 +48,9 @@ void free_function_table(void);
 bool add_function(FunctionTable* table, const char* name, DataType return_type);
 FunctionSymbol* lookup_function(FunctionTable* table, const char* name);
 
+DataType get_expression_type(ASTNode* node, SymbolTable* table);
 bool compare_types(DataType left, DataType right);
 DataType get_operation_type(DataType left, DataType right, OperatorType op);
 bool can_convert_type(DataType from, DataType to);
-
-extern SymbolTable* symbol_table;
 
 #endif

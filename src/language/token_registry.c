@@ -1,5 +1,5 @@
-#include "transpiler/token_registry.h"
-#include "data_structures/map.h"
+#include "language/token_registry.h"
+#include "util/map.h"
 #include <stdlib.h>
 
 // global token registry map
