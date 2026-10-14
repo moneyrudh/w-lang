@@ -1,5 +1,5 @@
 note A small tour of W: functions, variables, conditionals and loops.
-note Run it with:  make && ./build/transpiler examples/hello.w && gcc build/hello.c -o build/hello && ./build/hello
+note Run it with:  make && ./build/wlang examples/hello.w
 
 fun square(n: num): num
     ret n * n

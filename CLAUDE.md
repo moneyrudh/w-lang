@@ -1,12 +1,15 @@
 # W Lang Transpiler
 
 ## What This Is
-A transpiler that converts W Lang (`.w` files) into C code. The pipeline is: **Lexer → Parser → (untyped AST) → Checker → (typed AST) → Code Generator → `.c` output file**. Each stage runs only if the stages before it reported no errors. The generated C is then compiled with gcc.
+A transpiler that converts W Lang (`.w` files) into C code. The pipeline is: **Lexer → Parser → (untyped AST) → Checker → (typed AST) → Code Generator → `.c` output file**. Each stage runs only if the stages before it reported no errors. The `wlang` command wraps it: it then compiles the C with the system C compiler and, for `wlang run`, runs the result.
 
 ## How It Works
 Each stage is a folder under `src/`. Its public API is one header in `include/` (`lexer.h`, `parser.h`, `checker.h`, `codegen.h`); helpers shared only inside the stage go in `src/<stage>/internal.h`. Other stages must not include another stage's `internal.h`.
 
-- `src/main.c` — Driver: opens files, runs the stages, writes `build/<name>.c` by default
+- `src/main.c` — The `wlang` command: parses arguments and runs `run` / `build` / `check` (`include/version.h` holds the version)
+- `src/driver/` — What the commands are built from (`include/driver.h`):
+  - `pipeline.c` — `transpile()`: lex → parse → check → codegen for one file, including registry setup
+  - `toolchain.c` — Calling the C compiler (`$CC`, else `cc`), running the program, temp directories
 - `src/core/ast.c` — AST node creation and memory management (`include/ast.h`). Constructors only build nodes; they never look names up or report errors. `include/types.h` holds the shared enums: `TokenType`, `DataType`, `NodeType`, `OperatorType`, plus shared structs
 - `src/core/diagnostics.c` — `report_error(line, fmt, …)` and `error_count()`, used by every stage (`include/diagnostics.h`)
 - `src/language/` — W's definition as tables, no stage logic:
@@ -86,20 +89,22 @@ W Lang should feel like a modern, expressive language while transpiling cleanly 
 
 ### Build
 ```
-make clean && make                      # everything goes to build/ (gitignored)
-./build/transpiler examples/hello.w     # writes build/hello.c (or pass an output path)
-gcc build/hello.c -o build/hello && ./build/hello
+make clean && make                          # everything goes to build/ (gitignored)
+./build/wlang examples/hello.w              # build and run
+./build/wlang build examples/hello.w --emit-c out.c   # see the generated C (also writes ./hello)
+./build/wlang check examples/hello.w        # errors only
 ```
 
 ### Tests
 ```
-make test          # all tests
-make test-asan     # same tests, transpiler built with AddressSanitizer + UBSan
+make test          # all tests: tests/run.sh, then tests/driver/test.sh
+make test-asan     # same tests, wlang built with AddressSanitizer + UBSan
 tests/run.sh loops # only tests whose path contains "loops" (a feature folder or a file name)
 ```
 - Tests are grouped by language feature, named after the sections of `docs/LANGUAGE.md` (`blocks`, `comments`, `types`, `variables`, `functions`, `operators`, `control_flow`, `loops`, …), not by compiler stage: every test runs the whole pipeline. Add a new folder when a new section gets its first test.
-- `tests/run/<feature>/NAME.w` must transpile, compile with `-Wall -Wextra -Werror`, and print exactly `NAME.out`. Put `-- exit: N` at the top for a non-zero exit code.
-- `tests/errors/<feature>/NAME.w` must fail. List every expected error as `-- error: line N: message`. Extra errors fail the test, so error cascades get caught.
+- `tests/run/<feature>/NAME.w` must build with `wlang build` (C compiled with `-Wall -Wextra -Werror`) and print exactly `NAME.out`. Put `-- exit: N` at the top for a non-zero exit code.
+- `tests/errors/<feature>/NAME.w` must fail `wlang check`. List every expected error as `-- error: line N: message`. Extra errors fail the test, so error cascades get caught.
+- `tests/driver/test.sh` tests the `wlang` command itself (commands, options, exit codes, which files get written). Add a case there when the command line changes.
 - Never generate a `.out` file without checking its contents by hand first. Prefer output lines like `label EXPECTED => ACTUAL` so the file shows its own correctness.
 - `playground/` is the user's private scratch space (gitignored). Don't put tests there.
 - `examples/` holds public, tracked example programs. Keep them working: transpile and run them after language changes.

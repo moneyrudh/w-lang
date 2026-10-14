@@ -6,6 +6,7 @@ OBJ = $(BUILD)/obj
 
 # Sources, by stage
 SRCS = src/main.c \
+       src/driver/pipeline.c src/driver/toolchain.c \
        src/core/ast.c src/core/diagnostics.c \
        src/language/token_registry.c src/language/type_registry.c src/language/operators.c \
        src/lexer/layout.c \
@@ -23,8 +24,8 @@ LEXER_C = $(BUILD)/lexer.c
 
 OBJS = $(SRCS:src/%.c=$(OBJ)/%.o) $(OBJ)/lexer.o
 
-TARGET = $(BUILD)/transpiler
-ASAN_TARGET = $(BUILD)/transpiler_asan
+TARGET = $(BUILD)/wlang
+ASAN_TARGET = $(BUILD)/wlang_asan
 
 all: $(TARGET)
 
@@ -46,18 +47,20 @@ $(LEXER_C): src/lexer/lexer.l
 
 -include $(OBJS:.o=.d)
 
-# Tests (see tests/run.sh)
+# Tests: the language (tests/run.sh), then the wlang command itself (tests/driver/test.sh)
 test: $(TARGET)
 	./tests/run.sh
+	./tests/driver/test.sh
 
-# Same tests with the transpiler built under AddressSanitizer + UBSan (one-shot build)
+# Same tests with wlang built under AddressSanitizer + UBSan (one-shot build)
 HEADERS = $(shell find include src -name '*.h')
 
 $(ASAN_TARGET): $(SRCS) $(LEXER_C) $(HEADERS)
 	$(CC) $(CFLAGS) -g -fsanitize=address,undefined $(SRCS) $(LEXER_C) -o $@
 
 test-asan: $(ASAN_TARGET)
-	ASAN_OPTIONS=detect_leaks=0:exitcode=99 UBSAN_OPTIONS=halt_on_error=1:exitcode=99 TRANSPILER=./$(ASAN_TARGET) ./tests/run.sh
+	ASAN_OPTIONS=detect_leaks=0:exitcode=99 UBSAN_OPTIONS=halt_on_error=1:exitcode=99 WLANG=./$(ASAN_TARGET) ./tests/run.sh
+	ASAN_OPTIONS=detect_leaks=0:exitcode=99 UBSAN_OPTIONS=halt_on_error=1:exitcode=99 WLANG=./$(ASAN_TARGET) ./tests/driver/test.sh
 
 clean:
 	rm -rf $(BUILD)
