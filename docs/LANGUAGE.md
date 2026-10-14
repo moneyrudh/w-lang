@@ -169,20 +169,20 @@ loop until n >= 5, n = n + 1
 
 | Feature | Status | Notes |
 |---|---|---|
-| `build/transpiler in.w [out.c]` | ✅ | Output defaults to `build/<name>.c`. Exits 1 on any error. A program with errors isn't generated (output file is left empty). Syntax errors are reported first; type errors only once there are none, so one typo doesn't cascade |
-| `wlang` CLI | 📐 | See below |
+| `wlang` CLI | ✅ | See below. Exits 1 on any W error and writes nothing; 2 on a bad command line. Syntax errors are reported first; type errors only once there are none, so one typo doesn't cascade |
+| Program arguments | 🚧 | Passed to the program, but W can't read them yet (💭) |
 
 ```
 wlang hello.w [args…]           build to a temp dir and run; exit code = w()'s return value
 wlang run hello.w [args…]       same (bare form is shorthand)
 wlang build hello.w             native binary → ./hello
       -o <name>                 output name
-      --emit-c [path]           also keep the generated C (default hello.c)
+      --emit-c [path.c]         also keep the generated C (default: <output>.c)
       --cc <compiler>           C compiler (default: $CC, else cc)
 wlang check hello.w             type-check only; no C compiler needed
 wlang --version | --help
 ```
-Arguments after the `.w` file are passed to the program (reading them from W is 💭).
+Arguments after the `.w` file are passed to the program, so `run`'s options go before the file (reading arguments from W is 💭).
 
 | Feature | Status | Notes |
 |---|---|---|

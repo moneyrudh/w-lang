@@ -42,10 +42,11 @@ zil  -> void
 ## Build & Run
 
 ```bash
-make                                   # builds build/transpiler
-./build/transpiler examples/hello.w    # writes build/hello.c
-gcc build/hello.c -o build/hello
-./build/hello
+make                                 # builds build/wlang
+./build/wlang examples/hello.w       # build and run (same as: wlang run examples/hello.w)
+./build/wlang build examples/hello.w # writes the executable ./hello
+./build/wlang check examples/hello.w # report errors only
+./build/wlang --help                 # all options (-o, --emit-c, --cc)
 ```
 
 ## What Works
@@ -83,6 +84,6 @@ src/
   runtime/     helpers for generated programs
 include/       public header for each stage
 examples/      example W programs
-tests/         make test (run/ and errors/, grouped by language feature)
+tests/         make test (run/ and errors/ by language feature, driver/ for the wlang command)
 docs/          LANGUAGE.md: syntax and feature status
 ```
