@@ -12,7 +12,7 @@
 # Usage: tests/run.sh [filter]     (runs tests whose path contains filter,
 #                                   e.g. "loops" or "elf")
 # Env:   WLANG=path                (default ./build/wlang)
-#        CC=compiler               (default gcc)
+#        CC=compiler               (default cc)
 #
 # The tests of the wlang command itself are in tests/driver/test.sh.
 
@@ -21,7 +21,7 @@ set -u
 cd "$(dirname "$0")/.." || exit 1
 
 WLANG="${WLANG:-./build/wlang}"
-CC="${CC:-gcc}"
+CC="${CC:-cc}"
 FILTER="${1:-}"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT

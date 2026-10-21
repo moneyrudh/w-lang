@@ -1,110 +1,112 @@
 #include "language/token_registry.h"
 #include "util/map.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 // global token registry map
 static Map* token_map = NULL;
 
-// static token metadata table
+// static token metadata table. display_name is how error messages name the token:
+// the quoted source text when it has one, otherwise words
 static TokenMetadata token_metadata[] = {
     // types
-    {NUM,       "NUM",          "num",      TOKEN_CAT_TYPE},
-    {REAL,      "REAL",         "real",     TOKEN_CAT_TYPE},
-    {CHR,       "CHR",          "chr",      TOKEN_CAT_TYPE},
-    {STR,       "STR",          "str",      TOKEN_CAT_TYPE},
-    {BOOL,      "BOOL",         "bool",     TOKEN_CAT_TYPE},
-    {ZIL,       "ZIL",          "zil",      TOKEN_CAT_TYPE},
+    {NUM,           "'num'",         "num",   TOKEN_CAT_TYPE},
+    {REAL,          "'real'",        "real",  TOKEN_CAT_TYPE},
+    {CHR,           "'chr'",         "chr",   TOKEN_CAT_TYPE},
+    {STR,           "'str'",         "str",   TOKEN_CAT_TYPE},
+    {BOOL,          "'bool'",        "bool",  TOKEN_CAT_TYPE},
+    {ZIL,           "'zil'",         "zil",   TOKEN_CAT_TYPE},
 
     // future types
-    {VEC,       "VEC",          "vec",      TOKEN_CAT_TYPE},
-    {MAP,       "MAP",          "map",      TOKEN_CAT_TYPE},
-    {SET,       "SET",          "set",      TOKEN_CAT_TYPE},
-    {REF,       "REF",          "ref",      TOKEN_CAT_TYPE},
-    {HEAP,      "HEAP",         "heap",     TOKEN_CAT_TYPE},
-    {STACK,     "STACK",        "stack",    TOKEN_CAT_TYPE},
-    {QUE,       "QUE",          "que",      TOKEN_CAT_TYPE},
-    {LINK,      "LINK",         "link",     TOKEN_CAT_TYPE},
-    {TREE,      "TREE",         "tree",     TOKEN_CAT_TYPE},
-    {POD,       "POD",          "pod",      TOKEN_CAT_TYPE},
+    {VEC,           "'vec'",         "vec",   TOKEN_CAT_TYPE},
+    {MAP,           "'map'",         "map",   TOKEN_CAT_TYPE},
+    {SET,           "'set'",         "set",   TOKEN_CAT_TYPE},
+    {REF,           "'ref'",         "ref",   TOKEN_CAT_TYPE},
+    {HEAP,          "'heap'",        "heap",  TOKEN_CAT_TYPE},
+    {STACK,         "'stack'",       "stack", TOKEN_CAT_TYPE},
+    {QUE,           "'que'",         "que",   TOKEN_CAT_TYPE},
+    {LINK,          "'link'",        "link",  TOKEN_CAT_TYPE},
+    {TREE,          "'tree'",        "tree",  TOKEN_CAT_TYPE},
+    {POD,           "'pod'",         "pod",   TOKEN_CAT_TYPE},
 
     // keywords
-    {FUN,       "FUN",          "fun",      TOKEN_CAT_KEYWORD},
-    {DEC,       "DEC",          "dec",      TOKEN_CAT_KEYWORD},
-    {USE,       "USE",          "use",      TOKEN_CAT_KEYWORD},
-    {MAIN,      "MAIN",         "w",        TOKEN_CAT_KEYWORD},
-    {RETURN,    "RETURN",       "ret",      TOKEN_CAT_KEYWORD},
-    {LOG,       "LOG",          "log",      TOKEN_CAT_KEYWORD},
+    {FUN,           "'fun'",         "fun",   TOKEN_CAT_KEYWORD},
+    {DEC,           "'dec'",         "dec",   TOKEN_CAT_KEYWORD},
+    {USE,           "'use'",         "use",   TOKEN_CAT_KEYWORD},
+    {MAIN,          "'w'",           "w",     TOKEN_CAT_KEYWORD},
+    {RETURN,        "'ret'",         "ret",   TOKEN_CAT_KEYWORD},
+    {LOG,           "'log'",         "log",   TOKEN_CAT_KEYWORD},
 
     // control flow
-    {SAY,       "SAY",          "say",      TOKEN_CAT_KEYWORD},
-    {WHEN,      "WHEN",         "when",     TOKEN_CAT_KEYWORD},
-    {LEST,      "LEST",         "lest",     TOKEN_CAT_KEYWORD},
-    {ELF,       "ELF",          "elf",      TOKEN_CAT_KEYWORD},
-    {NOR,       "NOR",          "nor",      TOKEN_CAT_KEYWORD},
-    {ELSE,      "ELSE",         "else",     TOKEN_CAT_KEYWORD},
-    {LOOP,      "LOOP",         "loop",     TOKEN_CAT_KEYWORD},
-    {WHILE,     "WHILE",        "while",    TOKEN_CAT_KEYWORD},
-    {UNTIL,     "UNTIL",        "until",    TOKEN_CAT_KEYWORD},
-    {FOREVER,   "FOREVER",      "forever",  TOKEN_CAT_KEYWORD},
-    {SKIP,      "SKIP",         "skip",     TOKEN_CAT_KEYWORD},
-    {STOP,      "STOP",         "stop",     TOKEN_CAT_KEYWORD},
+    {SAY,           "'say'",         "say",   TOKEN_CAT_KEYWORD},
+    {WHEN,          "'when'",        "when",  TOKEN_CAT_KEYWORD},
+    {LEST,          "'lest'",        "lest",  TOKEN_CAT_KEYWORD},
+    {ELF,           "'elf'",         "elf",   TOKEN_CAT_KEYWORD},
+    {NOR,           "'nor'",         "nor",   TOKEN_CAT_KEYWORD},
+    {ELSE,          "'else'",        "else",  TOKEN_CAT_KEYWORD},
+    {LOOP,          "'loop'",        "loop",  TOKEN_CAT_KEYWORD},
+    {WHILE,         "'while'",       "while", TOKEN_CAT_KEYWORD},
+    {UNTIL,         "'until'",       "until", TOKEN_CAT_KEYWORD},
+    {FOREVER,       "'forever'",     "forever", TOKEN_CAT_KEYWORD},
+    {SKIP,          "'skip'",        "skip",  TOKEN_CAT_KEYWORD},
+    {STOP,          "'stop'",        "stop",  TOKEN_CAT_KEYWORD},
 
     // operators
-    {PLUS,      "PLUS",         "+",        TOKEN_CAT_OPERATOR},
-    {MINUS,     "MINUS",        "-",        TOKEN_CAT_OPERATOR},
-    {MULTIPLY,  "MULTIPLY",     "*",        TOKEN_CAT_OPERATOR},
-    {DIVIDE,    "DIVIDE",       "/",        TOKEN_CAT_OPERATOR},
+    {PLUS,          "'+'",           "+",     TOKEN_CAT_OPERATOR},
+    {MINUS,         "'-'",           "-",     TOKEN_CAT_OPERATOR},
+    {MULTIPLY,      "'*'",           "*",     TOKEN_CAT_OPERATOR},
+    {DIVIDE,        "'/'",           "/",     TOKEN_CAT_OPERATOR},
 
     // comparison operators (symbol form)
-    {EQUAL,         "EQUAL",         "==",  TOKEN_CAT_OPERATOR},
-    {NOT_EQUAL,     "NOT_EQUAL",     "!=",  TOKEN_CAT_OPERATOR},
-    {LESS,          "LESS",          "<",   TOKEN_CAT_OPERATOR},
-    {GREATER,       "GREATER",       ">",   TOKEN_CAT_OPERATOR},
-    {LESS_EQUAL,    "LESS_EQUAL",    "<=",  TOKEN_CAT_OPERATOR},
-    {GREATER_EQUAL, "GREATER_EQUAL", ">=",  TOKEN_CAT_OPERATOR},
+    {EQUAL,         "'=='",          "==",    TOKEN_CAT_OPERATOR},
+    {NOT_EQUAL,     "'!='",          "!=",    TOKEN_CAT_OPERATOR},
+    {LESS,          "'<'",           "<",     TOKEN_CAT_OPERATOR},
+    {GREATER,       "'>'",           ">",     TOKEN_CAT_OPERATOR},
+    {LESS_EQUAL,    "'<='",          "<=",    TOKEN_CAT_OPERATOR},
+    {GREATER_EQUAL, "'>='",          ">=",    TOKEN_CAT_OPERATOR},
 
     // comparison operators (word form)
-    {EQ,        "EQ",           "eq",       TOKEN_CAT_OPERATOR},
-    {NE,        "NE",           "ne",       TOKEN_CAT_OPERATOR},
-    {GT,        "GT",           "gt",       TOKEN_CAT_OPERATOR},
-    {LT,        "LT",           "lt",       TOKEN_CAT_OPERATOR},
-    {GE,        "GE",           "ge",       TOKEN_CAT_OPERATOR},
-    {LE,        "LE",           "le",       TOKEN_CAT_OPERATOR},
-    {IS,        "IS",           "is",       TOKEN_CAT_OPERATOR},
+    {EQ,            "'eq'",          "eq",    TOKEN_CAT_OPERATOR},
+    {NE,            "'ne'",          "ne",    TOKEN_CAT_OPERATOR},
+    {GT,            "'gt'",          "gt",    TOKEN_CAT_OPERATOR},
+    {LT,            "'lt'",          "lt",    TOKEN_CAT_OPERATOR},
+    {GE,            "'ge'",          "ge",    TOKEN_CAT_OPERATOR},
+    {LE,            "'le'",          "le",    TOKEN_CAT_OPERATOR},
+    {IS,            "'is'",          "is",    TOKEN_CAT_OPERATOR},
 
     // logical operators ('&&' and '||' lex to AND / OR)
-    {AND,       "AND",          "and",      TOKEN_CAT_OPERATOR},
-    {OR,        "OR",           "or",       TOKEN_CAT_OPERATOR},
-    {NOT,       "NOT",          "not",      TOKEN_CAT_OPERATOR},
-    {BANG,      "BANG",         "!",        TOKEN_CAT_OPERATOR},
+    {AND,           "'and'",         "and",   TOKEN_CAT_OPERATOR},
+    {OR,            "'or'",          "or",    TOKEN_CAT_OPERATOR},
+    {NOT,           "'not'",         "not",   TOKEN_CAT_OPERATOR},
+    {BANG,          "'!'",           "!",     TOKEN_CAT_OPERATOR},
 
     // punctuation
-    {LPAREN,    "LPAREN",       "(",        TOKEN_CAT_PUNCTUATION},
-    {RPAREN,    "RPAREN",       ")",        TOKEN_CAT_PUNCTUATION},
-    {LBRACE,    "LBRACE",       "{",        TOKEN_CAT_PUNCTUATION},
-    {RBRACE,    "RBRACE",       "}",        TOKEN_CAT_PUNCTUATION},
-    {SEMICOLON, "SEMICOLON",    ";",        TOKEN_CAT_PUNCTUATION},
-    {COLON,     "COLON",        ":",        TOKEN_CAT_PUNCTUATION},
-    {COMMA,     "COMMA",        ",",        TOKEN_CAT_PUNCTUATION},
-    {LBRACKET,  "LBRACKET",     "[",        TOKEN_CAT_PUNCTUATION},
-    {RBRACKET,  "RBRACKET",     "]",        TOKEN_CAT_PUNCTUATION},
+    {LPAREN,        "'('",           "(",     TOKEN_CAT_PUNCTUATION},
+    {RPAREN,        "')'",           ")",     TOKEN_CAT_PUNCTUATION},
+    {LBRACE,        "'{'",           "{",     TOKEN_CAT_PUNCTUATION},
+    {RBRACE,        "'}'",           "}",     TOKEN_CAT_PUNCTUATION},
+    {SEMICOLON,     "';'",           ";",     TOKEN_CAT_PUNCTUATION},
+    {COLON,         "':'",           ":",     TOKEN_CAT_PUNCTUATION},
+    {COMMA,         "','",           ",",     TOKEN_CAT_PUNCTUATION},
+    {LBRACKET,      "'['",           "[",     TOKEN_CAT_PUNCTUATION},
+    {RBRACKET,      "']'",           "]",     TOKEN_CAT_PUNCTUATION},
 
     // layout
-    {NEWLINE,   "NEWLINE",      NULL,       TOKEN_CAT_LAYOUT},
-    {INDENT,    "INDENT",       NULL,       TOKEN_CAT_LAYOUT},
-    {DEDENT,    "DEDENT",       NULL,       TOKEN_CAT_LAYOUT},
+    {NEWLINE,       "end of line",           NULL,  TOKEN_CAT_LAYOUT},
+    {INDENT,        "indented block",        NULL,  TOKEN_CAT_LAYOUT},
+    {DEDENT,        "end of indented block", NULL,  TOKEN_CAT_LAYOUT},
 
     // assignment
-    {ASSIGNMENT,      "ASSIGNMENT",    "=",   TOKEN_CAT_ASSIGNMENT},
-    {INFER_ASSIGN,    "INFER_ASSIGN",  ":=",  TOKEN_CAT_ASSIGNMENT},
+    {ASSIGNMENT,    "'='",           "=",     TOKEN_CAT_ASSIGNMENT},
+    {INFER_ASSIGN,  "':='",          ":=",    TOKEN_CAT_ASSIGNMENT},
 
     // literals
-    {INT_LITERAL,     "INT_LITERAL",     NULL, TOKEN_CAT_LITERAL},
-    {FLOAT_LITERAL,   "FLOAT_LITERAL",   NULL, TOKEN_CAT_LITERAL},
-    {STRING_LITERAL,  "STRING_LITERAL",  NULL, TOKEN_CAT_LITERAL},
-    {CHAR_LITERAL,    "CHAR_LITERAL",    NULL, TOKEN_CAT_LITERAL},
-    {BOOL_LITERAL,    "BOOL_LITERAL",    NULL, TOKEN_CAT_LITERAL},
-    {IDENTIFIER,      "IDENTIFIER",      NULL, TOKEN_CAT_IDENTIFIER},
+    {INT_LITERAL,   "number",                NULL,  TOKEN_CAT_LITERAL},
+    {FLOAT_LITERAL, "decimal number",        NULL,  TOKEN_CAT_LITERAL},
+    {STRING_LITERAL, "string",               NULL,  TOKEN_CAT_LITERAL},
+    {CHAR_LITERAL,  "character",             NULL,  TOKEN_CAT_LITERAL},
+    {BOOL_LITERAL,  "true or false",         NULL,  TOKEN_CAT_LITERAL},
+    {IDENTIFIER,    "name",                  NULL,  TOKEN_CAT_IDENTIFIER},
 };
 
 static const size_t num_tokens = sizeof(token_metadata) / sizeof(token_metadata[0]);
@@ -150,17 +152,24 @@ const TokenMetadata* token_registry_get(TokenType token) {
     return (const TokenMetadata*)map_get(token_map, (void*)(intptr_t)token);
 }
 
-const char* token_registry_get_display_name(TokenType token) {
-    // handle single character tokens (< 256)
-    static char single_char[2] = {0, 0};
-
+const char* token_registry_describe(TokenType token) {
+    if (token == 0) {
+        return "end of file";
+    }
+    // single characters aren't tokens (the lexer reports and skips them), but describe them safely
     if (token < 256) {
-        single_char[0] = (char)token;
-        return single_char;
+        static char unknown_char[16];
+        unsigned char c = (unsigned char)token;
+        if (c > ' ' && c < 0x7f && c != '\'') {
+            snprintf(unknown_char, sizeof(unknown_char), "'%c'", c);
+        } else {
+            snprintf(unknown_char, sizeof(unknown_char), "byte 0x%02X", c);
+        }
+        return unknown_char;
     }
 
     const TokenMetadata* meta = token_registry_get(token);
-    return meta ? meta->display_name : "UNKNOWN";
+    return meta ? meta->display_name : "unknown token";
 }
 
 const char* token_registry_get_lexeme(TokenType token) {

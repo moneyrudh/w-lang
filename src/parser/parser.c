@@ -141,8 +141,8 @@ ASTNode* parse(void) {
         if (token != FUN) {
             char error_msg[100];
             snprintf(error_msg, sizeof(error_msg),
-                "Unexpected token %s at top level. Expected 'fun' for function definition.",
-                token_registry_get_display_name(token));
+                "Unexpected %s at top level. Expected 'fun' for function definition.",
+                token_registry_describe(token));
             parser_error(error_msg);
 
             // nothing else can be recovered at the top level
@@ -176,9 +176,8 @@ void eat(TokenType _token) {
     } else {
         char error_msg[100];
         snprintf(error_msg, sizeof(error_msg), 
-            "Unexpected token. Expected %d (%s), got %d (%s)", 
-            _token, token_registry_get_display_name(_token), 
-            token, token_registry_get_display_name(token));
+            "Expected %s, got %s",
+            token_registry_describe(_token), token_registry_describe(token));
         parser_error(error_msg);
         exit(1);
     }

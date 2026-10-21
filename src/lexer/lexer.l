@@ -16,6 +16,18 @@
 
     int line_indent = 0;
 
+    // a character that can't start any token: reported once, then skipped
+    static void unexpected_character(const char* text) {
+        unsigned char c = (unsigned char)text[0];
+        if (c == '\'') {
+            report_error(yylineno, "Unexpected character \"'\"");
+        } else if (c >= 0x80 || (c > ' ' && c < 0x7f)) {
+            report_error(yylineno, "Unexpected character '%s'", text);
+        } else {
+            report_error(yylineno, "Unexpected byte 0x%02X", c);
+        }
+    }
+
     // flex's scanner is raw_yylex(); yylex() (layout.c) adds NEWLINE / INDENT / DEDENT
     #define YY_DECL int raw_yylex(void)
 %}
@@ -165,6 +177,7 @@
     }
 }
 [ \t\r]+      { /* whitespace within a line */ }
-.           { printf("Unexpected character: %s\n", yytext); return yytext[0]; }
+[\xC2-\xF4][\x80-\xBF]+ { unexpected_character(yytext); /* a whole UTF-8 character */ }
+.           { unexpected_character(yytext); }
 <<EOF>>     { return 0; }
 %%
