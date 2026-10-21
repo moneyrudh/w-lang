@@ -1,5 +1,6 @@
 #include "language/token_registry.h"
 #include "util/map.h"
+#include <stdio.h>
 #include <stdlib.h>
 
 // global token registry map
@@ -90,21 +91,21 @@ static TokenMetadata token_metadata[] = {
     {RBRACKET,  "RBRACKET",     "]",        TOKEN_CAT_PUNCTUATION},
 
     // layout
-    {NEWLINE,   "NEWLINE",      NULL,       TOKEN_CAT_LAYOUT},
-    {INDENT,    "INDENT",       NULL,       TOKEN_CAT_LAYOUT},
-    {DEDENT,    "DEDENT",       NULL,       TOKEN_CAT_LAYOUT},
+    {NEWLINE,   "end of line",          NULL,   TOKEN_CAT_LAYOUT},
+    {INDENT,    "indented block",       NULL,   TOKEN_CAT_LAYOUT},
+    {DEDENT,    "end of indented block", NULL,  TOKEN_CAT_LAYOUT},
 
     // assignment
     {ASSIGNMENT,      "ASSIGNMENT",    "=",   TOKEN_CAT_ASSIGNMENT},
     {INFER_ASSIGN,    "INFER_ASSIGN",  ":=",  TOKEN_CAT_ASSIGNMENT},
 
     // literals
-    {INT_LITERAL,     "INT_LITERAL",     NULL, TOKEN_CAT_LITERAL},
-    {FLOAT_LITERAL,   "FLOAT_LITERAL",   NULL, TOKEN_CAT_LITERAL},
-    {STRING_LITERAL,  "STRING_LITERAL",  NULL, TOKEN_CAT_LITERAL},
-    {CHAR_LITERAL,    "CHAR_LITERAL",    NULL, TOKEN_CAT_LITERAL},
-    {BOOL_LITERAL,    "BOOL_LITERAL",    NULL, TOKEN_CAT_LITERAL},
-    {IDENTIFIER,      "IDENTIFIER",      NULL, TOKEN_CAT_IDENTIFIER},
+    {INT_LITERAL,     "number",          NULL, TOKEN_CAT_LITERAL},
+    {FLOAT_LITERAL,   "decimal number",  NULL, TOKEN_CAT_LITERAL},
+    {STRING_LITERAL,  "string",          NULL, TOKEN_CAT_LITERAL},
+    {CHAR_LITERAL,    "character",       NULL, TOKEN_CAT_LITERAL},
+    {BOOL_LITERAL,    "true or false",   NULL, TOKEN_CAT_LITERAL},
+    {IDENTIFIER,      "name",            NULL, TOKEN_CAT_IDENTIFIER},
 };
 
 static const size_t num_tokens = sizeof(token_metadata) / sizeof(token_metadata[0]);
@@ -161,6 +162,29 @@ const char* token_registry_get_display_name(TokenType token) {
 
     const TokenMetadata* meta = token_registry_get(token);
     return meta ? meta->display_name : "UNKNOWN";
+}
+
+const char* token_registry_describe(TokenType token) {
+    // two buffers, so one message can name both the expected and the actual token
+    static char buffers[2][32];
+    static int next = 0;
+
+    if (token == 0) {
+        return "end of file";
+    }
+    const char* lexeme = token < 256 ? NULL : token_registry_get_lexeme(token);
+    if (token >= 256 && !lexeme) {
+        return token_registry_get_display_name(token);
+    }
+
+    char* buffer = buffers[next];
+    next = !next;
+    if (token < 256) {
+        snprintf(buffer, sizeof(buffers[0]), "'%c'", (char)token);
+    } else {
+        snprintf(buffer, sizeof(buffers[0]), "'%s'", lexeme);
+    }
+    return buffer;
 }
 
 const char* token_registry_get_lexeme(TokenType token) {

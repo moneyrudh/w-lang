@@ -69,7 +69,7 @@ W Lang should feel like a modern, expressive language while transpiling cleanly 
 - Expression parsing uses recursive descent with precedence levels: `parse_expression()` → `parse_or()` → `parse_and()` → `parse_equality()` → `parse_comparison()` → `parse_additive()` → `parse_term()` → `parse_factor()`, all built on `parse_binary_level()`.
 - Statement parsing is in `parse_statement()` (`src/parser/parser.c`) with a switch on the current token. Each construct lives in the file for its kind (`statements.c`, `functions.c`, `control_flow.c`, …) and `parse_statement()` routes to it. Declare cross-file parser functions in `src/parser/internal.h`, not `include/parser.h`.
 - Statements end with `expect_end_of_statement()` (consumes `NEWLINE`). Indented bodies use `parse_block()`.
-- The parser reports only syntax errors, with `parser_error()` (the current token's line). Anything about names or types belongs in the checker.
+- The parser reports only syntax errors, with `parser_error()` (the current token's line). Anything about names or types belongs in the checker. Name tokens in messages with `token_registry_describe()` (`')'`, `'fun'`, `end of line`), never with enum numbers or `display_name`.
 
 ### Checker Pattern
 - Report errors with `report_error(node->location.line, fmt, …)`.

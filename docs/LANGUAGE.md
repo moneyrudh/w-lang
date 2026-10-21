@@ -187,7 +187,7 @@ Arguments after the `.w` file are passed to the program, so `run`'s options go b
 | Feature | Status | Notes |
 |---|---|---|
 | `make install` / `make uninstall` | ✅ | `$(PREFIX)/bin/wlang`, `PREFIX` defaults to `/usr/local`; `DESTDIR` supported |
-| `brew install moneyrudh/w/wlang` (tap repo `moneyrudh/homebrew-w`) | 📐 | Needs the v0.1.0 tagged release. `brew tap moneyrudh/w` then `brew install wlang` also works |
+| `brew install moneyrudh/w/wlang` (tap repo `moneyrudh/homebrew-w`) | ✅ | Since v0.1.0. `brew tap moneyrudh/w` then `brew install wlang` also works. A new version is a tagged release plus a `url` / `sha256` bump in `Formula/wlang.rb` |
 | homebrew-core (`brew install wlang` with no tap) | 💭 | Needs notability first (stars / forks / watchers) |
 | Modules (a program across several `.w` files, `use` to import) | 📐 | Needed before the two rows below |
 | Standard library | 📐 | Written in W, ships with `wlang` (installed to `$(PREFIX)/lib/wlang/`, found relative to the binary), pulled in with `use`. Only used modules end up in the generated C |

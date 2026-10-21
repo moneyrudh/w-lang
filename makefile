@@ -1,5 +1,4 @@
 # Everything generated (objects, the flex lexer, binaries, transpiled output) goes in build/
-CC = gcc
 CFLAGS = -I./include -I./src
 OPTFLAGS = -O2
 BUILD = build
