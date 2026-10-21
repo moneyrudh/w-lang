@@ -1,7 +1,12 @@
 # Everything generated (objects, the flex lexer, binaries, transpiled output) goes in build/
 CC = gcc
 CFLAGS = -I./include -I./src
+OPTFLAGS = -O2
 BUILD = build
+
+# make install: $(DESTDIR)$(PREFIX)/bin/wlang (Homebrew passes PREFIX; packagers use DESTDIR)
+PREFIX = /usr/local
+BINDIR = $(PREFIX)/bin
 OBJ = $(BUILD)/obj
 
 # Sources, by stage
@@ -30,16 +35,16 @@ ASAN_TARGET = $(BUILD)/wlang_asan
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) -o $@
+	$(CC) $(CFLAGS) $(OPTFLAGS) $(OBJS) -o $@
 
 # -MMD writes a .d file per object so header changes trigger rebuilds
 $(OBJ)/%.o: src/%.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+	$(CC) $(CFLAGS) $(OPTFLAGS) -MMD -MP -c $< -o $@
 
 $(OBJ)/lexer.o: $(LEXER_C)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+	$(CC) $(CFLAGS) $(OPTFLAGS) -MMD -MP -c $< -o $@
 
 $(LEXER_C): src/lexer/lexer.l
 	@mkdir -p $(dir $@)
@@ -62,7 +67,14 @@ test-asan: $(ASAN_TARGET)
 	ASAN_OPTIONS=detect_leaks=0:exitcode=99 UBSAN_OPTIONS=halt_on_error=1:exitcode=99 WLANG=./$(ASAN_TARGET) ./tests/run.sh
 	ASAN_OPTIONS=detect_leaks=0:exitcode=99 UBSAN_OPTIONS=halt_on_error=1:exitcode=99 WLANG=./$(ASAN_TARGET) ./tests/driver/test.sh
 
+install: $(TARGET)
+	install -d $(DESTDIR)$(BINDIR)
+	install -m 755 $(TARGET) $(DESTDIR)$(BINDIR)/wlang
+
+uninstall:
+	rm -f $(DESTDIR)$(BINDIR)/wlang
+
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all clean test test-asan
+.PHONY: all clean test test-asan install uninstall
