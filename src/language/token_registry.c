@@ -156,10 +156,15 @@ const char* token_registry_describe(TokenType token) {
     if (token == 0) {
         return "end of file";
     }
-    // a character the lexer didn't recognize comes back as itself
+    // single characters aren't tokens (the lexer reports and skips them), but describe them safely
     if (token < 256) {
-        static char unknown_char[4];
-        snprintf(unknown_char, sizeof(unknown_char), "'%c'", (char)token);
+        static char unknown_char[16];
+        unsigned char c = (unsigned char)token;
+        if (c > ' ' && c < 0x7f && c != '\'') {
+            snprintf(unknown_char, sizeof(unknown_char), "'%c'", c);
+        } else {
+            snprintf(unknown_char, sizeof(unknown_char), "byte 0x%02X", c);
+        }
         return unknown_char;
     }
 

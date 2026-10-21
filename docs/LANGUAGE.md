@@ -4,7 +4,7 @@ This is the single source of truth for what W Lang **is**, what **works today**,
 
 **Rule:** every change that adds, removes, or changes a language feature updates this file in the same commit. Status reflects what was *verified by running it*, not what the code looks like it should do. A ✅ should be covered by a test in `tests/` (`make test`).
 
-Legend: ✅ works end-to-end (transpiles, compiles with gcc, runs correctly) · 🚧 partial / buggy · 📐 decided, not built · 💭 idea, not decided
+Legend: ✅ works end-to-end (transpiles, compiles with the C compiler, runs correctly) · 🚧 partial / buggy · 📐 decided, not built · 💭 idea, not decided
 
 ---
 
