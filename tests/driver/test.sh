@@ -209,6 +209,16 @@ wl --help
 expect_status 0; expect_stdout "Usage:"
 finish
 
+# ==================== make install ====================
+
+begin "make install and uninstall"
+make -s -C "$ROOT" install DESTDIR="$CASE" PREFIX=/usr/test >"$WORK/stdout" 2>"$WORK/stderr" || problem "make install failed"
+expect_files usr/test/bin/wlang
+"$CASE/usr/test/bin/wlang" run "$GOOD" >/dev/null; [ $? = 7 ] || problem "installed wlang didn't run the program"
+make -s -C "$ROOT" uninstall DESTDIR="$CASE" PREFIX=/usr/test >/dev/null 2>&1 || problem "make uninstall failed"
+expect_files
+finish
+
 echo
 echo "$pass passed, $fail failed"
 if [ "$fail" -gt 0 ]; then
