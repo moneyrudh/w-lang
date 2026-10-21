@@ -17,7 +17,7 @@ typedef enum {
 
 typedef struct {
     TokenType token;
-    const char* display_name;  // "NUM", "FUN"; for tokens without a lexeme it reads as words ("name", "end of line")
+    const char* display_name;  // how error messages name it: "'fun'", "')'", "end of line", "name"
     const char* lexeme;        // actual text: "num", "+", "(", etc. (NULL for non-literals)
     TokenCategory category;
 } TokenMetadata;
@@ -34,9 +34,6 @@ void token_registry_cleanup(void);
 
 // lookup token metadata by TokenType
 const TokenMetadata* token_registry_get(TokenType token);
-
-// get display name for error messages
-const char* token_registry_get_display_name(TokenType token);
 
 // how error messages name a token: the quoted source text ('fun', ')'), or words for
 // tokens without fixed text (name, number, end of line, end of file)
