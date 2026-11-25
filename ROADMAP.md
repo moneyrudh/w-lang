@@ -25,19 +25,21 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
 1. ⬜ **Parser error recovery.** Done: an unclosed `(` / `[` / `{` reports `'(' on line N was never closed`
    at the right line; one mistake gives one error (`fun f(a: num b: num)`, `fun w() num`); `eat()` no
    longer exits the process.
-2. ⬜ **`log` takes any expression.** Done: `log(x + 1)` prints `2` for `x = 1`, `log(f(), x > y)` work;
+2. ⬜ **Nesting limit.** Done: deeply nested input (e.g. 200,000 `(`) gives an error instead of
+   overflowing the parser's stack (today: segfault); the fuzzer gains a deep-nesting mutation.
+3. ⬜ **`log` takes any expression.** Done: `log(x + 1)` prints `2` for `x = 1`, `log(f(), x > y)` work;
    pieces are separated by spaces as today.
-3. ⬜ **Unary minus.** Done: `-x`, `-3`, `-(a + b)`, `- -x` for `num` and `real`.
-4. ⬜ **`%` modulo** for `num`. ❓ D1 (spelling).
-5. ⬜ **`str + str`.** Done: concatenation produces a new string (needs a small runtime: allocation and
+4. ⬜ **Unary minus.** Done: `-x`, `-3`, `-(a + b)`, `- -x` for `num` and `real`.
+5. ⬜ **`%` modulo** for `num`. ❓ D1 (spelling).
+6. ⬜ **`str + str`.** Done: concatenation produces a new string (needs a small runtime: allocation and
    freeing rules). ❓ D2 (memory model for strings).
-6. ⬜ **`dec x := 5`** type inference. Done: the type comes from the initializer; `:=` without a
+7. ⬜ **`dec x := 5`** type inference. Done: the type comes from the initializer; `:=` without a
    value is an error.
-7. ⬜ **Global variables** (`dec` at top level). Done: readable and assignable from every function;
+8. ⬜ **Global variables** (`dec` at top level). Done: readable and assignable from every function;
    initializers must be constant.
-8. ⬜ **Per-path return checking.** Done: a `ret` inside only one branch of `say` no longer satisfies
+9. ⬜ **Per-path return checking.** Done: a `ret` inside only one branch of `say` no longer satisfies
    "must return a value".
-9. ⬜ **Integer literal range.** Done: a literal that doesn't fit `num` is an error instead of `atoi`'s
+10. ⬜ **Integer literal range.** Done: a literal that doesn't fit `num` is an error instead of `atoi`'s
    undefined result.
 
 ## Step 3 — Data ⬜

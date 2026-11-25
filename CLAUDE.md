@@ -58,7 +58,7 @@ W Lang should feel like a modern, expressive language while transpiling cleanly 
 ### C Conventions
 - **Warnings are errors.** Our sources build with `-Wall -Wextra -Werror` (flex's generated scanner only gets `-Wno-sign-compare`). Fix the cause; don't silence a warning without a comment saying why.
 - **Ownership is written down.** A function that takes ownership of a pointer argument says so in a comment ("takes ownership of name"), and so does one that copies ("copies name"). Strings from the lexer (`yylval.string`) belong to the lexer and are replaced on the next token: copy what you keep.
-- **Every allocation is freed or owned by something that is.** AST memory is freed by `free_ast()`; error paths free what they built before returning (`free_parameters()`, `free(name)`). Leaks fail CI (LeakSanitizer on Linux).
+- **Every allocation is freed or owned by something that is.** AST memory is freed by `free_ast()`; error paths free what they built before returning (`free_parameters()`, `free(name)`). Leaks fail CI (LeakSanitizer on Linux), except on paths that call `exit()` (`eat()` on a mismatch, "Too many errors"), where the memory is still reachable; ROADMAP 2.1 removes those.
 - **No fixed-size buffers for user text.** Use `snprintf` with the real size, or allocate. No `sprintf`, `strcpy`, `strcat`.
 - **Check allocations** where failure matters, or use the `new_node()` pattern (exit with "Out of memory").
 - `make analyze` (clang static analyzer) must report nothing; treat its findings as bugs.
@@ -111,7 +111,7 @@ make analyze       # clang static analyzer over src/
 make fuzz          # mutation fuzzer (tests/fuzz/fuzz.py) against the sanitizer build; FUZZ_RUNS=, FUZZ_SEED=
 tests/run.sh loops # only tests whose path contains "loops" (a feature folder or a file name)
 ```
-- CI (`.github/workflows/ci.yml`) runs all of these on every PR and push to `develop`, on Linux and macOS, plus a long fuzz run nightly. A PR merges only when CI is green.
+- CI (`.github/workflows/ci.yml`) runs all of these on every PR and push to `develop`: build and tests on Linux and macOS, `analyze` and `fuzz` on Linux, plus a long fuzz run nightly. A PR merges only when CI is green.
 - A fuzz failure saves its input to `build/fuzz-failures/` (an artifact in CI). Turn it into a test in `tests/errors/` or `tests/run/` when fixing it.
 - Tests are grouped by language feature, named after the sections of `docs/LANGUAGE.md` (`blocks`, `comments`, `types`, `variables`, `functions`, `operators`, `control_flow`, `loops`, …), not by compiler stage: every test runs the whole pipeline. Add a new folder when a new section gets its first test.
 - `tests/run/<feature>/NAME.w` must build with `wlang build` (C compiled with `-Wall -Wextra -Werror`) and print exactly `NAME.out`. Put `-- exit: N` at the top for a non-zero exit code.

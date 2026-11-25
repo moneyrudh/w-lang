@@ -7,7 +7,7 @@ indentation) and runs each result through `wlang build --emit-c` with a C compil
 that does nothing, so the lexer, parser, checker and code generator all run.
 
 wlang must answer every input with exit code 0 (built) or 1 (W errors). Anything
-else -- a sanitizer report (exit 99 under make fuzz), a signal, a hang -- is a bug.
+else -- a sanitizer report (forced to exit 99), a signal, a hang -- is a bug.
 Failing inputs are saved to the output directory so they can be replayed.
 
 Usage: tests/fuzz/fuzz.py [--wlang PATH] [--runs N] [--seed S] [--out DIR]
@@ -78,6 +78,17 @@ def mutate(data: bytes, corpus: list, rng: random.Random) -> bytes:
     return b"\n".join(lines)
 
 
+def sanitizer_env() -> dict:
+    """The environment for wlang: sanitizer reports must exit 99, never 1 like a W error.
+    Settings already in ASAN_OPTIONS / UBSAN_OPTIONS (e.g. detect_leaks from make) are kept."""
+    env = dict(os.environ)
+    for var, defaults in (("ASAN_OPTIONS", "exitcode=99"), ("UBSAN_OPTIONS", "halt_on_error=1:exitcode=99")):
+        given = env.get(var, "")
+        missing = [d for d in defaults.split(":") if d.split("=")[0] + "=" not in given]
+        env[var] = ":".join(filter(None, [given] + missing))
+    return env
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--wlang", default=os.environ.get("WLANG", str(ROOT / "build/wlang")))
@@ -94,6 +105,7 @@ def main() -> int:
 
     failures = 0
     built = rejected = 0
+    env = sanitizer_env()
     with tempfile.TemporaryDirectory() as work:
         src = Path(work) / "input.w"
         for run in range(args.runs):
@@ -102,7 +114,7 @@ def main() -> int:
             cmd = [args.wlang, "build", str(src), "-o", str(Path(work) / "prog"),
                    "--emit-c", str(Path(work) / "prog.c"), "--cc", "true"]
             try:
-                result = subprocess.run(cmd, capture_output=True, timeout=args.timeout)
+                result = subprocess.run(cmd, capture_output=True, timeout=args.timeout, env=env)
                 built += result.returncode == 0
                 rejected += result.returncode == 1
                 problem = None if result.returncode in (0, 1) else f"exit code {result.returncode}"

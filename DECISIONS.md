@@ -8,11 +8,11 @@ Implementation details (how the compiler does it) are not listed here.
 
 ## Open
 
-### D1. Modulo operator (`ROADMAP` step 2.4)
+### D1. Modulo operator (`ROADMAP` step 2.5)
 - **Proposal:** `%`, plus the word form `mod`, matching how comparisons have both (`<` / `lt`).
 - Alternatives: only `%`; only `mod`.
 
-### D2. Strings and memory (step 2.5)
+### D2. Strings and memory (step 2.6)
 `str + str` needs new memory. W has no `free`.
 - **Proposal:** strings made by `+` live until the end of the function that made them, unless returned;
   the compiler frees them on `ret`. Simple, no garbage collector, covers games and small programs.
