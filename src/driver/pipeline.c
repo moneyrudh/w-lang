@@ -40,6 +40,7 @@ bool transpile(const char* input_path, FILE* output) {
 
     free_ast(ast);
     ast = NULL;
+    lexer_cleanup();
     fclose(input);
 
     token_registry_cleanup();

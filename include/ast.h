@@ -114,6 +114,7 @@ ASTNode* create_char_node(char value, SourceLocation loc);
 ASTNode* create_bool_node(bool value, SourceLocation loc);
 ASTNode* create_var_declaration_node(char* name, DataType type, ASTNode* init_expr, SourceLocation loc);
 
+void free_parameters(Parameter* parameters);
 void free_log_elements(LogElement* elements);
 void free_ast(ASTNode* node);
 

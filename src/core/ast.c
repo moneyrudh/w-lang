@@ -153,6 +153,15 @@ ASTNode* create_var_declaration_node(char* name, DataType type, ASTNode* init_ex
     return node;
 }
 
+void free_parameters(Parameter* parameters) {
+    while (parameters != NULL) {
+        Parameter* next = parameters->next;
+        free(parameters->name);
+        free(parameters);
+        parameters = next;
+    }
+}
+
 void free_log_elements(LogElement* elements) {
     LogElement* current = elements;
     while (current != NULL) {
@@ -172,19 +181,11 @@ void free_ast(ASTNode* node) {
                 free_ast(node->data.program.functions);
                 free_ast(node->data.program.globals);
                 break;
-            case NODE_FUNCTION: {
+            case NODE_FUNCTION:
                 free(node->data.function.name);
-                // free parameters
-                Parameter* param = node->data.function.parameters;
-                while (param != NULL) {
-                    Parameter* next = param->next;
-                    free(param->name);
-                    free(param);
-                    param = next;
-                }
+                free_parameters(node->data.function.parameters);
                 free_ast(node->data.function.body);
                 break;
-            }
             case NODE_FUNCTION_CALL:
                 free(node->data.function_call.name);
                 if (node->data.function_call.args) {

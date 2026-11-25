@@ -25,4 +25,7 @@ extern int token_line;   // source line of the token yylex() just returned
 // next token, with NEWLINE / INDENT / DEDENT for line structure (see lexer/layout.c)
 int yylex(void);
 
+// frees the lexer's buffers once the input has been parsed
+void lexer_cleanup(void);
+
 #endif

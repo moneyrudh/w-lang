@@ -90,7 +90,11 @@ zil  -> void
 make                # builds build/wlang
 make test           # language tests, then tests of the wlang command
 make test-asan      # same, with AddressSanitizer + UBSan
+make analyze        # clang static analyzer
+make fuzz           # mutation fuzzer against the sanitizer build
 ```
+
+[`ROADMAP.md`](ROADMAP.md) is the plan (the goal: simple games written in W), and [`DECISIONS.md`](DECISIONS.md) lists open design questions.
 
 ```
 src/
@@ -106,7 +110,7 @@ src/
   runtime/     helpers for generated programs
 include/       public header for each stage
 examples/      example W programs
-tests/         make test (run/ and errors/ by language feature, driver/ for the wlang command)
+tests/         make test (run/ and errors/ by language feature, driver/ for the wlang command), fuzz/
 docs/          LANGUAGE.md: syntax and feature status
 ```
 

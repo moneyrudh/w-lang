@@ -55,6 +55,14 @@ W Lang should feel like a modern, expressive language while transpiling cleanly 
 - If a string is used more than once in codegen, it should be a constant or a helper function.
 - The registries (`token_registry`, `type_registry`) are map-backed. New tokens/types should be registered there, not handled via ad-hoc switch statements.
 
+### C Conventions
+- **Warnings are errors.** Our sources build with `-Wall -Wextra -Werror` (flex's generated scanner only gets `-Wno-sign-compare`). Fix the cause; don't silence a warning without a comment saying why.
+- **Ownership is written down.** A function that takes ownership of a pointer argument says so in a comment ("takes ownership of name"), and so does one that copies ("copies name"). Strings from the lexer (`yylval.string`) belong to the lexer and are replaced on the next token: copy what you keep.
+- **Every allocation is freed or owned by something that is.** AST memory is freed by `free_ast()`; error paths free what they built before returning (`free_parameters()`, `free(name)`). Leaks fail CI (LeakSanitizer on Linux), except on paths that call `exit()` (`eat()` on a mismatch, "Too many errors"), where the memory is still reachable; ROADMAP 2.1 removes those.
+- **No fixed-size buffers for user text.** Use `snprintf` with the real size, or allocate. No `sprintf`, `strcpy`, `strcat`.
+- **Check allocations** where failure matters, or use the `new_node()` pattern (exit with "Out of memory").
+- `make analyze` (clang static analyzer) must report nothing; treat its findings as bugs.
+
 ### Name Mangling
 - All W Lang identifiers are mangled in the output: `W__name_v` for variables, `W__name_f` for functions.
 - The entry point `w()` maps to C `main()`.
@@ -89,7 +97,7 @@ W Lang should feel like a modern, expressive language while transpiling cleanly 
 
 ### Build
 ```
-make clean && make                          # everything goes to build/ (gitignored)
+make clean && make                          # everything goes to build/ (gitignored); warnings are errors
 ./build/wlang examples/hello.w              # build and run
 ./build/wlang build examples/hello.w --emit-c out.c   # see the generated C (also writes ./hello)
 ./build/wlang check examples/hello.w        # errors only
@@ -98,9 +106,13 @@ make clean && make                          # everything goes to build/ (gitigno
 ### Tests
 ```
 make test          # all tests: tests/run.sh, then tests/driver/test.sh
-make test-asan     # same tests, wlang built with AddressSanitizer + UBSan
+make test-asan     # same tests, wlang built with AddressSanitizer + UBSan (ASAN_LEAKS=1 on Linux adds leak checks)
+make analyze       # clang static analyzer over src/
+make fuzz          # mutation fuzzer (tests/fuzz/fuzz.py) against the sanitizer build; FUZZ_RUNS=, FUZZ_SEED=
 tests/run.sh loops # only tests whose path contains "loops" (a feature folder or a file name)
 ```
+- CI (`.github/workflows/ci.yml`) runs all of these on every PR and push to `develop`: build and tests on Linux and macOS, `analyze` and `fuzz` on Linux, plus a long fuzz run nightly. A PR merges only when CI is green.
+- A fuzz failure saves its input to `build/fuzz-failures/` (an artifact in CI). Turn it into a test in `tests/errors/` or `tests/run/` when fixing it.
 - Tests are grouped by language feature, named after the sections of `docs/LANGUAGE.md` (`blocks`, `comments`, `types`, `variables`, `functions`, `operators`, `control_flow`, `loops`, …), not by compiler stage: every test runs the whole pipeline. Add a new folder when a new section gets its first test.
 - `tests/run/<feature>/NAME.w` must build with `wlang build` (C compiled with `-Wall -Wextra -Werror`) and print exactly `NAME.out`. Put `-- exit: N` at the top for a non-zero exit code.
 - `tests/errors/<feature>/NAME.w` must fail `wlang check`. List every expected error as `-- error: line N: message`. Extra errors fail the test, so error cascades get caught.
@@ -108,6 +120,18 @@ tests/run.sh loops # only tests whose path contains "loops" (a feature folder or
 - Never generate a `.out` file without checking its contents by hand first. Prefer output lines like `label EXPECTED => ACTUAL` so the file shows its own correctness.
 - `playground/` is the user's private scratch space (gitignored). Don't put tests there.
 - `examples/` holds public, tracked example programs. Keep them working: transpile and run them after language changes.
+
+## Working Process
+- `ROADMAP.md` is the plan: steps, each split into one-PR tasks with "done" criteria. `DECISIONS.md` holds open syntax / design questions with proposals.
+- **Before a step starts, its plan is approved by the user**, including any `DECISIONS.md` items it needs. Don't pick syntax or keywords on your own.
+- Within an approved step, for each task:
+  1. `git checkout develop && git pull`, then branch `money/<topic>`.
+  2. Implement, add tests (they must fail without the change when they cover a bug), keep `docs/LANGUAGE.md` current.
+  3. `make test`, `make test-asan`, `make analyze` locally; push and open a PR into `develop`.
+  4. Run an independent review (fresh-eyes review skill), fix what's real.
+  5. Merge when CI is green (`gh pr merge <n> --merge --delete-branch`), pull `develop`, check the task off in `ROADMAP.md`.
+- Always ask first before: releases and tags, changes to the Homebrew tap (`moneyrudh/homebrew-w`), force-pushes, repository settings.
+- Stop and report instead of pushing on when a task fails twice, CI is red for reasons outside the task, or a decision is needed.
 
 ## Language Status — `docs/LANGUAGE.md`
 `docs/LANGUAGE.md` is the single source of truth for W Lang syntax and what is supported, partial, decided, or just an idea.

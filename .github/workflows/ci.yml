@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * *"   # nightly: a long fuzz run
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    if: github.event_name != 'schedule'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install flex
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y flex
+
+      - name: Build (warnings are errors)
+        run: make
+
+      - name: Tests
+        run: make test
+
+      # LeakSanitizer only works on Linux, so leaks fail the build there
+      - name: Tests under AddressSanitizer + UBSan
+        run: make test-asan ASAN_LEAKS=${{ runner.os == 'Linux' && '1' || '0' }}
+
+  analyze:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y flex
+      - name: clang static analyzer
+        run: make analyze
+
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y flex
+      - name: Fuzz (short on PRs, long nightly)
+        run: make fuzz ASAN_LEAKS=1 FUZZ_RUNS=${{ github.event_name == 'schedule' && '30000' || '2000' }}
+      - name: Keep failing inputs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-failures
+          path: build/fuzz-failures/
