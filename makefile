@@ -1,6 +1,9 @@
 # Everything generated (objects, the flex lexer, binaries, transpiled output) goes in build/
 CFLAGS = -I./include -I./src
 OPTFLAGS = -O2
+# our own code must build without warnings; flex's generated scanner gets one exemption
+WARNFLAGS = -Wall -Wextra -Werror
+LEXER_WARNFLAGS = $(WARNFLAGS) -Wno-sign-compare
 BUILD = build
 
 # make install: $(DESTDIR)$(PREFIX)/bin/wlang (Homebrew passes PREFIX; packagers use DESTDIR)
@@ -39,11 +42,11 @@ $(TARGET): $(OBJS)
 # -MMD writes a .d file per object so header changes trigger rebuilds
 $(OBJ)/%.o: src/%.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(OPTFLAGS) -MMD -MP -c $< -o $@
+	$(CC) $(CFLAGS) $(OPTFLAGS) $(WARNFLAGS) -MMD -MP -c $< -o $@
 
 $(OBJ)/lexer.o: $(LEXER_C)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(OPTFLAGS) -MMD -MP -c $< -o $@
+	$(CC) $(CFLAGS) $(OPTFLAGS) $(LEXER_WARNFLAGS) -MMD -MP -c $< -o $@
 
 $(LEXER_C): src/lexer/lexer.l
 	@mkdir -p $(dir $@)
@@ -62,9 +65,26 @@ HEADERS = $(shell find include src -name '*.h')
 $(ASAN_TARGET): $(SRCS) $(LEXER_C) $(HEADERS)
 	$(CC) $(CFLAGS) -g -fsanitize=address,undefined $(SRCS) $(LEXER_C) -o $@
 
+# leak checking needs LeakSanitizer, which macOS on Apple Silicon lacks: CI turns it on (ASAN_LEAKS=1) on Linux
+ASAN_LEAKS = 0
+ASAN_ENV = ASAN_OPTIONS=detect_leaks=$(ASAN_LEAKS):exitcode=99 UBSAN_OPTIONS=halt_on_error=1:exitcode=99
+
 test-asan: $(ASAN_TARGET)
-	ASAN_OPTIONS=detect_leaks=0:exitcode=99 UBSAN_OPTIONS=halt_on_error=1:exitcode=99 WLANG=./$(ASAN_TARGET) ./tests/run.sh
-	ASAN_OPTIONS=detect_leaks=0:exitcode=99 UBSAN_OPTIONS=halt_on_error=1:exitcode=99 WLANG=./$(ASAN_TARGET) ./tests/driver/test.sh
+	$(ASAN_ENV) WLANG=./$(ASAN_TARGET) ./tests/run.sh
+	$(ASAN_ENV) WLANG=./$(ASAN_TARGET) ./tests/driver/test.sh
+
+# clang's static analyzer over our own sources (not flex's output); any finding fails
+ANALYZER = clang
+analyze:
+	@failed=0; for f in $(SRCS); do \
+		$(ANALYZER) --analyze $(CFLAGS) -Xclang -analyzer-werror -Xclang -analyzer-output=text -o /dev/null $$f || failed=1; \
+	done; \
+	if [ $$failed = 1 ]; then echo "analyze: findings above"; exit 1; fi; echo "analyze: no findings"
+
+# mutation fuzzer (tests/fuzz/fuzz.py) against the sanitizer build; FUZZ_RUNS / FUZZ_SEED to tune
+FUZZ_RUNS = 2000
+fuzz: $(ASAN_TARGET)
+	$(ASAN_ENV) python3 tests/fuzz/fuzz.py --wlang ./$(ASAN_TARGET) --runs $(FUZZ_RUNS) $(if $(FUZZ_SEED),--seed $(FUZZ_SEED))
 
 install: $(TARGET)
 	install -d $(DESTDIR)$(BINDIR)
@@ -76,4 +96,4 @@ uninstall:
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all clean test test-asan install uninstall
+.PHONY: all clean test test-asan analyze fuzz install uninstall

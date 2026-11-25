@@ -92,6 +92,7 @@ ASTNode* parse_function(void) {
         if (!token_registry_is_type(token)) {
             parser_error("Expected return type after ':'");
             free(name);
+            free_parameters(parameters);
             return NULL;
         }
         return_type = parse_type_specifier();

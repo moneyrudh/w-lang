@@ -179,8 +179,9 @@ static int command_build(const Options* opts) {
     if (opts->c_output) {
         c_path = strdup(opts->c_output);
     } else if (opts->emit_c) {
-        c_path = malloc(strlen(exe_path) + strlen(".c") + 1);
-        sprintf(c_path, "%s.c", exe_path);
+        size_t size = strlen(exe_path) + strlen(".c") + 1;
+        c_path = malloc(size);
+        snprintf(c_path, size, "%s.c", exe_path);
     } else {
         dir = make_temp_dir();
         if (!dir) {

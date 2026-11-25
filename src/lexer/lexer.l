@@ -16,6 +16,16 @@
 
     int line_indent = 0;
 
+    // text of the current IDENTIFIER / STRING_LITERAL / MAIN token. The lexer owns it and
+    // frees it when the next one replaces it, so the parser copies what it keeps
+    static char* token_text = NULL;
+
+    static void keep_text(const char* text) {
+        free(token_text);
+        token_text = strdup(text);
+        yylval.string = token_text;
+    }
+
     // a character that can't start any token: reported once, then skipped
     static void unexpected_character(const char* text) {
         unsigned char c = (unsigned char)text[0];
@@ -34,6 +44,7 @@
 
 %option noyywrap
 %option yylineno
+%option nounput noinput
 
 %x THROWAWAY_BLOCK
 
@@ -60,31 +71,31 @@
     return 0;
 }
 
-"w"         { yylval.string = strdup("w"); return MAIN; }
-"num"       { yylval.string = strdup("num"); return NUM; }
-"zil"      { yylval.string = strdup("zil"); return ZIL; }
-"real"     { yylval.string = strdup("real"); return REAL; }
-"chr"      { yylval.string = strdup("chr"); return CHR; }
-"str"    { yylval.string = strdup("str"); return STR; }
-"bool"      { yylval.string = strdup("bool"); return BOOL; }
+"w"         { keep_text("w"); return MAIN; }
+"num"       { return NUM; }
+"zil"      { return ZIL; }
+"real"     { return REAL; }
+"chr"      { return CHR; }
+"str"    { return STR; }
+"bool"      { return BOOL; }
 "true"      { yylval.bool_val = true; return BOOL_LITERAL; }
 "false"     { yylval.bool_val = false; return BOOL_LITERAL; }
 "log"       { return LOG; }
 
-"vec"	    { yylval.string = strdup("vec"); return VEC; }
-"map"	    { yylval.string = strdup("map"); return MAP; }
-"set" 	    { yylval.string = strdup("set"); return SET; }
-"ref"       { yylval.string = strdup("ref"); return REF; }
-"heap" 	    { yylval.string = strdup("heap"); return HEAP; }
-"stack"	    { yylval.string = strdup("stack"); return STACK; }
-"que"	    { yylval.string = strdup("que"); return QUE; }
-"link" 	    { yylval.string = strdup("link"); return LINK; }
-"tree"	    { yylval.string = strdup("tree"); return TREE; }
-"pod"	    { yylval.string = strdup("pod"); return POD; }
+"vec"	    { return VEC; }
+"map"	    { return MAP; }
+"set" 	    { return SET; }
+"ref"       { return REF; }
+"heap" 	    { return HEAP; }
+"stack"	    { return STACK; }
+"que"	    { return QUE; }
+"link" 	    { return LINK; }
+"tree"	    { return TREE; }
+"pod"	    { return POD; }
 
-"dec" 	    { yylval.string = strdup("dec"); return DEC; }
-"fun"	    { yylval.string = strdup("fun"); return FUN; }
-"use"	    { yylval.string = strdup("use"); return USE; }
+"dec" 	    { return DEC; }
+"fun"	    { return FUN; }
+"use"	    { return USE; }
 
 "ret"       { return RETURN; }
 
@@ -143,14 +154,14 @@
     return FLOAT_LITERAL; 
 }
 
-[a-zA-Z_][a-zA-Z0-9_]* { 
-    yylval.string = strdup(yytext); 
-    return IDENTIFIER; 
+[a-zA-Z_][a-zA-Z0-9_]* {
+    keep_text(yytext);
+    return IDENTIFIER;
 }
 
 \"(\\.|[^"\\])*\" {
-    yylval.string = strdup(yytext + 1);
-    yylval.string[strlen(yylval.string)-1] = '\0';
+    keep_text(yytext + 1);
+    token_text[strlen(token_text) - 1] = '\0';   // drop the closing quote
     return STRING_LITERAL;
 }
 
@@ -181,3 +192,10 @@
 .           { unexpected_character(yytext); }
 <<EOF>>     { return 0; }
 %%
+
+void lexer_cleanup(void) {
+    free(token_text);
+    token_text = NULL;
+    yylval.string = NULL;
+    yylex_destroy();
+}

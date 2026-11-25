@@ -12,3 +12,4 @@ build/
 
 # personal scratch .w files
 playground/
+!compile_flags.txt
