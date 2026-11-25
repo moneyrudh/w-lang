@@ -1,6 +1,7 @@
 #include "language/token_registry.h"
 #include "util/map.h"
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 // global token registry map
