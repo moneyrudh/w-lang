@@ -75,7 +75,7 @@ dec q: que(str) = ["one", "two", "three"]
 
 Implicit conversions (assignment, arguments, `ret`): `num ↔ chr`, `num ↔ bool`, `num/chr/bool → real`. `str` converts to nothing.
 
-Operators by type (every combination is checked by `tests/unit/type_rules.c`): `+ - * /` take `num`, `real`, `chr` (`'a' + 1` is `98`; any `real` makes the result `real`), and `+` also joins two `str`s; `str` with anything else and any `bool` are errors (D8, D9). Comparisons take any two non-`str` values, or two `str`s. `and` / `or` take anything but `str`. Nothing takes `zil`.
+Operators by type (every combination is checked by `tests/unit/type_rules.c`): `+ - * /` take `num`, `real`, `chr` (`'a' + 1` is `98`; any `real` makes the result `real`), and `+` also joins two `str`s; `str` with anything else and any `bool` are errors (D8, D9). Comparisons take any two non-`str` values, or two `str`s. `and` / `or` take anything but `str`. Unary `-x` takes `num`, `real` and `chr` (`-'a'` is a `num`, so `dec c: chr = -'a'` is an error); `not x` takes anything but `str`. Nothing takes `zil`.
 
 ## 5. Variables
 

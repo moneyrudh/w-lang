@@ -8,6 +8,14 @@ Implementation details (how the compiler does it) are not listed here.
 
 ## Open
 
+### D11. Integer overflow (step 2, before `%`)
+`num` is a C `int`. Today `2147483647 + 1` or `-x` on the smallest `num` overflows, which is
+undefined behaviour in C (anything may happen; in practice it wraps around).
+- **Proposal:** wrap around, and make it defined: the generated C does `num` arithmetic in a way that
+  wraps like Java and Go (`2147483647 + 1` is `-2147483648`), at almost no cost.
+- Alternatives: stop the program with an error on overflow (safer, like Swift and Rust's debug
+  builds, a little slower); leave it undefined like C.
+
 ### D3. Structs (`pod`) (step 3.1)
 Early drafts used `pod` for a struct with functions and `type` for plain data.
 - **Proposal:** one keyword, `pod`, plain data first; functions on pods later.

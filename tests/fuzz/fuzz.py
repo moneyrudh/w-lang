@@ -45,7 +45,7 @@ def seeds():
 def deep_chunk(rng: random.Random) -> list:
     """Nesting around the parser's limits (150 expression / 100 statement levels) and far past them."""
     k = rng.choice([rng.randint(1, 200), rng.randint(140, 160), rng.randint(90, 110), rng.randint(1000, 20000)])
-    shape = rng.randrange(6)
+    shape = rng.randrange(7)
     if shape == 5:
         # a long elf chain: not nested in W, but nested in the C (else-if) and in free_ast
         k = rng.choice([rng.randint(1, 50), rng.randint(990, 1010), rng.randint(5000, 50000)])
@@ -57,11 +57,13 @@ def deep_chunk(rng: random.Random) -> list:
         return [b"    dec d: num = " + b"(" * k + b"1" + b")" * rng.choice([k, k - 1, k + 1])]
     if shape == 1:
         return [b"    dec d: bool = " + b"not " * k + b"true"]
+    if shape == 6:
+        return [b"    dec d: num = " + b"- " * k + b"1"]
     if shape == 2:
         return [b"    dec d: num = " + b" + ".join([b"1"] * k)]
     if shape == 3:
         return [b"    " + b"say true, " * k + b"skip"]
-    k = min(k, 3000)   # nested blocks: one line per level
+    k = min(k, 400)    # nested blocks: one line per level, and the file grows with k squared
     return [b"    " * (i + 1) + b"say true" for i in range(k)] + [b"    " * (k + 1) + b"skip"]
 
 
