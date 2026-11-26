@@ -174,8 +174,12 @@ void free_log_elements(LogElement* elements) {
     }
 }
 
+// walks statement lists (`next`) with a loop: recursing on them would overflow the stack
+// for a long function. Children (expressions, bodies) are freed recursively; their depth
+// is bounded by the parser's nesting limits
 void free_ast(ASTNode* node) {
-    if (node) {
+    while (node) {
+        ASTNode* next = node->next;
         switch (node->type) {
             case NODE_PROGRAM:
                 free_ast(node->data.program.functions);
@@ -222,11 +226,20 @@ void free_ast(ASTNode* node) {
             case NODE_RETURN:
                 free_ast(node->data.return_statement.expression);
                 break;
-            case NODE_IF:
+            case NODE_IF: {
                 free_ast(node->data.if_statement.condition);
                 free_ast(node->data.if_statement.body);
-                free_ast(node->data.if_statement.else_branch);
+                // an elf / nor / else chain can be long: walk it with a loop too
+                ASTNode* branch = node->data.if_statement.else_branch;
+                while (branch) {
+                    ASTNode* following = branch->data.if_statement.else_branch;
+                    free_ast(branch->data.if_statement.condition);
+                    free_ast(branch->data.if_statement.body);
+                    free(branch);
+                    branch = following;
+                }
                 break;
+            }
             case NODE_LOOP:
                 free_ast(node->data.loop_statement.condition);
                 free_ast(node->data.loop_statement.body);
@@ -240,7 +253,7 @@ void free_ast(ASTNode* node) {
             case NODE_BOOL:
                 break;
         }
-        free_ast(node->next);
         free(node);
+        node = next;
     }
 }

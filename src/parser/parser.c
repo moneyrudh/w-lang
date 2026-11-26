@@ -151,7 +151,54 @@ ASTNode* parse_block(void) {
     return head;
 }
 
+// ==================== nesting limit ====================
+
+static int statement_depth = 0;
+
+// skips everything nested too deeply, without recursing into it. A statement at the start of
+// a line is a whole block too deep: skip to the end of that block (its DEDENT is left for
+// parse_block). One in the middle of a line is a one-line body: skip the line and the block
+// that belongs to it (up to and including its DEDENT), and nothing after that
+static void skip_too_deep(void) {
+    bool line_start = prev_token == NEWLINE || prev_token == INDENT || prev_token == DEDENT;
+    if (!line_start) {
+        skip_rest_of_line();
+        if (token != INDENT) return;
+    }
+    int level = 0;
+    while (token != 0) {
+        if (token == INDENT) {
+            level++;
+        } else if (token == DEDENT) {
+            if (level == 0) break;
+            level--;
+            if (level == 0 && !line_start) {
+                advance();
+                break;
+            }
+        }
+        advance();
+    }
+}
+
+static ASTNode* parse_one_statement(void);
+
 ASTNode* parse_statement(void) {
+    if (statement_depth >= MAX_STATEMENT_DEPTH) {
+        char error_msg[100];
+        snprintf(error_msg, sizeof(error_msg), "Statements nested too deeply (more than %d levels)",
+                 MAX_STATEMENT_DEPTH);
+        parser_error(error_msg);
+        skip_too_deep();
+        return NULL;
+    }
+    statement_depth++;
+    ASTNode* node = parse_one_statement();
+    statement_depth--;
+    return node;
+}
+
+static ASTNode* parse_one_statement(void) {
     SourceLocation loc = current_location();
     switch (token) {
         case NEWLINE:

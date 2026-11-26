@@ -11,6 +11,20 @@
 // current lookahead token
 extern TokenType token;
 
+// Nesting limits. The parser, checker, code generator and free_ast() recurse over the
+// tree, so input nested beyond these is an error rather than a stack overflow.
+// Expression levels: each '(', 'not' / '!', call argument list, and each operator in a
+// chain (a + b + c is two levels deep). Statement levels: blocks and one-line bodies.
+// Each level becomes at most one bracket level in the generated C, and clang rejects C
+// nested more than 256 brackets deep, so together they stay under that (with room for the
+// function's own braces and a printf call).
+#define MAX_EXPRESSION_DEPTH 150
+#define MAX_STATEMENT_DEPTH 100
+
+// elf / nor / else branches in one conditional. The C is an `else if` chain, which C
+// compilers parse recursively (Apple clang crashes at about 5,000)
+#define MAX_CONDITIONAL_BRANCHES 1000
+
 // ==================== parser.c: tokens, statements, blocks ====================
 
 // reports a syntax error on the current token's line, unless this statement already has

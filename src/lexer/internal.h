@@ -9,4 +9,7 @@ int raw_yylex(void);
 // indentation (in spaces) of the line that follows the last NEWLINE
 extern int line_indent;
 
+// frees the layout pass's indentation stack and resets its state (called by lexer_cleanup)
+void layout_cleanup(void);
+
 #endif

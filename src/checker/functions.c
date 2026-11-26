@@ -26,7 +26,7 @@ void check_function(ASTNode* function) {
     checker_context.loop_depth = 0;
 
     // parameters and the body share one scope (as in C)
-    push_scope(line);
+    push_scope();
     for (Parameter* param = function->data.function.parameters; param != NULL; param = param->next) {
         if (param->type == TYPE_ZIL) {
             report_error(line, "Parameter '%s' can't be zil", param->name);

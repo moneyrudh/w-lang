@@ -170,6 +170,7 @@ loop until n >= 5, n = n + 1
 | Feature | Status | Notes |
 |---|---|---|
 | `wlang` CLI | ✅ | See below. Exits 1 on any W error and writes nothing; 2 on a bad command line. Syntax errors are reported first; type errors only once there are none, so one typo doesn't cascade. Each broken statement gives one syntax error and parsing continues on the next line, so several mistakes are reported in one run. An unclosed bracket is reported on the line where it opened when the next line starts a statement (`dec`, `ret`, `say`, `loop`, …) or the file ends |
+| Nesting limits | ✅ | Expressions: 150 levels, counting the expression itself, each `(`, `not` and call inside it, and each operator in a chain (so at most 149 nested parentheses). Statements: 100 levels counting the function body (so 99 nested blocks inside a function). A conditional: 1,000 branches. Past any of them, one error instead of a crash; together they keep the generated C within what clang accepts (256 nested brackets, and a long `else if` chain) |
 | Program arguments | 🚧 | Passed to the program, but W can't read them yet (💭) |
 
 ```
@@ -198,5 +199,4 @@ Arguments after the `.w` file are passed to the program, so `run`'s options go b
 - `str + str` emits invalid C (§4)
 - `+` inside `log` is always string concatenation (§8)
 - Return checking isn't per-path: any `ret` anywhere satisfies "must return a value" (§6)
-- Extremely deep nesting (thousands of `(`) overflows the parser's stack and crashes `wlang`
 - An unclosed bracket followed by a line that starts with a name or a value (`x = 3`, `f()`) is reported on that line (`Expected ')', got name`), not where it opened: such a line could be continuing the expression

@@ -209,6 +209,15 @@ wl --help
 expect_status 0; expect_stdout "Usage:"
 finish
 
+# ==================== big inputs ====================
+
+begin "a function with 400,000 statements"
+python3 -c "print('fun w(): num\n    dec x: num = 0\n' + '    x = x + 1\n' * 400000 + '    ret 0')" > long.w
+wl build long.w -o long --cc true
+expect_status 0
+rm -f long.w long
+finish
+
 # ==================== make install ====================
 
 begin "make install and uninstall"

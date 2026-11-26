@@ -8,6 +8,20 @@
 #include "language/operators.h"
 #include "language/token_registry.h"
 
+// ==================== nesting limit ====================
+
+static int expression_depth = 0;
+
+// true, after reporting it, when one more level would pass MAX_EXPRESSION_DEPTH
+static bool too_deep(void) {
+    if (expression_depth < MAX_EXPRESSION_DEPTH) return false;
+    char error_msg[100];
+    snprintf(error_msg, sizeof(error_msg),
+             "Expression too deeply nested or too long (more than %d levels)", MAX_EXPRESSION_DEPTH);
+    parser_error(error_msg);
+    return true;
+}
+
 // ==================== operands ====================
 
 static ASTNode* parse_factor(void) {
@@ -66,8 +80,11 @@ static ASTNode* parse_factor(void) {
         case BANG:
             {
                 // 'not' and '!' are both unary negation
+                if (too_deep()) return NULL;
                 eat(token);
+                expression_depth++;
                 ASTNode* operand = parse_factor();
+                expression_depth--;
                 return create_unary_expr_node(OP_NOT, operand, loc);
             }
         default: {
@@ -102,7 +119,14 @@ static bool token_in(TokenType tok, const TokenType* set, size_t count) {
 static ASTNode* parse_binary_level(ASTNode* (*parse_operand)(void), const TokenType* ops, size_t op_count) {
     SourceLocation loc = current_location();
     ASTNode* node = parse_operand();
+
+    // each operator in the chain makes the tree one level deeper on the left
+    int levels = 0;
     while (token_in(token, ops, op_count)) {
+        if (too_deep()) break;
+        expression_depth++;
+        levels++;
+
         TokenType op_token = token;
         OperatorType op;
         token_to_operator(op_token, &op);
@@ -116,6 +140,7 @@ static ASTNode* parse_binary_level(ASTNode* (*parse_operand)(void), const TokenT
 
         node = create_binary_expr_node(node, parse_operand(), op, loc);
     }
+    expression_depth -= levels;
     return node;
 }
 
@@ -144,5 +169,9 @@ static ASTNode* parse_or(void) {
 }
 
 ASTNode* parse_expression(void) {
-    return parse_or();
+    if (too_deep()) return NULL;
+    expression_depth++;
+    ASTNode* node = parse_or();
+    expression_depth--;
+    return node;
 }

@@ -85,7 +85,20 @@ ASTNode* parse_conditional(void) {
     ASTNode* tail = head;
 
     // the chain continues while the next line (same indentation) starts with elf / nor / else
+    int branches = 1;
     while (tail && (token == ELF || token == NOR || token == ELSE)) {
+        if (++branches > MAX_CONDITIONAL_BRANCHES) {
+            char error_msg[100];
+            snprintf(error_msg, sizeof(error_msg), "Too many branches in one conditional (more than %d)",
+                     MAX_CONDITIONAL_BRANCHES);
+            parser_error(error_msg);
+            // the rest of the chain is still parsed (for its own errors), then dropped
+            while (token == ELF || token == NOR || token == ELSE) {
+                free_ast(parse_else_branch());
+            }
+            break;
+        }
+
         ASTNode* branch = parse_else_branch();
         tail->data.if_statement.else_branch = branch;
         tail = branch;

@@ -268,6 +268,7 @@ bool lexer_unclosed_bracket(char* symbol, int* line) {
 }
 
 void lexer_cleanup(void) {
+    layout_cleanup();
     bracket_depth = 0;
     unclosed_symbol = 0;
     free(token_text);
