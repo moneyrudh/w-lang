@@ -61,3 +61,15 @@ bool token_to_operator(TokenType token, OperatorType* out) {
 OperatorCategory get_operator_category(OperatorType op) {
     return operator_categories[op];
 }
+
+// how error messages show each operator (W's spelling)
+static const char* const operator_symbols[] = {
+    [OP_ADD] = "+",  [OP_SUB] = "-",  [OP_MUL] = "*",  [OP_DIV] = "/",
+    [OP_EQ]  = "==", [OP_NE]  = "!=", [OP_LT]  = "<",  [OP_GT]  = ">",
+    [OP_LE]  = "<=", [OP_GE]  = ">=",
+    [OP_AND] = "and", [OP_OR] = "or", [OP_NOT] = "not",
+};
+
+const char* operator_symbol(OperatorType op) {
+    return operator_symbols[op];
+}

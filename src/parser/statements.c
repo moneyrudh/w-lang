@@ -71,60 +71,14 @@ ASTNode* parse_assignment(char* name, SourceLocation loc) {
 
 // ==================== log ====================
 
+// log(expression, ...): each one is printed, separated by spaces
 ASTNode* parse_log(void) {
     SourceLocation loc = current_location();
     eat(LOG);
-    eat(LPAREN);
 
-    LogElement* head = NULL;
-    LogElement* current = NULL;
-
-    while (token != RPAREN) {
-        LogElement* element = malloc(sizeof(LogElement));
-
-        if (token == STRING_LITERAL) {
-            element->type = NODE_STRING;
-            element->value.string = strdup(yylval.string);
-            eat(STRING_LITERAL);
-        } else if (token == COMMA) {
-            // comma adds a space between elements
-            element->type = NODE_STRING;
-            element->value.string = strdup(" ");
-            eat(COMMA);
-        } else if (token == PLUS) {
-            // plus concatenates without space
-            eat(PLUS);
-            free(element);
-            continue;
-        } else if (token == IDENTIFIER) {
-            // variable reference: its type is filled in by the checker
-            element->type = NODE_VARIABLE;
-            element->value.string = strdup(yylval.string);
-            element->var_type = TYPE_ERROR;
-            eat(IDENTIFIER);
-        } else if (token == INT_LITERAL) {
-            // handle number literal
-            element->type = NODE_NUMBER;
-            element->value.number = yylval.number;
-            eat(INT_LITERAL);
-        } else {
-            parser_error("Invalid token in log statement");
-            free(element);
-            break;
-        }
-
-        element->next = NULL;
-        if (head == NULL) {
-            head = element;
-            current = element;
-        } else {
-            current->next = element;
-            current = element;
-        }
-    }
-
-    eat(RPAREN);
+    int arg_count;
+    ASTNode** args = parse_argument_list("log", &arg_count);
     expect_end_of_statement();
 
-    return create_log_node(head, loc);
+    return create_log_node(args, arg_count, loc);
 }

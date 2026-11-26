@@ -16,4 +16,7 @@ bool token_to_operator(TokenType token, OperatorType* out);
 
 OperatorCategory get_operator_category(OperatorType op);
 
+// the operator as W writes it, for error messages ("+", "<=", "and")
+const char* operator_symbol(OperatorType op);
+
 #endif

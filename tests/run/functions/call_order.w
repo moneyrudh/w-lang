@@ -8,8 +8,8 @@ fun w(): num
 
     dec even: bool = is_even(10)
     dec odd: bool = is_odd(7)
-    log("is_even(10) 1 =>", even)
-    log("is_odd(7) 1 =>", odd)
+    log("is_even(10) true =>", even)
+    log("is_odd(7) true =>", odd)
 
     dec half: real = halve(3)
     log("halve(3) 1.500000 =>", half)

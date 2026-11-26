@@ -73,7 +73,7 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
             generate_function(output, node, indent_level);
             break;
         case NODE_LOG:
-            generate_log_statement(output, node->data.log.elements, indent_level);
+            generate_log_statement(output, node, indent_level);
             break;
         case NODE_VAR_DECLARATION:
             generate_var_declaration(output, node, indent_level);

@@ -1,0 +1,10 @@
+x + 1 is 2 => 2
+square(3) 9, x > 0 true => 9 true
+not true false => false
+(x + 2) * 3 9 => 9
+chr real w 2.500000 => w 2.500000
+'a' + 1 98 => 98
+100% stays 100% => 100%
+nested square(square(2)) 16 => 16
+
+after an empty line

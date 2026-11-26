@@ -1,4 +1,4 @@
-defaults 0 0.000000 0 => 0 0.000000 0
+defaults 0 0.000000 false => 0 0.000000 false
 mixed 17.500000 => 17.500000
-w 1 text => w 1 text
+w true text => w true text
 1 65 => 1 65

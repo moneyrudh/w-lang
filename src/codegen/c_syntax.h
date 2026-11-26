@@ -78,7 +78,11 @@
 #define C_FMT_FLOAT           "%f"
 #define C_FMT_CHAR            "%c"
 #define C_FMT_STRING          "%s"
-#define C_FMT_BOOL            "%d"
+#define C_FMT_BOOL            "%s"   // a bool is printed as the string "true" / "false"
+
+// ===== log: a bool value becomes ((value) ? "true" : "false") =====
+#define C_BOOL_TO_TEXT_OPEN   "(("
+#define C_BOOL_TO_TEXT_CLOSE  ") ? \"true\" : \"false\")"
 
 // ===== printf/function names =====
 #define C_PRINTF              "printf"

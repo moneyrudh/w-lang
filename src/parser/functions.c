@@ -111,38 +111,46 @@ ASTNode* parse_function(void) {
 
 // ==================== calls ====================
 
-ASTNode* parse_function_call(char* name, SourceLocation loc) {
+ASTNode** parse_argument_list(const char* context, int* arg_count) {
     eat(LPAREN);
 
     ASTNode** args = NULL;
-    int arg_count = 0;
+    *arg_count = 0;
     int arg_capacity = 4;
 
     if (token != RPAREN) {
         args = malloc(sizeof(ASTNode*) * arg_capacity);
 
         while (1) {
-            if (arg_count >= arg_capacity) {
+            if (*arg_count >= arg_capacity) {
                 arg_capacity *= 2;
                 args = realloc(args, sizeof(ASTNode*) * arg_capacity);
             }
 
-            args[arg_count++] = parse_expression();
+            args[(*arg_count)++] = parse_expression();
 
             if (token == COMMA) {
                 eat(COMMA);
             } else if (token == RPAREN) {
                 break;
             } else {
-                parser_error("Expected ',' or ')' in function call");
+                char error_msg[100];
+                snprintf(error_msg, sizeof(error_msg), "Expected ',' or ')' in %s", context);
+                parser_error(error_msg);
                 break;
             }
         }
     }
 
     eat(RPAREN);
+    return args;
+}
+
+ASTNode* parse_function_call(char* name, SourceLocation loc) {
+    int arg_count;
+    ASTNode** args = parse_argument_list("function call", &arg_count);
     ASTNode* node = create_function_call_node(name, args, arg_count, loc);
-    if (args) free(args);
+    free(args);
     return node;
 }
 

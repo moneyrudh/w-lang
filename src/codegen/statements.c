@@ -45,38 +45,29 @@ void generate_assignment(FILE* output, ASTNode* node, int indent_level) {
     fprintf(output, C_SEMICOLON_NL);
 }
 
-void generate_log_statement(FILE* output, LogElement* elements, int indent_level) {
+// log(a, b, ...) -> printf("<spec a> <spec b> ...\n", a, b, ...). Every value, strings included,
+// is a printf argument, so a '%' in W text can't be read as a format directive
+void generate_log_statement(FILE* output, ASTNode* node, int indent_level) {
+    ASTNode** args = node->data.log.args;
+    int arg_count = node->data.log.arg_count;
+
     emit_indent(output, indent_level);
     fprintf(output, C_PRINTF C_LPAREN C_STRING_QUOTE);
-
-    LogElement* current = elements;
-    while (current != NULL) {
-        switch (current->type) {
-            case NODE_STRING:
-                fprintf(output, "%s", current->value.string);
-                break;
-            case NODE_NUMBER:
-                fputs(C_FMT_INT, output);
-                break;
-            case NODE_VARIABLE:
-                fputs(get_format_spec_from_enum(current->var_type), output);
-                break;
-            default:
-                break;
-        }
-        current = current->next;
+    for (int i = 0; i < arg_count; i++) {
+        if (i > 0) fputs(C_SPACE, output);
+        fputs(get_format_spec_from_enum(args[i]->expr_type), output);
     }
-
     fprintf(output, C_ESC_NEWLINE C_STRING_QUOTE);
 
-    current = elements;
-    while (current != NULL) {
-        if (current->type == NODE_NUMBER) {
-            fprintf(output, C_COMMA "%d", current->value.number);
-        } else if (current->type == NODE_VARIABLE) {
-            fprintf(output, C_COMMA "%s", mangle_identifier(current->value.string, false));
+    for (int i = 0; i < arg_count; i++) {
+        fputs(C_COMMA, output);
+        if (args[i]->expr_type == TYPE_BOOL) {
+            fputs(C_BOOL_TO_TEXT_OPEN, output);
+            generate(output, args[i], 0);
+            fputs(C_BOOL_TO_TEXT_CLOSE, output);
+        } else {
+            generate(output, args[i], 0);
         }
-        current = current->next;
     }
 
     fprintf(output, C_RPAREN C_SEMICOLON_NL);
