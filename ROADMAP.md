@@ -36,7 +36,7 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
 5. ⬜ **`%` / `mod` modulo** for `num` (D1).
 6. ⬜ **`str + str`.** Done: concatenation produces a new string (needs a small runtime: allocation and
    freeing rules, D2): the generated C frees it, W code never does.
-7. ⬜ **`dec x := 5`** type inference. Done: the type comes from the initializer; `:=` without a
+7. ✅ **`dec x := 5`** type inference. Done: the type comes from the initializer; `:=` without a
    value is an error.
 8. ⬜ **Global variables** (`dec` at top level). Done: readable and assignable from every function;
    initializers must be constant.

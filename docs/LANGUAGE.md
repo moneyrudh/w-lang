@@ -84,7 +84,7 @@ Operators by type (every combination is checked by `tests/unit/type_rules.c`): `
 | `dec x: num = 5` | ✅ | |
 | `dec x: num` (default value) | ✅ | Defaults from the type registry (`num` → 0) |
 | Assignment `x = expr` | ✅ | Type-checked |
-| `dec x := 5` (type inference) | 📐 | Token exists; parser rejects it |
+| `dec x := 5` (type inference) | ✅ | The variable takes the value's type, and keeps it (`dec r := 2.5` is a `real`; assigning a `str` to it later is an error). Needs a value; a `zil` call has no type to take. Function signatures always spell out their types, so inference stays local |
 | `x: num = 5` (without `dec`) | 🚧 | Old notes claim it works; it does not |
 | `+=`, `++` | 💭 | In early spec drafts only |
 | Block scoping | ✅ | Every block and one-line body is a scope. Inner blocks may shadow outer names; redeclaring in the same scope is an error. Parameters share the function body's scope (as in C) |
