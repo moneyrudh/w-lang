@@ -8,17 +8,6 @@ Implementation details (how the compiler does it) are not listed here.
 
 ## Open
 
-### D1. Modulo operator (`ROADMAP` step 2.5)
-- **Proposal:** `%`, plus the word form `mod`, matching how comparisons have both (`<` / `lt`).
-- Alternatives: only `%`; only `mod`.
-
-### D2. Strings and memory (step 2.6)
-`str + str` needs new memory. W has no `free`.
-- **Proposal:** strings made by `+` live until the end of the function that made them, unless returned;
-  the compiler frees them on `ret`. Simple, no garbage collector, covers games and small programs.
-- Alternatives: never free (leaks, fine for short programs); reference counting (more work, handles
-  everything); a garbage collector (largest).
-
 ### D3. Structs (`pod`) (step 3.1)
 Early drafts used `pod` for a struct with functions and `type` for plain data.
 - **Proposal:** one keyword, `pod`, plain data first; functions on pods later.
@@ -53,6 +42,19 @@ Drafts disagree: `vec[num]` vs `vec(num)`.
 - Alternatives: `ext "c" fun …`; a block `ext raylib` containing several declarations.
 
 ## Decided
+
+- **D1. Modulo** (2026-11-25): both `%` and `mod`, like `<` / `lt`.
+- **D2. Strings made by `+`** (2026-11-25): freed automatically by the generated C when the function that
+  made them returns; returning one or storing it in a global keeps a copy. W code never frees anything:
+  chores C can do for the programmer, the compiler does.
+- **D8. `str + num`** (2026-11-25): an error, with a hint to use `log("text", value)`; an explicit
+  conversion function comes later. `str + str` joins strings.
+- **D9. `bool` in arithmetic** (2026-11-25): an error (`true + 1`, `n + flag`). `chr` arithmetic stays
+  (`'a' + 1`). Comparisons and `and` / `or` / `not` on `bool` are unaffected.
+- **D10. Printing `bool`** (2026-11-25): `log` prints `true` / `false`, not `1` / `0`.
+- **`:=` type inference** (2026-11-25): kept. The type is the type of the value, which the checker
+  already computes; function signatures always spell out types, so inference stays local. A value with
+  no type to take (a `zil` call, later an empty `[]`) is an error asking for the type.
 
 - **Package manager direction:** packages are git repos installed with `wlang install` (Go-style), not
   Homebrew. Details in `docs/LANGUAGE.md` §11.

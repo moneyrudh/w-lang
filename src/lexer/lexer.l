@@ -11,8 +11,36 @@
     // line where the currently open '---' comment started, for error messages
     static int comment_start_line = 0;
 
-    // newlines inside ( ) [ ] { } don't end a statement
+    // newlines inside ( ) [ ] { } don't end a statement. The opening brackets are kept
+    // (with their lines) so one left unclosed can be reported where it was opened
+    #define MAX_TRACKED_BRACKETS 256
     static int bracket_depth = 0;
+    static struct { char symbol; int line; } open_brackets[MAX_TRACKED_BRACKETS];
+
+    static void open_bracket(char symbol) {
+        if (bracket_depth < MAX_TRACKED_BRACKETS) {
+            open_brackets[bracket_depth].symbol = symbol;
+            open_brackets[bracket_depth].line = yylineno;
+        }
+        bracket_depth++;
+    }
+
+    static void close_bracket(void) {
+        if (bracket_depth > 0) bracket_depth--;
+    }
+
+    // an unclosed bracket found at the end of a statement, for the parser to report
+    // (it knows whether the statement already has an error)
+    static char unclosed_symbol = 0;
+    static int unclosed_line = 0;
+
+    // remembers the innermost bracket still open, then treats every bracket as closed
+    static void found_unclosed_bracket(void) {
+        int top = (bracket_depth < MAX_TRACKED_BRACKETS ? bracket_depth : MAX_TRACKED_BRACKETS) - 1;
+        unclosed_symbol = open_brackets[top].symbol;
+        unclosed_line = open_brackets[top].line;
+        bracket_depth = 0;
+    }
 
     int line_indent = 0;
 
@@ -38,6 +66,15 @@
         }
     }
 
+    // the end of a line, followed by the next line's indentation
+    static int newline_token(void) {
+        if (memchr(yytext, '\t', yyleng)) {
+            report_error(yylineno, "Use spaces for indentation, not tabs");
+        }
+        line_indent = yyleng - (yytext[0] == '\r' ? 2 : 1);
+        return NEWLINE;
+    }
+
     // flex's scanner is raw_yylex(); yylex() (layout.c) adds NEWLINE / INDENT / DEDENT
     #define YY_DECL int raw_yylex(void)
 %}
@@ -52,13 +89,18 @@
 "---"       { comment_start_line = yylineno; BEGIN(THROWAWAY_BLOCK); }
 "--"([^-\n].*)? { /* single-line throwaway comment */ }
 
+    /* a line that starts with a statement keyword can't continue an expression:
+       a bracket still open before it was never closed */
+\r?\n[ \t]*/(dec|ret|fun|log|say|when|lest|elf|nor|else|loop|skip|stop)[^a-zA-Z0-9_] {
+    if (bracket_depth > 0) {
+        found_unclosed_bracket();
+    }
+    return newline_token();
+}
+
 \r?\n[ \t]*  {
     if (bracket_depth == 0) {
-        if (memchr(yytext, '\t', yyleng)) {
-            report_error(yylineno, "Use spaces for indentation, not tabs");
-        }
-        line_indent = yyleng - (yytext[0] == '\r' ? 2 : 1);
-        return NEWLINE;
+        return newline_token();
     }
 }
 "note"([^a-zA-Z0-9_\n].*)? { /* doc comment (stack lines for multi-line docs) */ }
@@ -135,12 +177,12 @@
 "<"         { return LESS; }
 ">"         { return GREATER; }
 "!"         { return BANG; }
-"["	    { bracket_depth++; return LBRACKET; }
-"]"	    { if (bracket_depth > 0) bracket_depth--; return RBRACKET; }
-"("         { bracket_depth++; return LPAREN; }
-")"         { if (bracket_depth > 0) bracket_depth--; return RPAREN; }
-"{"         { bracket_depth++; return LBRACE; }
-"}"         { if (bracket_depth > 0) bracket_depth--; return RBRACE; }
+"["	    { open_bracket('['); return LBRACKET; }
+"]"	    { close_bracket(); return RBRACKET; }
+"("         { open_bracket('('); return LPAREN; }
+")"         { close_bracket(); return RPAREN; }
+"{"         { open_bracket('{'); return LBRACE; }
+"}"         { close_bracket(); return RBRACE; }
 ","	    { return COMMA; }
 ";"         { return SEMICOLON; }
 "+"         { return PLUS; }
@@ -190,10 +232,29 @@
 [ \t\r]+      { /* whitespace within a line */ }
 [\xC2-\xF4][\x80-\xBF]+ { unexpected_character(yytext); /* a whole UTF-8 character */ }
 .           { unexpected_character(yytext); }
-<<EOF>>     { return 0; }
+<<EOF>>     {
+    if (bracket_depth > 0) {
+        found_unclosed_bracket();
+    }
+    return 0;
+}
 %%
 
+void lexer_close_brackets(void) {
+    bracket_depth = 0;
+}
+
+bool lexer_unclosed_bracket(char* symbol, int* line) {
+    if (!unclosed_symbol) return false;
+    *symbol = unclosed_symbol;
+    *line = unclosed_line;
+    unclosed_symbol = 0;
+    return true;
+}
+
 void lexer_cleanup(void) {
+    bracket_depth = 0;
+    unclosed_symbol = 0;
     free(token_text);
     token_text = NULL;
     yylval.string = NULL;

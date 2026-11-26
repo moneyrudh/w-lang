@@ -169,7 +169,7 @@ loop until n >= 5, n = n + 1
 
 | Feature | Status | Notes |
 |---|---|---|
-| `wlang` CLI | ✅ | See below. Exits 1 on any W error and writes nothing; 2 on a bad command line. Syntax errors are reported first; type errors only once there are none, so one typo doesn't cascade |
+| `wlang` CLI | ✅ | See below. Exits 1 on any W error and writes nothing; 2 on a bad command line. Syntax errors are reported first; type errors only once there are none, so one typo doesn't cascade. Each broken statement gives one syntax error and parsing continues on the next line, so several mistakes are reported in one run. An unclosed bracket is reported on the line where it opened |
 | Program arguments | 🚧 | Passed to the program, but W can't read them yet (💭) |
 
 ```
@@ -198,4 +198,4 @@ Arguments after the `.w` file are passed to the program, so `run`'s options go b
 - `str + str` emits invalid C (§4)
 - `+` inside `log` is always string concatenation (§8)
 - Return checking isn't per-path: any `ret` anywhere satisfies "must return a value" (§6)
-- An unclosed `(`, `[` or `{` makes every following line part of the same statement, so the errors that follow can be confusing
+- Extremely deep nesting (thousands of `(`) overflows the parser's stack and crashes `wlang`

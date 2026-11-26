@@ -58,7 +58,7 @@ W Lang should feel like a modern, expressive language while transpiling cleanly 
 ### C Conventions
 - **Warnings are errors.** Our sources build with `-Wall -Wextra -Werror` (flex's generated scanner only gets `-Wno-sign-compare`). Fix the cause; don't silence a warning without a comment saying why.
 - **Ownership is written down.** A function that takes ownership of a pointer argument says so in a comment ("takes ownership of name"), and so does one that copies ("copies name"). Strings from the lexer (`yylval.string`) belong to the lexer and are replaced on the next token: copy what you keep.
-- **Every allocation is freed or owned by something that is.** AST memory is freed by `free_ast()`; error paths free what they built before returning (`free_parameters()`, `free(name)`). Leaks fail CI (LeakSanitizer on Linux), except on paths that call `exit()` (`eat()` on a mismatch, "Too many errors"), where the memory is still reachable; ROADMAP 2.1 removes those.
+- **Every allocation is freed or owned by something that is.** AST memory is freed by `free_ast()`; error paths free what they built before returning (`free_parameters()`, `free(name)`). Leaks fail CI (LeakSanitizer on Linux), except after "Too many errors", which calls `exit()` while the AST is still reachable. Syntax errors no longer exit, so their paths must free what they drop.
 - **No fixed-size buffers for user text.** Use `snprintf` with the real size, or allocate. No `sprintf`, `strcpy`, `strcat`.
 - **Check allocations** where failure matters, or use the `new_node()` pattern (exit with "Out of memory").
 - `make analyze` (clang static analyzer) must report nothing; treat its findings as bugs.
@@ -77,13 +77,14 @@ W Lang should feel like a modern, expressive language while transpiling cleanly 
 - Expression parsing uses recursive descent with precedence levels: `parse_expression()` → `parse_or()` → `parse_and()` → `parse_equality()` → `parse_comparison()` → `parse_additive()` → `parse_term()` → `parse_factor()`, all built on `parse_binary_level()`.
 - Statement parsing is in `parse_statement()` (`src/parser/parser.c`) with a switch on the current token. Each construct lives in the file for its kind (`statements.c`, `functions.c`, `control_flow.c`, …) and `parse_statement()` routes to it. Declare cross-file parser functions in `src/parser/internal.h`, not `include/parser.h`.
 - Statements end with `expect_end_of_statement()` (consumes `NEWLINE`). Indented bodies use `parse_block()`.
-- The parser reports only syntax errors, with `parser_error()` (the current token's line). Anything about names or types belongs in the checker. When a message names a token, use `token_registry_describe()` (`')'`, `'fun'`, `end of line`), never enum numbers or `display_name`. When it quotes a bit of source made of several words (`'elf say'`), build it from `token_registry_get_lexeme()`.
+- The parser reports only syntax errors, with `parser_error()` (the current token's line). Anything about names or types belongs in the checker.
+- **Panic mode:** each statement reports at most one syntax error (`parser_error()` is silent once `in_panic()`), then `parse_block()` / `parse()` call `recover()`, which skips to the next line (and still parses the statement's indented body). `eat()` reports a mismatch and returns `false` without consuming, so parsing functions must never loop on a token they don't consume, and must free what they built when they give up. Unclosed brackets are found by the lexer (`lexer_unclosed_bracket()`) and reported by the parser at the line they opened. When a message names a token, use `token_registry_describe()` (`')'`, `'fun'`, `end of line`), never enum numbers or `display_name`. When it quotes a bit of source made of several words (`'elf say'`), build it from `token_registry_get_lexeme()`.
 
 ### Checker Pattern
 - Report errors with `report_error(node->location.line, fmt, …)`.
 - `check_expression()` returns `TYPE_ERROR` when an error was already reported for that expression; don't report a second one for it. `TYPE_ZIL` is a real type (a `zil` call's result) and is reported normally.
 - Check an expression before declaring the name it initializes, and declare names even after a type error, so later uses don't cascade into "undefined" errors.
-- `eat(TokenType)` consumes and advances. The global `token` holds the current lookahead.
+- `eat(TokenType)` consumes and advances (or reports and returns `false`). The global `token` holds the current lookahead.
 
 ### Adding a New Feature (checklist)
 1. **Tokens** — Add to `TokenType` enum in `types.h`, add lexer rule in `src/lexer/lexer.l`, register in `src/language/token_registry.c`
@@ -129,7 +130,7 @@ tests/run.sh loops # only tests whose path contains "loops" (a feature folder or
   2. Implement, add tests (they must fail without the change when they cover a bug), keep `docs/LANGUAGE.md` current.
   3. `make test`, `make test-asan`, `make analyze` locally; push and open a PR into `develop`.
   4. Run an independent review (fresh-eyes review skill), fix what's real.
-  5. Merge when CI is green (`gh pr merge <n> --merge --delete-branch`), pull `develop`, check the task off in `ROADMAP.md`.
+  5. Merge when CI is green (`gh pr merge <n> --merge --admin --delete-branch`), pull `develop`, check the task off in `ROADMAP.md`.
 - Always ask first before: releases and tags, changes to the Homebrew tap (`moneyrudh/homebrew-w`), force-pushes, repository settings.
 - Stop and report instead of pushing on when a task fails twice, CI is red for reasons outside the task, or a decision is needed.
 
