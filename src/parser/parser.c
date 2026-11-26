@@ -20,8 +20,9 @@ static TokenType prev_token = NEWLINE;
 // recover() skips to the next line and parsing goes on, so each broken statement gives
 // one error and the rest of the file is still checked.
 
-// errors counted before the current statement started (lexer errors count too)
-static int statement_mark = 0;
+// set by the current statement's first syntax error. Only the parser's own errors count:
+// when the layout pass returns a NEWLINE it has already scanned the next line, so lexer
+// errors seen meanwhile belong to that line, not to this statement
 static bool panicking = false;
 
 // tokens consumed so far, and when the current statement started: recovery must always
@@ -29,14 +30,27 @@ static bool panicking = false;
 static long tokens_consumed = 0;
 static long statement_start = 0;
 
+// the token the current statement started with: only statements that take an indented
+// body (fun, conditionals, loops) let recover() treat the next indented lines as theirs
+static TokenType statement_token = 0;
+
+static bool takes_body(TokenType tok) {
+    switch (tok) {
+        case FUN: case SAY: case WHEN: case LEST: case ELF: case NOR: case ELSE: case LOOP:
+            return true;
+        default:
+            return false;
+    }
+}
+
 bool in_panic(void) {
-    return panicking || error_count() > statement_mark;
+    return panicking;
 }
 
 static void begin_statement(void) {
-    statement_mark = error_count();
     panicking = false;
     statement_start = tokens_consumed;
+    statement_token = token;
 }
 
 void parser_error(const char* message) {
@@ -67,8 +81,12 @@ SourceLocation current_location(void) {
 // ==================== statements & blocks ====================
 
 void skip_rest_of_line(void) {
-    // a bracket the broken statement left open must not swallow the lines after it
-    lexer_close_brackets();
+    // a bracket the broken statement left open must not swallow the lines after it. Only
+    // mid-line: at a NEWLINE the brackets are balanced, except ones the lexer already
+    // scanned on the next line, which belong to the next statement
+    if (token != NEWLINE && token != DEDENT && token != 0) {
+        lexer_close_brackets();
+    }
     while (token != NEWLINE && token != DEDENT && token != 0) {
         advance();
     }
@@ -82,8 +100,9 @@ static void recover(void) {
     if (!at_statement_start && token != DEDENT && token != 0) {
         skip_rest_of_line();
     }
-    // the broken statement's indented body is still parsed for its own errors
-    if (token == INDENT) {
+    // the broken statement's indented body is still parsed for its own errors. After a
+    // statement without a body, an indented line is left to parse_statement() to report
+    if (token == INDENT && takes_body(statement_token)) {
         free_ast(parse_block());
     }
 }
@@ -128,7 +147,6 @@ ASTNode* parse_block(void) {
     }
 
     if (token == DEDENT) advance();
-    statement_mark = error_count();
     panicking = outer_panicking;
     return head;
 }
@@ -200,7 +218,6 @@ ASTNode* parse_statement(void) {
 ASTNode* parse(void) {
     prev_token = NEWLINE;
     tokens_consumed = statement_start = 0;
-    statement_mark = 0;
     panicking = false;
     advance();
 

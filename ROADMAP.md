@@ -23,7 +23,8 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
 ## Step 2 — Finish the core language 🔨
 
 1. ✅ **Parser error recovery.** Done: an unclosed `(` / `[` / `{` reports `'(' was never closed`
-   at the right line; one mistake gives one error (`fun f(a: num b: num)`, `fun w() num`); `eat()` no
+   where it opened when a statement or the end of the file follows (a line starting with a name is
+   reported where it stops making sense); one mistake gives one error (`fun f(a: num b: num)`, `fun w() num`); `eat()` no
    longer exits the process.
 2. ⬜ **Nesting limit.** Done: deeply nested input (e.g. 200,000 `(`) gives an error instead of
    overflowing the parser's stack (today: segfault); the fuzzer gains a deep-nesting mutation.

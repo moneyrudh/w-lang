@@ -17,7 +17,7 @@ extern TokenType token;
 // an error (panic mode: one error per broken statement, see parser.c)
 void parser_error(const char* message);
 
-// true once the current statement has an error (from the parser or the lexer)
+// true once the current statement has a syntax error (later ones in it are not reported)
 bool in_panic(void);
 
 // the current token's line, for the node being built

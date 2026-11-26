@@ -130,7 +130,7 @@ tests/run.sh loops # only tests whose path contains "loops" (a feature folder or
   2. Implement, add tests (they must fail without the change when they cover a bug), keep `docs/LANGUAGE.md` current.
   3. `make test`, `make test-asan`, `make analyze` locally; push and open a PR into `develop`.
   4. Run an independent review (fresh-eyes review skill), fix what's real.
-  5. Merge when CI is green (`gh pr merge <n> --merge --admin --delete-branch`), pull `develop`, check the task off in `ROADMAP.md`.
+  5. Merge only when every CI check is green: `gh pr merge <n> --merge --admin --delete-branch`. `--admin` is needed because the ruleset's one approving review can't be given on the user's own PRs, but it also skips required checks, so never run it while CI is red or pending. Then pull `develop` and check the task off in `ROADMAP.md`.
 - Always ask first before: releases and tags, changes to the Homebrew tap (`moneyrudh/homebrew-w`), force-pushes, repository settings.
 - Stop and report instead of pushing on when a task fails twice, CI is red for reasons outside the task, or a decision is needed.
 
