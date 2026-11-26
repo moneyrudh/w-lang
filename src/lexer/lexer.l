@@ -67,13 +67,31 @@
     }
 
     // the end of a line, followed by the next line's indentation
-    static int newline_token(void) {
-        if (memchr(yytext, '\t', yyleng)) {
+    static int newline_token(bool has_tab, int indent) {
+        if (has_tab) {
             report_error(yylineno, "Use spaces for indentation, not tabs");
         }
-        line_indent = yyleng - (yytext[0] == '\r' ? 2 : 1);
+        line_indent = indent;
         return NEWLINE;
     }
+
+    // Inside brackets a newline usually continues the expression, so it isn't returned. But
+    // a line that starts with a statement keyword can't continue one: the bracket was never
+    // closed. Such a keyword pushes itself back (yyless) and the held newline is returned first.
+    static bool newline_held = false;     // a newline inside brackets, nothing scanned since
+    static bool held_has_tab = false;
+    static int held_indent = 0;
+    static bool at_held_line_start = false;   // the current token is the first after a held newline
+
+    #define YY_USER_ACTION  at_held_line_start = newline_held; newline_held = false;
+
+    #define STATEMENT_KEYWORD(tok)                                  \
+        if (at_held_line_start && bracket_depth > 0) {              \
+            found_unclosed_bracket();                               \
+            yyless(0);                                              \
+            return newline_token(held_has_tab, held_indent);        \
+        }                                                           \
+        return tok;
 
     // flex's scanner is raw_yylex(); yylex() (layout.c) adds NEWLINE / INDENT / DEDENT
     #define YY_DECL int raw_yylex(void)
@@ -89,19 +107,15 @@
 "---"       { comment_start_line = yylineno; BEGIN(THROWAWAY_BLOCK); }
 "--"([^-\n].*)? { /* single-line throwaway comment */ }
 
-    /* a line that starts with a statement keyword can't continue an expression:
-       a bracket still open before it was never closed */
-\r?\n[ \t]*/(dec|ret|fun|log|say|when|lest|elf|nor|else|loop|skip|stop)[^a-zA-Z0-9_] {
-    if (bracket_depth > 0) {
-        found_unclosed_bracket();
-    }
-    return newline_token();
-}
-
 \r?\n[ \t]*  {
+    bool has_tab = memchr(yytext, '\t', yyleng) != NULL;
+    int indent = yyleng - (yytext[0] == '\r' ? 2 : 1);
     if (bracket_depth == 0) {
-        return newline_token();
+        return newline_token(has_tab, indent);
     }
+    newline_held = true;
+    held_has_tab = has_tab;
+    held_indent = indent;
 }
 "note"([^a-zA-Z0-9_\n].*)? { /* doc comment (stack lines for multi-line docs) */ }
 
@@ -122,7 +136,7 @@
 "bool"      { return BOOL; }
 "true"      { yylval.bool_val = true; return BOOL_LITERAL; }
 "false"     { yylval.bool_val = false; return BOOL_LITERAL; }
-"log"       { return LOG; }
+"log"       { STATEMENT_KEYWORD(LOG) }
 
 "vec"	    { return VEC; }
 "map"	    { return MAP; }
@@ -135,24 +149,24 @@
 "tree"	    { return TREE; }
 "pod"	    { return POD; }
 
-"dec" 	    { return DEC; }
-"fun"	    { return FUN; }
+"dec" 	    { STATEMENT_KEYWORD(DEC) }
+"fun"	    { STATEMENT_KEYWORD(FUN) }
 "use"	    { return USE; }
 
-"ret"       { return RETURN; }
+"ret"       { STATEMENT_KEYWORD(RETURN) }
 
-"say"       { return SAY; }
-"when"      { return WHEN; }
-"lest"      { return LEST; }
-"elf"       { return ELF; }
-"nor"       { return NOR; }
-"else"      { return ELSE; }
-"loop"      { return LOOP; }
+"say"       { STATEMENT_KEYWORD(SAY) }
+"when"      { STATEMENT_KEYWORD(WHEN) }
+"lest"      { STATEMENT_KEYWORD(LEST) }
+"elf"       { STATEMENT_KEYWORD(ELF) }
+"nor"       { STATEMENT_KEYWORD(NOR) }
+"else"      { STATEMENT_KEYWORD(ELSE) }
+"loop"      { STATEMENT_KEYWORD(LOOP) }
 "while"     { return WHILE; }
 "until"     { return UNTIL; }
 "forever"   { return FOREVER; }
-"skip"      { return SKIP; }
-"stop"      { return STOP; }
+"skip"      { STATEMENT_KEYWORD(SKIP) }
+"stop"      { STATEMENT_KEYWORD(STOP) }
 
 "is"        { return IS; }
 "eq"        { return EQ; }
@@ -242,6 +256,7 @@
 
 void lexer_close_brackets(void) {
     bracket_depth = 0;
+    newline_held = false;
 }
 
 bool lexer_unclosed_bracket(char* symbol, int* line) {
