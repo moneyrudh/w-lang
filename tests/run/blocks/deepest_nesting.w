@@ -1,4 +1,9 @@
--- the deepest nesting allowed: 99 blocks inside w(), and 148 parentheses inside those
+-- the deepest nesting allowed: 99 blocks inside w() (100 statement levels, counting the body)
+-- and 150 expression levels: the expression itself, 148 nested calls, and the innermost '+'.
+-- Calls become C parentheses, so this checks the output stays under clang's 256-bracket limit
+fun g(a: num): num
+    ret a
+
 fun w(): num
     dec x: num = 1
     say x > 0
@@ -100,6 +105,6 @@ fun w(): num
                                                                                                                                                                                                                                                                                                                                                                                                     say x > 0
                                                                                                                                                                                                                                                                                                                                                                                                         say x > 0
                                                                                                                                                                                                                                                                                                                                                                                                             say x > 0
-                                                                                                                                                                                                                                                                                                                                                                                                                x = ((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((x + 1))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+                                                                                                                                                                                                                                                                                                                                                                                                                x = g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(g(x + 1))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
                                                                                                                                                                                                                                                                                                                                                                                                                 log("deepest 2 =>", x)
     ret 0

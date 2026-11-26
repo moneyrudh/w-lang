@@ -157,7 +157,8 @@ static int statement_depth = 0;
 
 // skips everything nested too deeply, without recursing into it. A statement at the start of
 // a line is a whole block too deep: skip to the end of that block (its DEDENT is left for
-// parse_block). One in the middle of a line is a one-line body: skip the line and its block
+// parse_block). One in the middle of a line is a one-line body: skip the line and the block
+// that belongs to it (up to and including its DEDENT), and nothing after that
 static void skip_too_deep(void) {
     bool line_start = prev_token == NEWLINE || prev_token == INDENT || prev_token == DEDENT;
     if (!line_start) {
@@ -171,6 +172,10 @@ static void skip_too_deep(void) {
         } else if (token == DEDENT) {
             if (level == 0) break;
             level--;
+            if (level == 0 && !line_start) {
+                advance();
+                break;
+            }
         }
         advance();
     }

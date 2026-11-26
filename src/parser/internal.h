@@ -21,6 +21,10 @@ extern TokenType token;
 #define MAX_EXPRESSION_DEPTH 150
 #define MAX_STATEMENT_DEPTH 100
 
+// elf / nor / else branches in one conditional. The C is an `else if` chain, which C
+// compilers parse recursively (Apple clang crashes at about 5,000)
+#define MAX_CONDITIONAL_BRANCHES 1000
+
 // ==================== parser.c: tokens, statements, blocks ====================
 
 // reports a syntax error on the current token's line, unless this statement already has

@@ -33,7 +33,6 @@ typedef struct FunctionSymbol {
 void init_scopes(void);
 void free_scopes(void);
 
-// line is for the "nested too deeply" error
 void push_scope(void);
 void pop_scope(void);
 

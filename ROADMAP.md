@@ -27,8 +27,8 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
    reported where it stops making sense); one mistake gives one error (`fun f(a: num b: num)`, `fun w() num`); `eat()` no
    longer exits the process.
 2. ✅ **Nesting limit.** Done: deep nesting and long chains give one error instead of a segfault
-   (150 expression levels, 100 statement levels, sized so the C compiles with clang); long statement
-   lists no longer overflow `free_ast()`; the fuzzer gains a deep-nesting mutation.
+   (150 expression levels, 100 statement levels, 1,000 branches per conditional, sized so the C compiles
+   with clang); long statement lists and `elf` chains no longer overflow `free_ast()`; the fuzzer gains a deep-nesting mutation.
 3. ⬜ **`log` takes any expression.** Done: `log(x + 1)` prints `2` for `x = 1`, `log(f(), x > y)` work,
    `bool` prints `true` / `false` (D10), and one test covers every type × operator pair (D8, D9);
    pieces are separated by spaces as today.

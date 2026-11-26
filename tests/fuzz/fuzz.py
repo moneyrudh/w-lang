@@ -45,7 +45,14 @@ def seeds():
 def deep_chunk(rng: random.Random) -> list:
     """Nesting around the parser's limits (150 expression / 100 statement levels) and far past them."""
     k = rng.choice([rng.randint(1, 200), rng.randint(140, 160), rng.randint(90, 110), rng.randint(1000, 20000)])
-    shape = rng.randrange(5)
+    shape = rng.randrange(6)
+    if shape == 5:
+        # a long elf chain: not nested in W, but nested in the C (else-if) and in free_ast
+        k = rng.choice([rng.randint(1, 50), rng.randint(990, 1010), rng.randint(5000, 50000)])
+        chunk = [b"    say true", b"        skip"]
+        for _ in range(k):
+            chunk += [b"    elf false", b"        skip"]
+        return chunk
     if shape == 0:
         return [b"    dec d: num = " + b"(" * k + b"1" + b")" * rng.choice([k, k - 1, k + 1])]
     if shape == 1:
