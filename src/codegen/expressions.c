@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <stdio.h>
 
 #include "checker.h"
@@ -11,7 +12,11 @@
 void generate_literal(FILE* output, ASTNode* node) {
     switch (node->type) {
         case NODE_NUMBER:
-            fprintf(output, "%d", node->data.number.value);
+            if (node->data.number.value == INT_MIN) {
+                fputs(C_INT_MIN, output);
+            } else {
+                fprintf(output, "%d", node->data.number.value);
+            }
             break;
         case NODE_STRING:
             fprintf(output, C_STRING_QUOTE);

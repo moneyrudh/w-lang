@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <string.h>
 
 #include "lexer.h"
@@ -7,6 +8,9 @@
 #include "parser/internal.h"
 #include "language/operators.h"
 #include "language/token_registry.h"
+
+// the smallest real literal that no longer rounds to a finite float (FLT_MAX + 2^103)
+#define REAL_LITERAL_LIMIT 3.4028235677973366e+38
 
 // ==================== nesting limit ====================
 
@@ -29,12 +33,21 @@ static ASTNode* parse_factor(void) {
     switch (token) {
         case INT_LITERAL:
             {
-                ASTNode* node = create_number_node(yylval.number, loc);
+                if (yylval.number > INT_MAX) {
+                    parser_error("Number too large for num: the largest is 2147483647");
+                }
+                ASTNode* node = create_number_node(yylval.number > INT_MAX ? INT_MAX : (int)yylval.number, loc);
                 eat(INT_LITERAL);
                 return node;
             }
         case FLOAT_LITERAL:
             {
+                // real is a C float: anything that rounds to at most FLT_MAX fits. The cutoff is
+                // halfway to the next power of two, FLT_MAX + 2^103 (compared as a double, since
+                // converting an out-of-range double to float is undefined)
+                if (yylval.float_val >= REAL_LITERAL_LIMIT) {
+                    parser_error("Number too large for real: the largest is about 3.4e38");
+                }
                 ASTNode* node = create_float_node(yylval.float_val, loc);
                 eat(FLOAT_LITERAL);
                 return node;
@@ -93,6 +106,19 @@ static ASTNode* parse_factor(void) {
                 // `--` starts a comment.)
                 if (too_deep()) return NULL;
                 eat(MINUS);
+
+                // a minus written right before a number is part of it: one negative literal.
+                // That's how the smallest num, -2147483648, can be written at all
+                if (token == INT_LITERAL) {
+                    long long magnitude = yylval.number;
+                    if (magnitude > -(long long)INT_MIN) {
+                        parser_error("Number too small for num: the smallest is -2147483648");
+                        magnitude = -(long long)INT_MIN;
+                    }
+                    eat(INT_LITERAL);
+                    return create_number_node((int)-magnitude, loc);
+                }
+
                 expression_depth++;
                 ASTNode* operand = parse_factor();
                 expression_depth--;

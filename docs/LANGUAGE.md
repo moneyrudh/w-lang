@@ -58,8 +58,8 @@ Gotcha: `x--1` is `x` followed by a comment.
 
 | W Lang | C | Status | Notes |
 |---|---|---|---|
-| `num` | `int` | ✅ | |
-| `real` | `float` | ✅ | |
+| `num` | `int` | ✅ | -2147483648 to 2147483647. A literal outside that is an error (`-2147483648` itself works: a `-` written before a number is part of it). Overflow while running is D11 (undecided) |
+| `real` | `float` | ✅ | Up to about 3.4e38; a larger literal is an error |
 | `chr` | `char` | ✅ | Escapes `\n \t \\ \' \"` |
 | `str` | `char*` | 🚧 | Literals, variables, comparison work. Escapes `\n \t \\ \' \"` (an unknown one like `\q` is kept as written). `a + b` works inside `log` only; elsewhere it passes the type check but emits invalid C (roadmap 2.6) |
 | `bool` | `bool` | ✅ | `true` / `false`, printed by `log` as `true` / `false`. No arithmetic on `bool` (D9): `true + 1` is an error |

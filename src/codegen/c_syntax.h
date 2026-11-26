@@ -89,5 +89,6 @@
 #define C_PRINTF              "printf"
 #define C_STRCMP              "strcmp"
 #define C_ZERO                "0"
+#define C_INT_MIN             "(-2147483647 - 1)"   // C has no literal for the smallest int
 
 #endif // W_CODEGEN_C_SYNTAX_H
