@@ -3,6 +3,8 @@
 
 // shared between the parser's files only; the public API is include/parser.h
 
+#include <stdbool.h>
+
 #include "types.h"
 #include "ast.h"
 
@@ -11,16 +13,21 @@ extern TokenType token;
 
 // ==================== parser.c: tokens, statements, blocks ====================
 
-// reports a syntax error on the current token's line
+// reports a syntax error on the current token's line, unless this statement already has
+// an error (panic mode: one error per broken statement, see parser.c)
 void parser_error(const char* message);
+
+// true once the current statement has a syntax error (later ones in it are not reported)
+bool in_panic(void);
 
 // the current token's line, for the node being built
 SourceLocation current_location(void);
 
-// consumes the current token, which must be _token
-void eat(TokenType _token);
+// consumes the current token if it is _token. Otherwise reports "Expected X, got Y",
+// consumes nothing and returns false; callers carry on and recovery happens per statement
+bool eat(TokenType _token);
 
-// error recovery: drop the rest of the current line
+// error recovery: drop the rest of the current line (closing any brackets left open)
 void skip_rest_of_line(void);
 
 // a statement ends at the end of its line

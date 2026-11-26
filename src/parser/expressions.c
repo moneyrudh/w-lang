@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -5,6 +6,7 @@
 #include "parser.h"
 #include "parser/internal.h"
 #include "language/operators.h"
+#include "language/token_registry.h"
 
 // ==================== operands ====================
 
@@ -68,9 +70,12 @@ static ASTNode* parse_factor(void) {
                 ASTNode* operand = parse_factor();
                 return create_unary_expr_node(OP_NOT, operand, loc);
             }
-        default:
-            parser_error("Unexpected token in factor");
+        default: {
+            char error_msg[100];
+            snprintf(error_msg, sizeof(error_msg), "Expected a value, got %s", token_registry_describe(token));
+            parser_error(error_msg);
             return NULL;
+        }
     }
 }
 

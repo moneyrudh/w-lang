@@ -87,15 +87,22 @@ ASTNode* parse_function(void) {
 
     // omitted return type means zil
     DataType return_type = TYPE_ZIL;
-    if (token == COLON) {
+    if (token_registry_is_type(token)) {
+        parser_error("Expected ':' before the return type");
+    } else if (token == COLON) {
         eat(COLON);
         if (!token_registry_is_type(token)) {
             parser_error("Expected return type after ':'");
-            free(name);
-            free_parameters(parameters);
-            return NULL;
+        } else {
+            return_type = parse_type_specifier();
         }
-        return_type = parse_type_specifier();
+    }
+
+    // a broken header: the caller's recovery still parses the body for its own errors
+    if (in_panic()) {
+        free(name);
+        free_parameters(parameters);
+        return NULL;
     }
 
     ASTNode* body = parse_block();

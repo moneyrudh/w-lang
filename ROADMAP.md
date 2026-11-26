@@ -20,19 +20,21 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
 - ✅ CI on every PR and push: build with `-Werror`, tests, sanitizers (leaks on Linux), static analyzer, fuzzer
 - ✅ `ROADMAP.md`, `DECISIONS.md`, and the working process in `CLAUDE.md`
 
-## Step 2 — Finish the core language ⏳
+## Step 2 — Finish the core language 🔨
 
-1. ⬜ **Parser error recovery.** Done: an unclosed `(` / `[` / `{` reports `'(' on line N was never closed`
-   at the right line; one mistake gives one error (`fun f(a: num b: num)`, `fun w() num`); `eat()` no
+1. ✅ **Parser error recovery.** Done: an unclosed `(` / `[` / `{` reports `'(' was never closed`
+   where it opened when a statement or the end of the file follows (a line starting with a name is
+   reported where it stops making sense); one mistake gives one error (`fun f(a: num b: num)`, `fun w() num`); `eat()` no
    longer exits the process.
 2. ⬜ **Nesting limit.** Done: deeply nested input (e.g. 200,000 `(`) gives an error instead of
    overflowing the parser's stack (today: segfault); the fuzzer gains a deep-nesting mutation.
-3. ⬜ **`log` takes any expression.** Done: `log(x + 1)` prints `2` for `x = 1`, `log(f(), x > y)` work;
+3. ⬜ **`log` takes any expression.** Done: `log(x + 1)` prints `2` for `x = 1`, `log(f(), x > y)` work,
+   `bool` prints `true` / `false` (D10), and one test covers every type × operator pair (D8, D9);
    pieces are separated by spaces as today.
 4. ⬜ **Unary minus.** Done: `-x`, `-3`, `-(a + b)`, `- -x` for `num` and `real`.
-5. ⬜ **`%` modulo** for `num`. ❓ D1 (spelling).
+5. ⬜ **`%` / `mod` modulo** for `num` (D1).
 6. ⬜ **`str + str`.** Done: concatenation produces a new string (needs a small runtime: allocation and
-   freeing rules). ❓ D2 (memory model for strings).
+   freeing rules, D2): the generated C frees it, W code never does.
 7. ⬜ **`dec x := 5`** type inference. Done: the type comes from the initializer; `:=` without a
    value is an error.
 8. ⬜ **Global variables** (`dec` at top level). Done: readable and assignable from every function;

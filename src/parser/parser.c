@@ -10,8 +10,67 @@
 
 TokenType token;
 
+// the token consumed before `token`, to tell whether we're at the start of a statement
+static TokenType prev_token = NEWLINE;
+
+// ==================== errors & recovery ====================
+//
+// Panic mode: the first syntax error in a statement is reported, later ones in the same
+// statement are not (they're almost always caused by the first). After the statement,
+// recover() skips to the next line and parsing goes on, so each broken statement gives
+// one error and the rest of the file is still checked.
+
+// set by the current statement's first syntax error. Only the parser's own errors count:
+// when the layout pass returns a NEWLINE it has already scanned the next line, so lexer
+// errors seen meanwhile belong to that line, not to this statement
+static bool panicking = false;
+
+// tokens consumed so far, and when the current statement started: recovery must always
+// move forward, or a statement that consumed nothing would be retried forever
+static long tokens_consumed = 0;
+static long statement_start = 0;
+
+// the token the current statement started with: only statements that take an indented
+// body (fun, conditionals, loops) let recover() treat the next indented lines as theirs
+static TokenType statement_token = 0;
+
+static bool takes_body(TokenType tok) {
+    switch (tok) {
+        case FUN: case SAY: case WHEN: case LEST: case ELF: case NOR: case ELSE: case LOOP:
+            return true;
+        default:
+            return false;
+    }
+}
+
+bool in_panic(void) {
+    return panicking;
+}
+
+static void begin_statement(void) {
+    panicking = false;
+    statement_start = tokens_consumed;
+    statement_token = token;
+}
+
 void parser_error(const char* message) {
+    if (in_panic()) return;
     report_error(token_line, "%s", message);
+    panicking = true;
+}
+
+static void advance(void) {
+    prev_token = token;
+    token = yylex();
+    tokens_consumed++;
+
+    // reported here rather than by the lexer, so it counts as this statement's one error
+    char symbol;
+    int line;
+    if (lexer_unclosed_bracket(&symbol, &line) && !in_panic()) {
+        report_error(line, "'%c' was never closed", symbol);
+        panicking = true;
+    }
 }
 
 SourceLocation current_location(void) {
@@ -22,10 +81,30 @@ SourceLocation current_location(void) {
 // ==================== statements & blocks ====================
 
 void skip_rest_of_line(void) {
-    while (token != NEWLINE && token != DEDENT && token != 0) {
-        token = yylex();
+    // a bracket the broken statement left open must not swallow the lines after it. Only
+    // mid-line: at a NEWLINE the brackets are balanced, except ones the lexer already
+    // scanned on the next line, which belong to the next statement
+    if (token != NEWLINE && token != DEDENT && token != 0) {
+        lexer_close_brackets();
     }
-    if (token == NEWLINE) eat(NEWLINE);
+    while (token != NEWLINE && token != DEDENT && token != 0) {
+        advance();
+    }
+    if (token == NEWLINE) advance();
+}
+
+// after a statement with an error: move to the start of the next statement
+static void recover(void) {
+    bool moved = tokens_consumed > statement_start;
+    bool at_statement_start = moved && (prev_token == NEWLINE || prev_token == DEDENT || prev_token == INDENT);
+    if (!at_statement_start && token != DEDENT && token != 0) {
+        skip_rest_of_line();
+    }
+    // the broken statement's indented body is still parsed for its own errors. After a
+    // statement without a body, an indented line is left to parse_statement() to report
+    if (token == INDENT && takes_body(statement_token)) {
+        free_ast(parse_block());
+    }
 }
 
 void expect_end_of_statement(void) {
@@ -42,17 +121,22 @@ void expect_end_of_statement(void) {
 }
 
 ASTNode* parse_block(void) {
-    if (token == NEWLINE) eat(NEWLINE);
+    if (token == NEWLINE) advance();
     if (token != INDENT) {
         parser_error("Expected an indented block");
         return NULL;
     }
-    eat(INDENT);
+    advance();   // INDENT
+
+    // errors inside the block belong to its statements, not to the statement that owns it
+    bool outer_panicking = in_panic();
 
     ASTNode* head = NULL;
     ASTNode* tail = NULL;
     while (token != DEDENT && token != 0) {
+        begin_statement();
         ASTNode* statement = parse_statement();
+        if (in_panic()) recover();
         if (!statement) continue;
         if (head == NULL) {
             head = statement;
@@ -62,7 +146,8 @@ ASTNode* parse_block(void) {
         tail = statement;
     }
 
-    if (token == DEDENT) eat(DEDENT);
+    if (token == DEDENT) advance();
+    panicking = outer_panicking;
     return head;
 }
 
@@ -131,33 +216,30 @@ ASTNode* parse_statement(void) {
 }
 
 ASTNode* parse(void) {
-    token = yylex();
+    prev_token = NEWLINE;
+    tokens_consumed = statement_start = 0;
+    panicking = false;
+    advance();
 
     ASTNode* program = create_program_node(current_location());
 
     // yylex() returns 0 at end of input
     ASTNode* last_function = NULL;
     while (token != 0) {
+        begin_statement();
         if (token != FUN) {
             char error_msg[100];
             snprintf(error_msg, sizeof(error_msg),
                 "Unexpected %s at top level. Expected 'fun' for function definition.",
                 token_registry_describe(token));
             parser_error(error_msg);
-
-            // nothing else can be recovered at the top level
-            while (token != 0) {
-                token = yylex();
-            }
-            break;
+            recover();
+            continue;
         }
 
         ASTNode* function = parse_function();
-        if (!function) {
-            parser_error("Failed to parse function");
-            free_ast(program);
-            return NULL;
-        }
+        if (in_panic()) recover();
+        if (!function) continue;
 
         if (last_function == NULL) {
             program->data.program.functions = function;
@@ -167,19 +249,19 @@ ASTNode* parse(void) {
         last_function = function;
     }
 
+    lexer_close_brackets();
     return program;
 }
 
-void eat(TokenType _token) {
+bool eat(TokenType _token) {
     if (token == _token) {
-        token = yylex();
-    } else {
-        char error_msg[100];
-        snprintf(error_msg, sizeof(error_msg), 
-            "Expected %s, got %s",
-            token_registry_describe(_token), token_registry_describe(token));
-        parser_error(error_msg);
-        exit(1);
+        advance();
+        return true;
     }
+    char error_msg[100];
+    snprintf(error_msg, sizeof(error_msg), "Expected %s, got %s",
+             token_registry_describe(_token), token_registry_describe(token));
+    parser_error(error_msg);
+    return false;
 }
 
