@@ -52,16 +52,13 @@ static void check_assignment(ASTNode* node) {
 
 // ==================== log ====================
 
+// every argument is an ordinary expression; anything with a value can be printed
 static void check_log(ASTNode* node) {
-    for (LogElement* element = node->data.log.elements; element != NULL; element = element->next) {
-        if (element->type != NODE_VARIABLE) continue;
-
-        Symbol* symbol = lookup_variable(element->value.string);
-        if (!symbol) {
-            report_error(node->location.line, "Undefined variable in log statement: '%s'", element->value.string);
-            element->var_type = TYPE_ERROR;
-        } else {
-            element->var_type = symbol->type;
+    for (int i = 0; i < node->data.log.arg_count; i++) {
+        ASTNode* arg = node->data.log.args[i];
+        if (!arg) continue;   // a syntax error, already reported
+        if (check_expression(arg) == TYPE_ZIL) {
+            report_error(arg->location.line, "Can't log a zil value: the call returns nothing");
         }
     }
 }

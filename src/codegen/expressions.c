@@ -21,6 +21,7 @@ void generate_literal(FILE* output, ASTNode* node) {
                     case '\t': fprintf(output, C_ESC_TAB); break;
                     case '\"': fprintf(output, C_ESC_QUOTE); break;
                     case '\\': fprintf(output, C_ESC_BACKSLASH); break;
+                    case '\r': fprintf(output, C_ESC_CARRIAGE); break;
                     default: fputc(*p, output);
                 }
             }

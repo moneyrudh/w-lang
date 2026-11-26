@@ -156,18 +156,4 @@ typedef enum {
     NODE_STOP
 } NodeType;
 
-typedef struct LogElement {
-    NodeType type;
-    union {
-        char* string;
-        int number;
-        double float_val;
-        char char_val;
-        bool bool_val;
-        char* variable;
-    } value;
-    DataType var_type;   // for NODE_VARIABLE elements, filled in by the checker
-    struct LogElement* next;
-} LogElement;
-
 #endif

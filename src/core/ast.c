@@ -53,9 +53,11 @@ ASTNode* create_function_call_node(char* name, ASTNode** args, int arg_count, So
     return node;
 }
 
-ASTNode* create_log_node(LogElement* elements, SourceLocation loc) {
+// takes ownership of the args array and its nodes
+ASTNode* create_log_node(ASTNode** args, int arg_count, SourceLocation loc) {
     ASTNode* node = new_node(NODE_LOG, loc);
-    node->data.log.elements = elements;
+    node->data.log.args = args;
+    node->data.log.arg_count = arg_count;
     return node;
 }
 
@@ -162,18 +164,6 @@ void free_parameters(Parameter* parameters) {
     }
 }
 
-void free_log_elements(LogElement* elements) {
-    LogElement* current = elements;
-    while (current != NULL) {
-        LogElement* next = current->next;
-        if (current->type == NODE_STRING || current->type == NODE_VARIABLE) {
-            free(current->value.string);
-        }
-        free(current);
-        current = next;
-    }
-}
-
 // walks statement lists (`next`) with a loop: recursing on them would overflow the stack
 // for a long function. Children (expressions, bodies) are freed recursively; their depth
 // is bounded by the parser's nesting limits
@@ -200,7 +190,10 @@ void free_ast(ASTNode* node) {
                 }
                 break;
             case NODE_LOG:
-                free_log_elements(node->data.log.elements);
+                for (int i = 0; i < node->data.log.arg_count; i++) {
+                    free_ast(node->data.log.args[i]);
+                }
+                free(node->data.log.args);
                 break;
             case NODE_BINARY_EXPR:
                 free_ast(node->data.binary_expr.left);

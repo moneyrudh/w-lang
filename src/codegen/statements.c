@@ -45,38 +45,54 @@ void generate_assignment(FILE* output, ASTNode* node, int indent_level) {
     fprintf(output, C_SEMICOLON_NL);
 }
 
-void generate_log_statement(FILE* output, LogElement* elements, int indent_level) {
+// a str + str inside log is printed as its pieces side by side ("%s%s"), so it needs no
+// string memory (joining strings elsewhere is roadmap task 2.6)
+static bool is_string_join(ASTNode* node) {
+    return node->type == NODE_BINARY_EXPR && node->expr_type == TYPE_STR &&
+           node->data.binary_expr.operator == OP_ADD;
+}
+
+static void generate_log_format(FILE* output, ASTNode* value) {
+    if (is_string_join(value)) {
+        generate_log_format(output, value->data.binary_expr.left);
+        generate_log_format(output, value->data.binary_expr.right);
+        return;
+    }
+    fputs(get_format_spec_from_enum(value->expr_type), output);
+}
+
+static void generate_log_values(FILE* output, ASTNode* value) {
+    if (is_string_join(value)) {
+        generate_log_values(output, value->data.binary_expr.left);
+        generate_log_values(output, value->data.binary_expr.right);
+        return;
+    }
+    fputs(C_COMMA, output);
+    if (value->expr_type == TYPE_BOOL) {
+        fputs(C_BOOL_TO_TEXT_OPEN, output);
+        generate(output, value, 0);
+        fputs(C_BOOL_TO_TEXT_CLOSE, output);
+    } else {
+        generate(output, value, 0);
+    }
+}
+
+// log(a, b, ...) -> printf("<spec a> <spec b> ...\n", a, b, ...). Every value, strings included,
+// is a printf argument, so a '%' in W text can't be read as a format directive
+void generate_log_statement(FILE* output, ASTNode* node, int indent_level) {
+    ASTNode** args = node->data.log.args;
+    int arg_count = node->data.log.arg_count;
+
     emit_indent(output, indent_level);
     fprintf(output, C_PRINTF C_LPAREN C_STRING_QUOTE);
-
-    LogElement* current = elements;
-    while (current != NULL) {
-        switch (current->type) {
-            case NODE_STRING:
-                fprintf(output, "%s", current->value.string);
-                break;
-            case NODE_NUMBER:
-                fputs(C_FMT_INT, output);
-                break;
-            case NODE_VARIABLE:
-                fputs(get_format_spec_from_enum(current->var_type), output);
-                break;
-            default:
-                break;
-        }
-        current = current->next;
+    for (int i = 0; i < arg_count; i++) {
+        if (i > 0) fputs(C_SPACE, output);
+        generate_log_format(output, args[i]);
     }
-
     fprintf(output, C_ESC_NEWLINE C_STRING_QUOTE);
 
-    current = elements;
-    while (current != NULL) {
-        if (current->type == NODE_NUMBER) {
-            fprintf(output, C_COMMA "%d", current->value.number);
-        } else if (current->type == NODE_VARIABLE) {
-            fprintf(output, C_COMMA "%s", mangle_identifier(current->value.string, false));
-        }
-        current = current->next;
+    for (int i = 0; i < arg_count; i++) {
+        generate_log_values(output, args[i]);
     }
 
     fprintf(output, C_RPAREN C_SEMICOLON_NL);

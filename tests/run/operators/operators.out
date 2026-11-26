@@ -1,6 +1,6 @@
-sym  1 0 1 0 1 0 => 1 0 1 0 1 0
-word 1 0 1 0 1 0 => 1 0 1 0 1 0
-is   1 0 1 1 => 1 0 1 1
-log  1 1 0 1 0 1 1 => 1 1 0 1 0 1 1
-prec 1 1 0 40 75 7 => 1 1 0 40 75 7
-mix  1 1 1 1 1 => 1 1 1 1 1
+sym  true false true false true false => true false true false true false
+word true false true false true false => true false true false true false
+is   true false true true => true false true true
+log  true true false true false true true => true true false true false true true
+prec true true false 40 75 7 => true true false 40 75 7
+mix  true true true true true => true true true true true

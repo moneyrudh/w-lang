@@ -72,6 +72,10 @@ ASTNode* parse_log(void);
 
 ASTNode* parse_function(void);
 
+// '(' expression, ... ')': a malloc'd array (NULL when empty) the caller owns, with its
+// count in arg_count. `context` names the construct in errors ("function call", "log")
+ASTNode** parse_argument_list(const char* context, int* arg_count);
+
 // called after the function name, at '('
 ASTNode* parse_function_call(char* name, SourceLocation loc);
 

@@ -39,7 +39,7 @@ void generate_cast_if_needed(FILE* output, DataType from, DataType to);
 
 void generate_var_declaration(FILE* output, ASTNode* node, int indent_level);
 void generate_assignment(FILE* output, ASTNode* node, int indent_level);
-void generate_log_statement(FILE* output, LogElement* elements, int indent_level);
+void generate_log_statement(FILE* output, ASTNode* node, int indent_level);
 void generate_return(FILE* output, ASTNode* node, int indent_level);
 
 // ==================== functions.c ====================

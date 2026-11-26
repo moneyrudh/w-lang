@@ -1,6 +1,7 @@
 #include "checker/internal.h"
 #include "diagnostics.h"
 #include "language/type_registry.h"
+#include "language/operators.h"
 
 static DataType check_variable(ASTNode* node) {
     Symbol* symbol = lookup_variable(node->data.variable.name);
@@ -19,24 +20,29 @@ static DataType check_binary_expr(ASTNode* node) {
     }
 
     const char* error = NULL;
-    DataType result = operation_type(left, right, node->data.binary_expr.operator, &error);
+    OperatorType op = node->data.binary_expr.operator;
+    DataType result = operation_type(left, right, op, &error);
     if (error) {
-        report_error(node->location.line, "%s", error);
+        report_error(node->location.line, "%s %s %s: %s", get_wlang_type_from_enum(left),
+                     operator_symbol(op), get_wlang_type_from_enum(right), error);
     }
     return result;
 }
 
 static DataType check_unary_expr(ASTNode* node) {
-    // OP_NOT is currently the only unary operator
     DataType operand = check_expression(node->data.unary_expr.operand);
     if (operand == TYPE_ERROR) {
         return TYPE_ERROR;
     }
-    if (operand == TYPE_STR || operand == TYPE_ZIL) {
-        report_error(node->location.line, "Cannot apply 'not' to %s", get_wlang_type_from_enum(operand));
-        return TYPE_ERROR;
+
+    const char* error = NULL;
+    OperatorType op = node->data.unary_expr.operator;
+    DataType result = unary_operation_type(operand, op, &error);
+    if (error) {
+        report_error(node->location.line, "%s %s: %s", operator_symbol(op),
+                     get_wlang_type_from_enum(operand), error);
     }
-    return TYPE_BOOL;
+    return result;
 }
 
 static DataType expression_type(ASTNode* node) {

@@ -5,7 +5,7 @@ fun w(): num
     dec n: num
     dec r: real
     dec b: bool
-    log("defaults 0 0.000000 0 =>", n, r, b)
+    log("defaults 0 0.000000 false =>", n, r, b)
 
     dec i: num = 7
     dec f: real = 2.5
@@ -15,7 +15,7 @@ fun w(): num
     dec c: chr = 'w'
     dec t: bool = true
     dec s: str = "text"
-    log("w 1 text =>", c, t, s)
+    log("w true text =>", c, t, s)
 
     dec from_bool: num = t
     dec from_chr: num = 'A'

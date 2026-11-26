@@ -54,13 +54,24 @@ $(LEXER_C): src/lexer/lexer.l
 
 -include $(OBJS:.o=.d)
 
-# Tests: the language (tests/run.sh), then the wlang command itself (tests/driver/test.sh)
-test: $(TARGET)
+HEADERS = $(shell find include src -name '*.h')
+
+# Tests: the language (tests/run.sh), unit tests of pure rules (tests/unit/), then the wlang
+# command itself (tests/driver/test.sh)
+UNIT_TESTS = $(BUILD)/unit/type_rules
+
+$(BUILD)/unit/type_rules: tests/unit/type_rules.c src/checker/types.c src/language/operators.c $(HEADERS)
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(WARNFLAGS) tests/unit/type_rules.c src/checker/types.c src/language/operators.c -o $@
+
+unit: $(UNIT_TESTS)
+	@for t in $(UNIT_TESTS); do ./$$t || exit 1; done
+
+test: $(TARGET) unit
 	./tests/run.sh
 	./tests/driver/test.sh
 
 # Same tests with wlang built under AddressSanitizer + UBSan (one-shot build)
-HEADERS = $(shell find include src -name '*.h')
 
 $(ASAN_TARGET): $(SRCS) $(LEXER_C) $(HEADERS)
 	$(CC) $(CFLAGS) -g -fsanitize=address,undefined $(SRCS) $(LEXER_C) -o $@
@@ -96,4 +107,4 @@ uninstall:
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all clean test test-asan analyze fuzz install uninstall
+.PHONY: all clean test test-asan unit analyze fuzz install uninstall

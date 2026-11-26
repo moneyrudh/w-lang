@@ -6,7 +6,7 @@
 #include "types.h"
 #include "ast.h"
 
-// Resolves every name, fills in expr_type / target_type / LogElement.var_type,
+// Resolves every name, fills in expr_type / target_type,
 // and reports semantic errors. Functions may be called before they're defined:
 // all signatures are collected before any body is checked.
 void check_program(ASTNode* program);

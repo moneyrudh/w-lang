@@ -45,18 +45,21 @@ bool can_convert_type(DataType from, DataType to) {
     }
 }
 
+// The result type of `left op right`, or TYPE_ERROR with *error set to what's wrong (the
+// checker prefixes the expression, e.g. "num + bool: "). Every pair of types is covered by
+// tests/unit/type_rules.c.
 DataType operation_type(DataType left, DataType right, OperatorType op, const char** error) {
     if (left == TYPE_ZIL || right == TYPE_ZIL) {
-        *error = "Cannot perform operations on zil type";
+        *error = "zil has no value (it's the result of a call that returns nothing)";
         return TYPE_ERROR;
     }
 
     OperatorCategory category = get_operator_category(op);
 
-    // and / or: any non-str operand is truthy in C
+    // and / or: anything but str (numbers are true when they're not 0, as in C)
     if (category == OP_CAT_LOGICAL) {
         if (left == TYPE_STR || right == TYPE_STR) {
-            *error = "Logical operators (and, or) cannot be used on str";
+            *error = "and / or can't be used on str";
             return TYPE_ERROR;
         }
         return TYPE_BOOL;
@@ -65,24 +68,26 @@ DataType operation_type(DataType left, DataType right, OperatorType op, const ch
     // comparisons: str only compares with str (emitted via strcmp)
     if (category == OP_CAT_COMPARISON) {
         if ((left == TYPE_STR) != (right == TYPE_STR)) {
-            *error = "Cannot compare str with a non-str value";
+            *error = "can't compare str with a non-str value";
             return TYPE_ERROR;
         }
         return TYPE_BOOL;
     }
 
-    // string concat between string 1 and string 2
-    if (op == OP_ADD && (left == TYPE_STR || right == TYPE_STR)) {
-        if (left == TYPE_STR && right == TYPE_STR) {
+    // arithmetic. + joins two strings (D8: nothing else joins with a str)
+    if (left == TYPE_STR || right == TYPE_STR) {
+        if (op == OP_ADD && left == TYPE_STR && right == TYPE_STR) {
             return TYPE_STR;
         }
-        *error = "String concatenation only works betweens strings";
+        *error = (op == OP_ADD)
+            ? "can't join str with a non-str value (to print them together, use log(\"text\", value))"
+            : "can't do arithmetic on str";
         return TYPE_ERROR;
     }
 
-    // invalid operation on string (can only do +)
-    if (left == TYPE_STR || right == TYPE_STR) {
-        *error = "Invalid arithmetic operation on str type";
+    // D9: true + 1 is almost always a mistake
+    if (left == TYPE_BOOL || right == TYPE_BOOL) {
+        *error = "can't do arithmetic on bool";
         return TYPE_ERROR;
     }
 
@@ -90,6 +95,19 @@ DataType operation_type(DataType left, DataType right, OperatorType op, const ch
         return TYPE_REAL;
     }
 
-    // converts num, chr, and bool into num
+    // num and chr ('a' + 1 is 98)
     return TYPE_NUM;
+}
+
+DataType unary_operation_type(DataType operand, OperatorType op, const char** error) {
+    (void)op;   // OP_NOT is the only unary operator so far
+    if (operand == TYPE_ZIL) {
+        *error = "zil has no value (it's the result of a call that returns nothing)";
+        return TYPE_ERROR;
+    }
+    if (operand == TYPE_STR) {
+        *error = "can't be used on str";
+        return TYPE_ERROR;
+    }
+    return TYPE_BOOL;
 }

@@ -51,7 +51,8 @@ typedef struct ASTNode {
             struct ASTNode* body;
         } loop_statement;
         struct {
-            LogElement* elements;
+            struct ASTNode** args;   // ordinary expressions, printed separated by spaces
+            int arg_count;
         } log;
         struct {
             struct ASTNode* left;
@@ -99,7 +100,7 @@ ASTNode* create_function_call_node(char* name, ASTNode** args, int arg_count, So
 
 ASTNode* create_program_node(SourceLocation loc);
 ASTNode* create_function_node(DataType return_type, char* name, Parameter* parameters, int param_count, ASTNode* body, SourceLocation loc);
-ASTNode* create_log_node(LogElement* elements, SourceLocation loc);
+ASTNode* create_log_node(ASTNode** args, int arg_count, SourceLocation loc);
 ASTNode* create_return_node(ASTNode* expression, SourceLocation loc);
 ASTNode* create_assignment_node(char* name, ASTNode* value, SourceLocation loc);
 ASTNode* create_binary_expr_node(ASTNode* left, ASTNode* right, OperatorType operator, SourceLocation loc);
@@ -115,7 +116,6 @@ ASTNode* create_bool_node(bool value, SourceLocation loc);
 ASTNode* create_var_declaration_node(char* name, DataType type, ASTNode* init_expr, SourceLocation loc);
 
 void free_parameters(Parameter* parameters);
-void free_log_elements(LogElement* elements);
 void free_ast(ASTNode* node);
 
 extern ASTNode* ast;

@@ -70,7 +70,7 @@ W Lang should feel like a modern, expressive language while transpiling cleanly 
 ### AST Pattern
 - Each new language construct needs: a `NodeType` enum value, a union member in `ASTNode`, a `create_*_node()` function, and a `free_ast()` case.
 - Nodes are linked via `node->next` for statement lists. Every `create_*_node()` must set `next = NULL`.
-- The checker stores every resolved type on the node (`expr_type`, `target_type`, `LogElement.var_type`). Its scopes are gone by the time codegen runs, so codegen reads those fields and never looks names up.
+- The checker stores every resolved type on the node (`expr_type`, `target_type`). Its scopes are gone by the time codegen runs, so codegen reads those fields and never looks names up.
 - `node->location.line` is the line the construct starts on (set from `current_location()` in the parser). Checker errors are reported on it.
 
 ### Parser Pattern
@@ -107,7 +107,7 @@ make clean && make                          # everything goes to build/ (gitigno
 
 ### Tests
 ```
-make test          # all tests: tests/run.sh, then tests/driver/test.sh
+make test          # all tests: tests/unit/ (pure rules, e.g. every type × operator), tests/run.sh, tests/driver/test.sh
 make test-asan     # same tests, wlang built with AddressSanitizer + UBSan (ASAN_LEAKS=1 on Linux adds leak checks)
 make analyze       # clang static analyzer over src/
 make fuzz          # mutation fuzzer (tests/fuzz/fuzz.py) against the sanitizer build; FUZZ_RUNS=, FUZZ_SEED=
