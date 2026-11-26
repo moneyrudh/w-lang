@@ -111,7 +111,7 @@ ASTNode* create_jump_node(NodeType type, SourceLocation loc) {
     return new_node(type, loc);
 }
 
-ASTNode* create_number_node(int value, SourceLocation loc) {
+ASTNode* create_number_node(long long value, SourceLocation loc) {
     ASTNode* node = new_node(NODE_NUMBER, loc);
     node->data.number.value = value;
     return node;

@@ -93,6 +93,16 @@ static ASTNode* parse_factor(void) {
                 // `--` starts a comment.)
                 if (too_deep()) return NULL;
                 eat(MINUS);
+
+                // a minus written right before a number is part of it: one negative literal.
+                // That's how the smallest num, -2147483648, can be written at all (the checker
+                // checks the range)
+                if (token == INT_LITERAL) {
+                    long long value = -yylval.number;
+                    eat(INT_LITERAL);
+                    return create_number_node(value, loc);
+                }
+
                 expression_depth++;
                 ASTNode* operand = parse_factor();
                 expression_depth--;
