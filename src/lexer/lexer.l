@@ -54,6 +54,18 @@
         yylval.string = token_text;
     }
 
+    // a fresh buffer of `size` bytes as the current token's text (filled in by the caller)
+    static char* new_token_text(size_t size) {
+        free(token_text);
+        token_text = malloc(size);
+        if (!token_text) {
+            fprintf(stderr, "Out of memory\n");
+            exit(1);
+        }
+        yylval.string = token_text;
+        return token_text;
+    }
+
     // a character that can't start any token: reported once, then skipped
     static void unexpected_character(const char* text) {
         unsigned char c = (unsigned char)text[0];
@@ -222,9 +234,13 @@
 \"(\\.|[^"\\])*\" {
     // the text between the quotes, with escapes decoded (the same set as chr literals);
     // an unknown escape like \q keeps both characters
-    keep_text(yytext + 1);
-    char* out = token_text;
+    // sized from yyleng, not strdup: the text may contain a NUL byte, which strdup stops at
+    char* out = new_token_text(yyleng);
     for (const char* in = yytext + 1; in < yytext + yyleng - 1; in++) {
+        if (*in == '\0') {
+            report_error(yylineno, "Unexpected byte 0x00 in text");
+            continue;
+        }
         if (*in == '\\' && in + 1 < yytext + yyleng - 1) {
             switch (in[1]) {
                 case 'n':  *out++ = '\n';  in++; continue;
