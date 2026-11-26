@@ -1,3 +1,6 @@
+#include <limits.h>
+#include <math.h>
+
 #include "checker/internal.h"
 #include "diagnostics.h"
 #include "language/type_registry.h"
@@ -45,11 +48,34 @@ static DataType check_unary_expr(ASTNode* node) {
     return result;
 }
 
+// a number literal must fit a num (the parser keeps it as written, minus sign included)
+static DataType check_number(ASTNode* node) {
+    long long value = node->data.number.value;
+    if (value > INT_MAX) {
+        report_error(node->location.line, "Number too large for num: the largest is 2147483647");
+        return TYPE_ERROR;
+    }
+    if (value < INT_MIN) {
+        report_error(node->location.line, "Number too small for num: the smallest is -2147483648");
+        return TYPE_ERROR;
+    }
+    return TYPE_NUM;
+}
+
+// a real literal is read as a C float; one too large for it became infinity
+static DataType check_real(ASTNode* node) {
+    if (isinf(node->data.float_val.value)) {
+        report_error(node->location.line, "Number too large for real: the largest is about 3.4e38");
+        return TYPE_ERROR;
+    }
+    return TYPE_REAL;
+}
+
 static DataType expression_type(ASTNode* node) {
     switch (node->type) {
-        case NODE_NUMBER:        return TYPE_NUM;
+        case NODE_NUMBER:        return check_number(node);
         case NODE_STRING:        return TYPE_STR;
-        case NODE_FLOAT:         return TYPE_REAL;
+        case NODE_FLOAT:         return check_real(node);
         case NODE_CHAR:          return TYPE_CHR;
         case NODE_BOOL:          return TYPE_BOOL;
         case NODE_VARIABLE:      return check_variable(node);

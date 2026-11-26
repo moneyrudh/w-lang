@@ -10,7 +10,7 @@
 typedef struct {
     union {
         char* string;
-        long long number;   // as written; the parser checks it fits a num
+        long long number;   // as written; the checker checks it fits a num
         double float_val;
         char char_val;
         bool bool_val;

@@ -217,12 +217,13 @@
 "/"         { return DIVIDE; }
 
 [0-9]+      {
-    // saturates far past num's range (strtoll stops at LLONG_MAX); the parser reports it
+    // saturates far past num's range (strtoll stops at LLONG_MAX); the checker reports it
     yylval.number = strtoll(yytext, NULL, 10);
     return INT_LITERAL;
 }
 [0-9]+\.[0-9]+ { 
-    yylval.float_val = strtod(yytext, NULL);
+    // read as a C float, like real: too large to fit becomes infinity (the checker reports it)
+    yylval.float_val = strtof(yytext, NULL);
     return FLOAT_LITERAL; 
 }
 

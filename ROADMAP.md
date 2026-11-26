@@ -42,9 +42,9 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
    initializers must be constant.
 9. ⬜ **Per-path return checking.** Done: a `ret` inside only one branch of `say` no longer satisfies
    "must return a value".
-10. ✅ **Integer literal range.** Done: a literal that doesn't fit `num` is an error instead of `atoi`'s
-   undefined result (`-2147483649` prints a positive number today); `-2147483648`, the smallest `num`,
-   works and its C compiles with `-Werror` (today it emits `-(-2147483648)`). Overflow at run time: D11.
+10. ✅ **Number literal ranges.** Done: a `num` literal outside -2147483648..2147483647 or a `real`
+   literal past the largest float is a type error (the checker's, so other type errors still show);
+   `-2147483648` works and its C compiles with `-Werror`. Overflow at run time is D11.
 
 ## Step 3 — Data ⬜
 

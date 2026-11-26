@@ -15,7 +15,7 @@ void generate_literal(FILE* output, ASTNode* node) {
             if (node->data.number.value == INT_MIN) {
                 fputs(C_INT_MIN, output);
             } else {
-                fprintf(output, "%d", node->data.number.value);
+                fprintf(output, "%lld", node->data.number.value);   // the checker made sure it fits a num
             }
             break;
         case NODE_STRING:

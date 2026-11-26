@@ -69,7 +69,7 @@ typedef struct ASTNode {
             int arg_count;
         } function_call;
         struct {
-            int value;
+            long long value;   // as written; the checker reports it if it doesn't fit a num
         } number;
         struct {
             char* value;
@@ -104,7 +104,7 @@ ASTNode* create_log_node(ASTNode** args, int arg_count, SourceLocation loc);
 ASTNode* create_return_node(ASTNode* expression, SourceLocation loc);
 ASTNode* create_assignment_node(char* name, ASTNode* value, SourceLocation loc);
 ASTNode* create_binary_expr_node(ASTNode* left, ASTNode* right, OperatorType operator, SourceLocation loc);
-ASTNode* create_number_node(int value, SourceLocation loc);
+ASTNode* create_number_node(long long value, SourceLocation loc);
 ASTNode* create_if_node(ASTNode* condition, bool negated, ASTNode* body, SourceLocation loc);
 ASTNode* create_loop_node(ASTNode* condition, bool negated, ASTNode* body, SourceLocation loc);
 ASTNode* create_jump_node(NodeType type, SourceLocation loc);   // NODE_SKIP or NODE_STOP
