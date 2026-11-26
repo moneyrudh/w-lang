@@ -6,6 +6,23 @@
 #include "language/type_registry.h"
 
 void generate_var_declaration(FILE* output, ASTNode* node, int indent_level) {
+    const char* c_type = get_c_type_from_enum(node->data.var_declaration.type);
+    const char* name = node->data.var_declaration.name;
+
+    // shadowing `dec n := n + 1`: the value is computed while the outer n is still in scope
+    //   int W__n_init = W__n_v + 1;
+    //   int W__n_v = W__n_init;
+    if (node->data.var_declaration.shadows_outer && node->data.var_declaration.init_expr) {
+        emit_indent(output, indent_level);
+        fprintf(output, "%s %s" C_ASSIGN, c_type, mangle_init_temp(name));
+        generate_expression_with_cast(output, node->data.var_declaration.init_expr, node->data.var_declaration.type);
+        fprintf(output, C_SEMICOLON_NL);
+        emit_indent(output, indent_level);
+        fprintf(output, "%s %s" C_ASSIGN, c_type, mangle_identifier(name, false));
+        fprintf(output, "%s" C_SEMICOLON_NL, mangle_init_temp(name));
+        return;
+    }
+
     emit_indent(output, indent_level);
     fprintf(
         output, "%s %s",

@@ -152,6 +152,7 @@ ASTNode* create_var_declaration_node(char* name, DataType type, ASTNode* init_ex
     node->data.var_declaration.name = strdup(name);
     node->data.var_declaration.type = type;
     node->data.var_declaration.init_expr = init_expr;
+    node->data.var_declaration.shadows_outer = false;
     return node;
 }
 

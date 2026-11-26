@@ -74,4 +74,6 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
 - ⬜ Fuzzer oracle: every program `wlang check` accepts must produce C that compiles.
 - ⬜ Deeply indented input is slow: 3,000 nested blocks (an 18 MB file, far past the 100-level limit)
   take ~17 s to reject. Find the quadratic step.
+- ⬜ `mangle_identifier()` uses a fixed 512-byte buffer: names over ~500 characters are truncated and
+  two such names with the same start collide. Limit name length in the lexer, or emit names directly.
 - ⬜ Release script: tag, GitHub release, bump the Homebrew formula (still asks before running).

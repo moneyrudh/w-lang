@@ -65,6 +65,7 @@ void generate_loop_jump(FILE* output, ASTNode* node, int indent_level);
 
 // W__name_v / W__name_f; w() -> main. Returns a static buffer (copy it to keep it)
 const char* mangle_identifier(const char* w_name, bool is_function);
+const char* mangle_init_temp(const char* w_name);
 
 // emit indentation (level * 4 spaces)
 void emit_indent(FILE* out, int level);

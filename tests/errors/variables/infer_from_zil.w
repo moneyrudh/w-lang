@@ -4,4 +4,5 @@ fun nothing()
 
 fun w(): num
     dec x := nothing()
+    x = 5
     ret 0
