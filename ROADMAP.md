@@ -38,7 +38,7 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
    freeing rules, D2): the generated C frees it, W code never does.
 7. ✅ **`dec x := 5`** type inference. Done: the type comes from the initializer; `:=` without a
    value is an error.
-8. ⬜ **Global variables** (`dec` at top level). Done: readable and assignable from every function;
+8. ✅ **Global variables** (`dec` at top level). Done: readable and assignable from every function;
    initializers must be constant.
 9. ⬜ **Per-path return checking.** Done: a `ret` inside only one branch of `say` no longer satisfies
    "must return a value".

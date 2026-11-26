@@ -30,7 +30,6 @@ static void generate_program(FILE* output, ASTNode* node, int indent_level) {
     if (node->data.program.globals) {
         for (ASTNode* global = node->data.program.globals; global; global = global->next) {
             generate(output, global, 0);
-            fprintf(output, C_NEWLINE);
         }
         fprintf(output, C_NEWLINE);
     }

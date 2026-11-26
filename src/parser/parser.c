@@ -272,12 +272,28 @@ ASTNode* parse(void) {
 
     // yylex() returns 0 at end of input
     ASTNode* last_function = NULL;
+    ASTNode* last_global = NULL;
     while (token != 0) {
         begin_statement();
+
+        // a global variable
+        if (token == DEC) {
+            ASTNode* global = parse_variable_declaration();
+            if (in_panic()) recover();
+            if (!global) continue;
+            if (last_global == NULL) {
+                program->data.program.globals = global;
+            } else {
+                last_global->next = global;
+            }
+            last_global = global;
+            continue;
+        }
+
         if (token != FUN) {
             char error_msg[100];
             snprintf(error_msg, sizeof(error_msg),
-                "Unexpected %s at top level. Expected 'fun' for function definition.",
+                "Unexpected %s at top level. Expected 'fun' or 'dec'.",
                 token_registry_describe(token));
             parser_error(error_msg);
             recover();

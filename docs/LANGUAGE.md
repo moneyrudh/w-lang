@@ -15,7 +15,7 @@ Legend: ✅ works end-to-end (transpiles, compiles with the C compiler, runs cor
 | Entry point `fun w(): num` → C `main()` | ✅ | Return value becomes the process exit code |
 | Functions in any order | ✅ | The checker collects every signature before checking bodies, so calls may come before definitions (including mutual recursion) |
 | Name mangling (`x` → `W__x_v`, `f` → `W__f_f`) | ✅ | Lets W names like `main` coexist with C |
-| Global variables (`dec` at top level) | 🚧 | AST/codegen support exists; parser rejects `dec` at top level |
+| Global variables (`dec` at top level) | ✅ | Visible in every function, wherever they're declared in the file; any function can assign them. The value must be a constant (literals and operators; no variables, calls or text operations), because it's set before any function runs. `dec g := 5` works too. A local may shadow a global |
 | `use` imports | 💭 | Token exists, nothing parses it |
 | Macros, namespaces | 💭 | Listed as top-level constructs in early drafts |
 

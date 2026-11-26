@@ -68,6 +68,9 @@ void check_statements(ASTNode* statements);
 
 void check_statement(ASTNode* node);
 
+// a top-level dec: declared for every function; its value must be a constant
+void check_global(ASTNode* node);
+
 // ==================== functions.c ====================
 
 // declares every function, so calls can come before definitions
