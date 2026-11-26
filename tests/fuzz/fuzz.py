@@ -3,7 +3,7 @@
 
 Takes the .w programs in tests/ and examples/ as seeds, mutates them (byte flips,
 deleted / duplicated / swapped lines, spliced programs, random tokens, broken
-indentation) and runs each result through `wlang build --emit-c` with a C compiler
+indentation, deep nesting and long operator chains) and runs each result through `wlang build --emit-c` with a C compiler
 that does nothing, so the lexer, parser, checker and code generator all run.
 
 wlang must answer every input with exit code 0 (built) or 1 (W errors). Anything
@@ -42,8 +42,26 @@ def seeds():
     return [f.read_bytes() for f in files]
 
 
+def deep_chunk(rng: random.Random) -> list:
+    """Nesting around the parser's limits (150 expression / 100 statement levels) and far past them."""
+    k = rng.choice([rng.randint(1, 200), rng.randint(140, 160), rng.randint(90, 110), rng.randint(1000, 20000)])
+    shape = rng.randrange(5)
+    if shape == 0:
+        return [b"    dec d: num = " + b"(" * k + b"1" + b")" * rng.choice([k, k - 1, k + 1])]
+    if shape == 1:
+        return [b"    dec d: bool = " + b"not " * k + b"true"]
+    if shape == 2:
+        return [b"    dec d: num = " + b" + ".join([b"1"] * k)]
+    if shape == 3:
+        return [b"    " + b"say true, " * k + b"skip"]
+    k = min(k, 3000)   # nested blocks: one line per level
+    return [b"    " * (i + 1) + b"say true" for i in range(k)] + [b"    " * (k + 1) + b"skip"]
+
+
 def mutate(data: bytes, corpus: list, rng: random.Random) -> bytes:
     lines = data.split(b"\n")
+    if rng.randrange(10) == 0:                      # sometimes: a function with deep nesting
+        lines += [b"", b"fun deep()"] + deep_chunk(rng)
     for _ in range(rng.randint(1, 4)):
         kind = rng.randrange(8)
         if kind == 0 and data:                      # flip a byte

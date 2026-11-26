@@ -34,7 +34,7 @@ void init_scopes(void);
 void free_scopes(void);
 
 // line is for the "nested too deeply" error
-void push_scope(int line);
+void push_scope(void);
 void pop_scope(void);
 
 // false if the name is already declared in the innermost scope (outer ones may be shadowed)

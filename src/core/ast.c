@@ -174,8 +174,12 @@ void free_log_elements(LogElement* elements) {
     }
 }
 
+// walks statement lists (`next`) with a loop: recursing on them would overflow the stack
+// for a long function. Children (expressions, bodies) are freed recursively; their depth
+// is bounded by the parser's nesting limits
 void free_ast(ASTNode* node) {
-    if (node) {
+    while (node) {
+        ASTNode* next = node->next;
         switch (node->type) {
             case NODE_PROGRAM:
                 free_ast(node->data.program.functions);
@@ -240,7 +244,7 @@ void free_ast(ASTNode* node) {
             case NODE_BOOL:
                 break;
         }
-        free_ast(node->next);
         free(node);
+        node = next;
     }
 }

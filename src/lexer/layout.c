@@ -5,18 +5,32 @@
 //   - end of file closes the last line and every open block
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 #include "lexer.h"
 #include "diagnostics.h"
 #include "lexer/internal.h"
 
-#define MAX_INDENT_DEPTH 128
-
 int token_line = 1;
 
-static int indent_stack[MAX_INDENT_DEPTH] = {0};
+// indentation of each open block, outermost (0) first. It grows as needed: how deep blocks
+// may nest is the parser's limit (MAX_STATEMENT_DEPTH), reported there once
+static int* indent_stack = NULL;
+static int indent_capacity = 0;
 static int indent_top = 0;
+
+static void push_indent(int indent) {
+    if (!indent_stack || indent_top + 1 >= indent_capacity) {
+        indent_capacity = indent_capacity ? indent_capacity * 2 : 64;
+        indent_stack = realloc(indent_stack, sizeof(int) * indent_capacity);
+        if (!indent_stack) {
+            fprintf(stderr, "Out of memory\n");
+            exit(1);
+        }
+    }
+    indent_stack[++indent_top] = indent;
+}
 static int pending_dedents = 0;
 static bool pending_indent = false;
 static bool has_buffered = false;
@@ -25,17 +39,19 @@ static int buffered_line = 0;
 static bool line_has_code = false;
 
 static void schedule_indentation(int indent, int line) {
+    if (!indent_stack) {
+        // the outermost level, at column 0
+        indent_top = -1;
+        push_indent(0);
+    }
     if (indent > indent_stack[indent_top]) {
-        if (indent_top + 1 >= MAX_INDENT_DEPTH) {
-            report_error(line, "Blocks nested too deeply");
-            return;
-        }
-        indent_stack[++indent_top] = indent;
+        push_indent(indent);
         pending_indent = true;
         return;
     }
 
-    while (indent < indent_stack[indent_top]) {
+    // never below the outermost level (column 0)
+    while (indent_top > 0 && indent < indent_stack[indent_top]) {
         indent_top--;
         pending_dedents++;
     }
@@ -113,4 +129,13 @@ int yylex(void) {
 
     line_has_code = true;
     return tok;
+}
+
+void layout_cleanup(void) {
+    free(indent_stack);
+    indent_stack = NULL;
+    indent_capacity = indent_top = 0;
+    pending_dedents = 0;
+    pending_indent = has_buffered = line_has_code = false;
+    token_line = 1;
 }

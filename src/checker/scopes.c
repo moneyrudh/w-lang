@@ -1,14 +1,14 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "checker/internal.h"
-#include "diagnostics.h"
 
-#define MAX_SCOPE_DEPTH 128
-
-// variables form a stack; each scope remembers where the stack stood when it opened
+// variables form a stack; each scope remembers where the stack stood when it opened.
+// scope_starts grows as needed: how deep blocks nest is limited by the parser
 static Symbol* variables = NULL;
-static Symbol* scope_starts[MAX_SCOPE_DEPTH];
+static Symbol** scope_starts = NULL;
+static int scope_capacity = 0;
 static int scope_depth = 0;
 
 static FunctionSymbol* functions = NULL;
@@ -31,6 +31,9 @@ void free_scopes(void) {
         variables = next;
     }
     scope_depth = 0;
+    free(scope_starts);
+    scope_starts = NULL;
+    scope_capacity = 0;
 
     while (functions != NULL) {
         FunctionSymbol* next = functions->next;
@@ -41,10 +44,14 @@ void free_scopes(void) {
 
 // ==================== variables ====================
 
-void push_scope(int line) {
-    if (scope_depth >= MAX_SCOPE_DEPTH) {
-        report_error(line, "Blocks nested too deeply");
-        return;
+void push_scope(void) {
+    if (scope_depth >= scope_capacity) {
+        scope_capacity = scope_capacity ? scope_capacity * 2 : 32;
+        scope_starts = realloc(scope_starts, sizeof(Symbol*) * scope_capacity);
+        if (!scope_starts) {
+            fprintf(stderr, "Out of memory\n");
+            exit(1);
+        }
     }
     scope_starts[scope_depth++] = variables;
 }

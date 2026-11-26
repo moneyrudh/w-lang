@@ -106,7 +106,7 @@ void check_statements(ASTNode* statements) {
 }
 
 void check_block(ASTNode* statements) {
-    push_scope(statements ? statements->location.line : 0);
+    push_scope();
     check_statements(statements);
     pop_scope();
 }
