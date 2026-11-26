@@ -1,5 +1,5 @@
-// Every pair of W types against every binary operator: the result type of `left op right`,
-// or "-" when it's an error. The grids are written out by hand (not computed), so a change
+// Every pair of W types against every binary operator, and every type with unary `not`: the
+// result type, or "-" when it's an error. The grids are written out by hand (not computed), so a change
 // to the rules in src/checker/types.c shows up here as a failing cell.
 //
 // Built and run by `make test` (see the makefile's unit target).
@@ -59,6 +59,9 @@ static const Table TABLES[] = {
     }},
 };
 
+// unary `not x` for each type, in TYPES order
+static const char* const NOT_RESULTS[TYPE_COUNT] = {"bool", "bool", "bool", "-", "bool", "-"};
+
 static const char* type_name(DataType type) {
     for (int i = 0; i < TYPE_COUNT; i++) {
         if (TYPES[i] == type) return NAMES[i];
@@ -92,6 +95,18 @@ int main(void) {
             }
         }
     }
+    for (int t = 0; t < TYPE_COUNT; t++) {
+        const char* error = NULL;
+        DataType result = unary_operation_type(TYPES[t], OP_NOT, &error);
+        const char* actual = (result == TYPE_ERROR) ? "-" : type_name(result);
+        checked++;
+        bool consistent = (result == TYPE_ERROR) == (error != NULL);
+        if (strcmp(actual, NOT_RESULTS[t]) != 0 || !consistent) {
+            failed++;
+            printf("FAIL  type rules: not %s: expected %s, got %s\n", NAMES[t], NOT_RESULTS[t], actual);
+        }
+    }
+
     printf("%s  type rules: %d operator / type combinations, %d failed\n", failed ? "FAIL" : "ok  ", checked, failed);
     return failed ? 1 : 0;
 }

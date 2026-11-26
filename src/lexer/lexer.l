@@ -216,8 +216,23 @@
 }
 
 \"(\\.|[^"\\])*\" {
+    // the text between the quotes, with escapes decoded (the same set as chr literals);
+    // an unknown escape like \q keeps both characters
     keep_text(yytext + 1);
-    token_text[strlen(token_text) - 1] = '\0';   // drop the closing quote
+    char* out = token_text;
+    for (const char* in = yytext + 1; in < yytext + yyleng - 1; in++) {
+        if (*in == '\\' && in + 1 < yytext + yyleng - 1) {
+            switch (in[1]) {
+                case 'n':  *out++ = '\n';  in++; continue;
+                case 't':  *out++ = '\t';  in++; continue;
+                case '\\': *out++ = '\\'; in++; continue;
+                case '"':  *out++ = '"';  in++; continue;
+                case '\'': *out++ = '\''; in++; continue;
+            }
+        }
+        *out++ = *in;
+    }
+    *out = '\0';
     return STRING_LITERAL;
 }
 

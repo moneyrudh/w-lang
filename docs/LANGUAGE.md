@@ -61,7 +61,7 @@ Gotcha: `x--1` is `x` followed by a comment.
 | `num` | `int` | ✅ | |
 | `real` | `float` | ✅ | |
 | `chr` | `char` | ✅ | Escapes `\n \t \\ \' \"` |
-| `str` | `char*` | 🚧 | Literals, variables, comparison work. `a + b` passes type check but emits invalid C |
+| `str` | `char*` | 🚧 | Literals, variables, comparison work. Escapes `\n \t \\ \' \"` (an unknown one like `\q` is kept as written). `a + b` works inside `log` only; elsewhere it passes the type check but emits invalid C (roadmap 2.6) |
 | `bool` | `bool` | ✅ | `true` / `false`, printed by `log` as `true` / `false`. No arithmetic on `bool` (D9): `true + 1` is an error |
 | `zil` | `void` | ✅ | Function return type only: a `zil` variable or parameter is an error, and so is using a `zil` call's result as a value |
 | `vec map set ref heap stack que link tree pod` | — | 💭 | Tokens only. Spec drafts disagree on syntax: `map[num, str]` vs `map(num, str)` |
@@ -121,6 +121,7 @@ Precedence, lowest to highest: `or` → `and` → equality → comparison → `+
 | `log(a, b, …)` | ✅ | Each argument is any expression (`x + 1`, `f(x)`, `x > y`), printed separated by spaces, then a newline. `log()` prints an empty line |
 | How values print | ✅ | `num` `42`, `real` `2.500000`, `chr` `w`, `str` as is (a `%` in text is safe), `bool` `true` / `false` |
 | `log(nothing())` | ✅ | Error: a `zil` call has no value to print |
+| `log("Hello, " + name)` | ✅ | `str + str` inside `log` prints the pieces side by side (no space) |
 | `log("a" + x)` | ✅ | Error when `x` isn't a `str` (D8): mix text and values with commas, `log("a", x)` |
 
 ## 9. Control flow
@@ -198,6 +199,6 @@ Arguments after the `.w` file are passed to the program, so `run`'s options go b
 
 ## 12. Known bugs
 
-- `str + str` emits invalid C (§4)
+- `str + str` outside `log` (in a `dec`, assignment, argument or `ret`) emits invalid C (§4, roadmap 2.6)
 - Return checking isn't per-path: any `ret` anywhere satisfies "must return a value" (§6)
 - An unclosed bracket followed by a line that starts with a name or a value (`x = 3`, `f()`) is reported on that line (`Expected ')', got name`), not where it opened: such a line could be continuing the expression

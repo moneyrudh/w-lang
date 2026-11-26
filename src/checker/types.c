@@ -98,3 +98,16 @@ DataType operation_type(DataType left, DataType right, OperatorType op, const ch
     // num and chr ('a' + 1 is 98)
     return TYPE_NUM;
 }
+
+DataType unary_operation_type(DataType operand, OperatorType op, const char** error) {
+    (void)op;   // OP_NOT is the only unary operator so far
+    if (operand == TYPE_ZIL) {
+        *error = "zil has no value (it's the result of a call that returns nothing)";
+        return TYPE_ERROR;
+    }
+    if (operand == TYPE_STR) {
+        *error = "can't be used on str";
+        return TYPE_ERROR;
+    }
+    return TYPE_BOOL;
+}

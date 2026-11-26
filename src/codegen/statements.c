@@ -45,6 +45,38 @@ void generate_assignment(FILE* output, ASTNode* node, int indent_level) {
     fprintf(output, C_SEMICOLON_NL);
 }
 
+// a str + str inside log is printed as its pieces side by side ("%s%s"), so it needs no
+// string memory (joining strings elsewhere is roadmap task 2.6)
+static bool is_string_join(ASTNode* node) {
+    return node->type == NODE_BINARY_EXPR && node->expr_type == TYPE_STR &&
+           node->data.binary_expr.operator == OP_ADD;
+}
+
+static void generate_log_format(FILE* output, ASTNode* value) {
+    if (is_string_join(value)) {
+        generate_log_format(output, value->data.binary_expr.left);
+        generate_log_format(output, value->data.binary_expr.right);
+        return;
+    }
+    fputs(get_format_spec_from_enum(value->expr_type), output);
+}
+
+static void generate_log_values(FILE* output, ASTNode* value) {
+    if (is_string_join(value)) {
+        generate_log_values(output, value->data.binary_expr.left);
+        generate_log_values(output, value->data.binary_expr.right);
+        return;
+    }
+    fputs(C_COMMA, output);
+    if (value->expr_type == TYPE_BOOL) {
+        fputs(C_BOOL_TO_TEXT_OPEN, output);
+        generate(output, value, 0);
+        fputs(C_BOOL_TO_TEXT_CLOSE, output);
+    } else {
+        generate(output, value, 0);
+    }
+}
+
 // log(a, b, ...) -> printf("<spec a> <spec b> ...\n", a, b, ...). Every value, strings included,
 // is a printf argument, so a '%' in W text can't be read as a format directive
 void generate_log_statement(FILE* output, ASTNode* node, int indent_level) {
@@ -55,19 +87,12 @@ void generate_log_statement(FILE* output, ASTNode* node, int indent_level) {
     fprintf(output, C_PRINTF C_LPAREN C_STRING_QUOTE);
     for (int i = 0; i < arg_count; i++) {
         if (i > 0) fputs(C_SPACE, output);
-        fputs(get_format_spec_from_enum(args[i]->expr_type), output);
+        generate_log_format(output, args[i]);
     }
     fprintf(output, C_ESC_NEWLINE C_STRING_QUOTE);
 
     for (int i = 0; i < arg_count; i++) {
-        fputs(C_COMMA, output);
-        if (args[i]->expr_type == TYPE_BOOL) {
-            fputs(C_BOOL_TO_TEXT_OPEN, output);
-            generate(output, args[i], 0);
-            fputs(C_BOOL_TO_TEXT_CLOSE, output);
-        } else {
-            generate(output, args[i], 0);
-        }
+        generate_log_values(output, args[i]);
     }
 
     fprintf(output, C_RPAREN C_SEMICOLON_NL);

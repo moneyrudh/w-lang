@@ -49,6 +49,9 @@ FunctionSymbol* lookup_function(const char* name);
 // result type of `left op right`; on a type error returns TYPE_ERROR and sets *error
 DataType operation_type(DataType left, DataType right, OperatorType op, const char** error);
 
+// the result type of a unary `op operand` (only `not` today), or TYPE_ERROR with *error set
+DataType unary_operation_type(DataType operand, OperatorType op, const char** error);
+
 // ==================== expressions.c ====================
 
 // checks an expression, stores its type in node->expr_type and returns it.
