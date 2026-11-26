@@ -45,6 +45,7 @@ static const OperatorCategory operator_categories[] = {
     [OP_AND] = OP_CAT_LOGICAL,
     [OP_OR]  = OP_CAT_LOGICAL,
     [OP_NOT] = OP_CAT_LOGICAL,
+    [OP_NEG] = OP_CAT_ARITHMETIC,
 };
 
 bool token_to_operator(TokenType token, OperatorType* out) {
@@ -67,7 +68,7 @@ static const char* const operator_symbols[] = {
     [OP_ADD] = "+",  [OP_SUB] = "-",  [OP_MUL] = "*",  [OP_DIV] = "/",
     [OP_EQ]  = "==", [OP_NE]  = "!=", [OP_LT]  = "<",  [OP_GT]  = ">",
     [OP_LE]  = "<=", [OP_GE]  = ">=",
-    [OP_AND] = "and", [OP_OR] = "or", [OP_NOT] = "not",
+    [OP_AND] = "and", [OP_OR] = "or", [OP_NOT] = "not", [OP_NEG] = "-",
 };
 
 const char* operator_symbol(OperatorType op) {

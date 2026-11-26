@@ -32,7 +32,7 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
 3. ✅ **`log` takes any expression.** Done: `log(x + 1)` prints `2` for `x = 1`, `log(f(), x > y)` work,
    `bool` prints `true` / `false` (D10), and one test covers every type × operator pair (D8, D9);
    pieces are separated by spaces as today.
-4. ⬜ **Unary minus.** Done: `-x`, `-3`, `-(a + b)`, `- -x` for `num` and `real`.
+4. ✅ **Unary minus.** Done: `-x`, `-3`, `-(a + b)`, `- -x` for `num` and `real`.
 5. ⬜ **`%` / `mod` modulo** for `num` (D1).
 6. ⬜ **`str + str`.** Done: concatenation produces a new string (needs a small runtime: allocation and
    freeing rules, D2): the generated C frees it, W code never does.

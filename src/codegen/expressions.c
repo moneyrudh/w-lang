@@ -134,7 +134,12 @@ void generate_binary_expr(FILE* output, ASTNode* node, int indent_level) {
 void generate_unary_expr(FILE* output, ASTNode* node, int indent_level) {
     if (!node || node->type != NODE_UNARY_EXPR) return;
 
-    // OP_NOT is currently the only unary operator
+    if (node->data.unary_expr.operator == OP_NEG) {
+        fprintf(output, C_NEG_OPEN);
+        generate(output, node->data.unary_expr.operand, indent_level);
+        fprintf(output, C_RPAREN);
+        return;
+    }
     fprintf(output, C_OP_NOT);
     generate_operand(output, node->data.unary_expr.operand, indent_level);
 }

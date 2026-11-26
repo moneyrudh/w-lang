@@ -108,7 +108,7 @@ Operators by type (every combination is checked by `tests/unit/type_rules.c`): `
 | `==` `eq` `is` · `!=` `ne` `is not` | ✅ | `is !x` means `== (!x)` |
 | `<` `lt` · `>` `gt` · `<=` `le` · `>=` `ge` | ✅ | `str` vs `str` emits `strcmp` |
 | `and` `&&` · `or` `\|\|` · `not` `!` | ✅ | `not` binds tightly like C's `!` |
-| Unary minus `-x` | 📐 | `dec x: num = -3` currently fails |
+| Unary minus `-x` | ✅ | `-3`, `-x`, `-(a + b)`, `x - -3`. On `num`, `real` and `chr` (`-'a'` is `-97`); `-true` is an error (D9). Two minus signs need a space, `- -x`: `--` starts a comment |
 | `%` modulo | 💭 | |
 | Ternary `cond ? a : b` | 💭 | Early drafts; may get a W-style spelling instead |
 

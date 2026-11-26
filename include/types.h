@@ -131,7 +131,9 @@ typedef enum {
 
     OP_AND,
     OP_OR,
-    OP_NOT
+    OP_NOT,
+
+    OP_NEG     // unary minus
 } OperatorType;
 
 typedef enum {
