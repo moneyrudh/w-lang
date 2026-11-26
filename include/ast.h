@@ -90,6 +90,7 @@ typedef struct ASTNode {
             char* name;
             DataType type;
             struct ASTNode* init_expr;
+            bool shadows_outer;   // set by the checker: an enclosing scope has the same name
         } var_declaration;
     } data;
     struct ASTNode* next;

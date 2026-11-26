@@ -103,6 +103,7 @@ typedef enum {
     TYPE_STR,
     TYPE_ZIL,
     TYPE_ERROR,     // internal: an error was already reported for this expression
+    TYPE_INFER,     // internal: `dec x := value`, replaced by the value's type in the checker
 
     TYPE_VEC,
     TYPE_MAP,

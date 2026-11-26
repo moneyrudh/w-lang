@@ -20,6 +20,14 @@ const char* mangle_identifier(const char* w_name, bool is_function) {
     return buffer;
 }
 
+// a temporary for a declaration that shadows an outer variable: W__name_init (no _v suffix, so
+// it can't collide with a W variable)
+const char* mangle_init_temp(const char* w_name) {
+    static char buffer[512];
+    snprintf(buffer, sizeof(buffer), "W__%s_init", w_name);
+    return buffer;
+}
+
 // ==================== output helpers ====================
 
 void emit_indent(FILE* out, int level) {

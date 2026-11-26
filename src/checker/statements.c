@@ -12,7 +12,15 @@ static void check_var_declaration(ASTNode* node) {
 
     // the initializer is checked first: it can't see the variable it initializes
     ASTNode* init = node->data.var_declaration.init_expr;
-    if (init) {
+    if (type == TYPE_INFER) {
+        // dec x := value: the variable takes the value's type
+        type = check_expression(init);
+        if (type == TYPE_ZIL) {
+            report_error(line, "Variable '%s' has no type to take: the call returns nothing (zil)", name);
+            type = TYPE_ERROR;
+        }
+        node->data.var_declaration.type = type;
+    } else if (init) {
         DataType init_type = check_expression(init);
         if (init_type != TYPE_ERROR && !compare_types(type, init_type)) {
             report_error(line, "Type mismatch in initialization: cannot assign %s to %s",
@@ -22,6 +30,13 @@ static void check_var_declaration(ASTNode* node) {
 
     if (type == TYPE_ZIL) {
         report_error(line, "Variable '%s' can't be zil", name);
+    }
+    // (an inferred type of TYPE_ERROR is declared as is: uses of it report nothing more)
+
+    // `dec n := n + 1` in an inner block reads the outer n. In C the new variable is already in
+    // scope in its own initializer, so codegen has to compute the value before declaring it
+    if (lookup_variable(name)) {
+        node->data.var_declaration.shadows_outer = true;
     }
 
     // declared even after a type error, so later uses don't cascade into "undefined" errors
@@ -44,7 +59,8 @@ static void check_assignment(ASTNode* node) {
     }
     node->data.assignment.target_type = symbol->type;
 
-    if (value_type != TYPE_ERROR && !compare_types(symbol->type, value_type)) {
+    // a variable whose type is already an error (dec n := missing) was reported where it was declared
+    if (value_type != TYPE_ERROR && symbol->type != TYPE_ERROR && !compare_types(symbol->type, value_type)) {
         report_error(line, "Type mismatch in assignment to '%s': cannot assign %s to %s",
                      target, get_wlang_type_from_enum(value_type), get_wlang_type_from_enum(symbol->type));
     }

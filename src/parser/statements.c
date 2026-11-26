@@ -21,7 +21,7 @@ DataType parse_type_specifier(void) {
 
 // ==================== variables ====================
 
-// dec name: type [= expr]
+// dec name: type [= expr]   or   dec name := expr (the type is the value's)
 ASTNode* parse_variable_declaration(void) {
     SourceLocation loc = current_location();
     eat(DEC);
@@ -34,8 +34,17 @@ ASTNode* parse_variable_declaration(void) {
     char* name = strdup(yylval.string);
     eat(IDENTIFIER);
 
+    if (token == INFER_ASSIGN) {
+        eat(INFER_ASSIGN);
+        ASTNode* init_expr = parse_expression();
+        expect_end_of_statement();
+        ASTNode* node = create_var_declaration_node(name, TYPE_INFER, init_expr, loc);
+        free(name);
+        return node;
+    }
+
     if (token != COLON) {
-        parser_error("Expected ':' after variable name in declaration");
+        parser_error("Expected ':' or ':=' after variable name in declaration");
         skip_rest_of_line();
         free(name);
         return NULL;
@@ -53,6 +62,8 @@ ASTNode* parse_variable_declaration(void) {
     if (token == ASSIGNMENT) {
         eat(ASSIGNMENT);
         init_expr = parse_expression();
+    } else if (token == INFER_ASSIGN) {
+        parser_error("Use '=' after a type (':=' is for leaving the type out: dec x := 5)");
     }
 
     expect_end_of_statement();

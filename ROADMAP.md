@@ -36,7 +36,7 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
 5. ⬜ **`%` / `mod` modulo** for `num` (D1).
 6. ⬜ **`str + str`.** Done: concatenation produces a new string (needs a small runtime: allocation and
    freeing rules, D2): the generated C frees it, W code never does.
-7. ⬜ **`dec x := 5`** type inference. Done: the type comes from the initializer; `:=` without a
+7. ✅ **`dec x := 5`** type inference. Done: the type comes from the initializer; `:=` without a
    value is an error.
 8. ⬜ **Global variables** (`dec` at top level). Done: readable and assignable from every function;
    initializers must be constant.
@@ -74,4 +74,6 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
 - ⬜ Fuzzer oracle: every program `wlang check` accepts must produce C that compiles.
 - ⬜ Deeply indented input is slow: 3,000 nested blocks (an 18 MB file, far past the 100-level limit)
   take ~17 s to reject. Find the quadratic step.
+- ⬜ `mangle_identifier()` uses a fixed 512-byte buffer: names over ~500 characters are truncated and
+  two such names with the same start collide. Limit name length in the lexer, or emit names directly.
 - ⬜ Release script: tag, GitHub release, bump the Homebrew formula (still asks before running).

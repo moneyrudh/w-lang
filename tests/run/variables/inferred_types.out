@@ -1,0 +1,3 @@
+num 5, real 2.500000, chr w, str text, bool true => 5 2.500000 w text true
+square(5) 25, n + r 7.500000, -n -5 => 25 7.500000 -5
+n 7, mixed 15.000000 => 7 15.000000
