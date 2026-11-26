@@ -60,6 +60,7 @@
 #define C_OP_DIVIDE           "/"
 #define C_OP_NOT              "!"
 #define C_NOT_OPEN            "!("
+#define C_NEG_OPEN            "-("   // always parenthesized: - -x must not become --x
 
 // ===== string escape sequences (for code generation) =====
 #define C_ESC_NEWLINE         "\\n"

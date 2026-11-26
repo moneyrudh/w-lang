@@ -59,8 +59,9 @@ static const Table TABLES[] = {
     }},
 };
 
-// unary `not x` for each type, in TYPES order
+// unary operators for each type, in TYPES order:         num     real    chr    str  bool zil
 static const char* const NOT_RESULTS[TYPE_COUNT] = {"bool", "bool", "bool", "-", "bool", "-"};
+static const char* const NEG_RESULTS[TYPE_COUNT] = {"num",  "real", "num",  "-", "-",    "-"};   // D9: no -bool
 
 static const char* type_name(DataType type) {
     for (int i = 0; i < TYPE_COUNT; i++) {
@@ -95,15 +96,21 @@ int main(void) {
             }
         }
     }
-    for (int t = 0; t < TYPE_COUNT; t++) {
-        const char* error = NULL;
-        DataType result = unary_operation_type(TYPES[t], OP_NOT, &error);
-        const char* actual = (result == TYPE_ERROR) ? "-" : type_name(result);
-        checked++;
-        bool consistent = (result == TYPE_ERROR) == (error != NULL);
-        if (strcmp(actual, NOT_RESULTS[t]) != 0 || !consistent) {
-            failed++;
-            printf("FAIL  type rules: not %s: expected %s, got %s\n", NAMES[t], NOT_RESULTS[t], actual);
+    const struct { OperatorType op; const char* const* results; } UNARY[] = {
+        {OP_NOT, NOT_RESULTS}, {OP_NEG, NEG_RESULTS},
+    };
+    for (size_t u = 0; u < sizeof(UNARY) / sizeof(UNARY[0]); u++) {
+        for (int t = 0; t < TYPE_COUNT; t++) {
+            const char* error = NULL;
+            DataType result = unary_operation_type(TYPES[t], UNARY[u].op, &error);
+            const char* actual = (result == TYPE_ERROR) ? "-" : type_name(result);
+            checked++;
+            bool consistent = (result == TYPE_ERROR) == (error != NULL);
+            if (strcmp(actual, UNARY[u].results[t]) != 0 || !consistent) {
+                failed++;
+                printf("FAIL  type rules: %s %s: expected %s, got %s\n", operator_symbol(UNARY[u].op),
+                       NAMES[t], UNARY[u].results[t], actual);
+            }
         }
     }
 

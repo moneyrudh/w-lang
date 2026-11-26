@@ -87,6 +87,17 @@ static ASTNode* parse_factor(void) {
                 expression_depth--;
                 return create_unary_expr_node(OP_NOT, operand, loc);
             }
+        case MINUS:
+            {
+                // unary minus: -x, -3, -(a + b). (Two minus signs need a space, `- -x`:
+                // `--` starts a comment.)
+                if (too_deep()) return NULL;
+                eat(MINUS);
+                expression_depth++;
+                ASTNode* operand = parse_factor();
+                expression_depth--;
+                return create_unary_expr_node(OP_NEG, operand, loc);
+            }
         default: {
             char error_msg[100];
             snprintf(error_msg, sizeof(error_msg), "Expected a value, got %s", token_registry_describe(token));

@@ -128,7 +128,7 @@ tests/run.sh loops # only tests whose path contains "loops" (a feature folder or
 - **Before a step starts, its plan is approved by the user**, including any `DECISIONS.md` items it needs. Don't pick syntax or keywords on your own.
 - Within an approved step, for each task:
   1. `git checkout develop && git pull`, then branch `money/<topic>`.
-  2. Implement, add tests (they must fail without the change when they cover a bug), keep `docs/LANGUAGE.md` current.
+  2. Implement, add tests (they must fail without the change when they cover a bug), keep `docs/LANGUAGE.md` current. **When replacing how a feature works, first add tests that pin what it does today** (every case it handles, not just the new ones): the `log` rewrite lost `str + str` and escapes because only the new behaviour was tested.
   3. `make test`, `make test-asan`, `make analyze` locally; push and open a PR into `develop`.
   4. Run an independent review (fresh-eyes review skill), fix what's real.
   5. Merge only when every CI check is green: `gh pr merge <n> --merge --admin --delete-branch`. `--admin` is needed because the ruleset's one approving review can't be given on the user's own PRs, but it also skips required checks, so never run it while CI is red or pending. Then pull `develop` and check the task off in `ROADMAP.md`.

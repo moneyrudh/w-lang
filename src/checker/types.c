@@ -100,7 +100,6 @@ DataType operation_type(DataType left, DataType right, OperatorType op, const ch
 }
 
 DataType unary_operation_type(DataType operand, OperatorType op, const char** error) {
-    (void)op;   // OP_NOT is the only unary operator so far
     if (operand == TYPE_ZIL) {
         *error = "zil has no value (it's the result of a call that returns nothing)";
         return TYPE_ERROR;
@@ -109,5 +108,15 @@ DataType unary_operation_type(DataType operand, OperatorType op, const char** er
         *error = "can't be used on str";
         return TYPE_ERROR;
     }
-    return TYPE_BOOL;
+
+    // unary minus: a number. A chr becomes num (-'a' is -97), like chr arithmetic
+    if (op == OP_NEG) {
+        if (operand == TYPE_BOOL) {
+            *error = "can't do arithmetic on bool";   // D9
+            return TYPE_ERROR;
+        }
+        return operand == TYPE_REAL ? TYPE_REAL : TYPE_NUM;
+    }
+
+    return TYPE_BOOL;   // not
 }

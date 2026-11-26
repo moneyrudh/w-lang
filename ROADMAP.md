@@ -32,7 +32,7 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
 3. ✅ **`log` takes any expression.** Done: `log(x + 1)` prints `2` for `x = 1`, `log(f(), x > y)` work,
    `bool` prints `true` / `false` (D10), and one test covers every type × operator pair (D8, D9);
    pieces are separated by spaces as today.
-4. ⬜ **Unary minus.** Done: `-x`, `-3`, `-(a + b)`, `- -x` for `num` and `real`.
+4. ✅ **Unary minus.** Done: `-x`, `-3`, `-(a + b)`, `- -x` for `num` and `real`.
 5. ⬜ **`%` / `mod` modulo** for `num` (D1).
 6. ⬜ **`str + str`.** Done: concatenation produces a new string (needs a small runtime: allocation and
    freeing rules, D2): the generated C frees it, W code never does.
@@ -43,7 +43,8 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
 9. ⬜ **Per-path return checking.** Done: a `ret` inside only one branch of `say` no longer satisfies
    "must return a value".
 10. ⬜ **Integer literal range.** Done: a literal that doesn't fit `num` is an error instead of `atoi`'s
-   undefined result.
+   undefined result (`-2147483649` prints a positive number today); `-2147483648`, the smallest `num`,
+   works and its C compiles with `-Werror` (today it emits `-(-2147483648)`). Overflow at run time: D11.
 
 ## Step 3 — Data ⬜
 
@@ -71,4 +72,6 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
 - ⬜ Make `transpile()` re-entrant (no process-global state), then a libFuzzer target alongside the
   mutation fuzzer.
 - ⬜ Fuzzer oracle: every program `wlang check` accepts must produce C that compiles.
+- ⬜ Deeply indented input is slow: 3,000 nested blocks (an 18 MB file, far past the 100-level limit)
+  take ~17 s to reject. Find the quadratic step.
 - ⬜ Release script: tag, GitHub release, bump the Homebrew formula (still asks before running).
