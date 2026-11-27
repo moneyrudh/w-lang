@@ -31,37 +31,41 @@ bool check_type_known(DataType* type, int line) {
     return true;
 }
 
-// does `pod` contain `target` by value, directly or through other pods? (`seen` guards
-// against looping through a cycle that doesn't involve target)
-static bool contains(ASTNode* pod, ASTNode* target, ASTNode** seen, int seen_count, int capacity) {
+// a pod that contains itself by value (directly or through other pods) would be infinitely big.
+// One depth-first walk over the pods: each is visited once, so this is linear in their fields.
+// A field leading back to a pod still being walked closes a cycle; it's reported at that pod
+typedef enum { NOT_VISITED, IN_PROGRESS, DONE } VisitState;
+
+static void find_cycles(ASTNode* pod, VisitState* state) {
+    int index = (int)pod->data.pod.type - TYPE_USER_BASE;
+    state[index] = IN_PROGRESS;
     for (Parameter* f = pod->data.pod.fields; f; f = f->next) {
         ASTNode* inner = is_user_type(f->type) ? user_type_pod(f->type) : NULL;
         if (!inner) continue;
-        if (inner == target) return true;
-        bool visited = false;
-        for (int i = 0; i < seen_count; i++) visited |= seen[i] == inner;
-        if (visited || seen_count == capacity) continue;
-        seen[seen_count] = inner;
-        if (contains(inner, target, seen, seen_count + 1, capacity)) return true;
+        int inner_index = (int)inner->data.pod.type - TYPE_USER_BASE;
+        if (state[inner_index] == IN_PROGRESS) {
+            report_error(inner->location.line, "Pod '%s' contains itself, so it would never end",
+                         inner->data.pod.name);
+        } else if (state[inner_index] == NOT_VISITED) {
+            find_cycles(inner, state);
+        }
     }
-    return false;
+    state[index] = DONE;
 }
 
 void declare_pods(ASTNode* pods) {
-    int count = 0;
     for (ASTNode* pod = pods; pod; pod = pod->next) {
         if (user_type_pod(pod->data.pod.type)) {
             report_error(pod->location.line, "Pod '%s' already declared", pod->data.pod.name);
             continue;
         }
         user_type_set_pod(pod->data.pod.type, pod);
-        count++;
     }
 
     for (ASTNode* pod = pods; pod; pod = pod->next) {
         if (user_type_pod(pod->data.pod.type) != pod) continue;   // a duplicate, reported above
-        int line = pod->location.line;
         for (Parameter* f = pod->data.pod.fields; f; f = f->next) {
+            int line = f->line;
             for (Parameter* g = pod->data.pod.fields; g != f; g = g->next) {
                 if (strcmp(f->name, g->name) == 0) {
                     report_error(line, "Pod '%s' has two fields named '%s'", pod->data.pod.name, f->name);
@@ -80,23 +84,24 @@ void declare_pods(ASTNode* pods) {
         }
     }
 
-    // a pod that contains itself would be infinitely big
-    ASTNode** seen = malloc(sizeof(ASTNode*) * (size_t)(count > 0 ? count : 1));
+    // cycles (one walk; every pod's type number is below TYPE_USER_BASE + user type count)
+    int max_index = 0;
+    for (ASTNode* pod = pods; pod; pod = pod->next) {
+        int index = (int)pod->data.pod.type - TYPE_USER_BASE;
+        if (index + 1 > max_index) max_index = index + 1;
+    }
+    VisitState* state = calloc((size_t)(max_index > 0 ? max_index : 1), sizeof(VisitState));
+    if (!state) {
+        report_error(0, "Out of memory");
+        return;
+    }
     for (ASTNode* pod = pods; pod; pod = pod->next) {
         if (user_type_pod(pod->data.pod.type) != pod) continue;
-        // once per cycle: skip a pod when an earlier pod is part of the same cycle
-        bool reported = false;
-        for (ASTNode* earlier = pods; earlier != pod; earlier = earlier->next) {
-            if (user_type_pod(earlier->data.pod.type) == earlier &&
-                contains(pod, earlier, seen, 0, count) && contains(earlier, pod, seen, 0, count)) {
-                reported = true;
-            }
-        }
-        if (!reported && contains(pod, pod, seen, 0, count)) {
-            report_error(pod->location.line, "Pod '%s' contains itself, so it would never end", pod->data.pod.name);
+        if (state[(int)pod->data.pod.type - TYPE_USER_BASE] == NOT_VISITED) {
+            find_cycles(pod, state);
         }
     }
-    free(seen);
+    free(state);
 }
 
 DataType check_field_access(ASTNode* node) {
@@ -142,10 +147,13 @@ DataType check_pod_literal(ASTNode* node, ASTNode* pod) {
             report_error(line, "Pod '%s' has no field '%s'", pod->data.pod.name, name);
             continue;
         }
+        // reported once per repeated name, at its second appearance
+        int earlier = 0;
         for (int j = 0; j < i; j++) {
-            if (names[j] && strcmp(names[j], name) == 0) {
-                report_error(line, "Field '%s' is given twice", name);
-                }
+            if (names[j] && strcmp(names[j], name) == 0) earlier++;
+        }
+        if (earlier == 1) {
+            report_error(line, "Field '%s' is given twice", name);
         }
         if (type != TYPE_ERROR && f->type != TYPE_ERROR && !compare_types(f->type, type)) {
             report_error(line, "Field '%s' of '%s': cannot use %s as %s", name, pod->data.pod.name,

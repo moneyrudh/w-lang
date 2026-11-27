@@ -47,11 +47,12 @@ bool in_panic(void) {
     return panicking;
 }
 
-static void begin_statement(void) {
+void start_statement(void) {
     panicking = false;
     statement_start = tokens_consumed;
     statement_token = token;
 }
+
 
 void parser_error(const char* message) {
     if (in_panic()) return;
@@ -91,6 +92,23 @@ void skip_rest_of_line(void) {
         advance();
     }
     if (token == NEWLINE) advance();
+}
+
+void skip_indented_block(void) {
+    if (token != INDENT) return;
+    int level = 0;
+    while (token != 0) {
+        if (token == INDENT) {
+            level++;
+        } else if (token == DEDENT) {
+            level--;
+            if (level == 0) {
+                advance();
+                return;
+            }
+        }
+        advance();
+    }
 }
 
 // after a statement with an error: move to the start of the next statement
@@ -134,7 +152,7 @@ ASTNode* parse_block(void) {
     ASTNode* head = NULL;
     ASTNode* tail = NULL;
     while (token != DEDENT && token != 0) {
-        begin_statement();
+        start_statement();
         ASTNode* statement = parse_statement();
         if (in_panic()) recover();
         if (!statement) continue;
@@ -212,6 +230,12 @@ static ASTNode* parse_one_statement(void) {
             free_ast(stray);
             return NULL;
         }
+        case POD:
+            // reported once; the pod's lines are skipped (they belong at the top level)
+            parser_error("Pods are declared at the top level, not inside a function");
+            skip_rest_of_line();
+            skip_indented_block();
+            return NULL;
         case LOG:
             return parse_log();
         case INT_LITERAL:
@@ -289,7 +313,7 @@ ASTNode* parse(void) {
     ASTNode* last_global = NULL;
     ASTNode* last_pod = NULL;
     while (token != 0) {
-        begin_statement();
+        start_statement();
 
         // an indented block where none belongs: one error, and its contents are still checked
         if (token == INDENT) {

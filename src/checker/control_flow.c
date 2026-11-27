@@ -1,5 +1,7 @@
 #include "checker/internal.h"
 #include "diagnostics.h"
+#include "user_types.h"
+#include "language/type_registry.h"
 #include "language/token_registry.h"
 
 static void check_condition(ASTNode* condition) {
@@ -9,6 +11,8 @@ static void check_condition(ASTNode* condition) {
     DataType type = check_expression(condition);
     if (type == TYPE_STR) {
         report_error(condition->location.line, "A condition can't be a str - compare it instead (e.g. name is \"bob\")");
+    } else if (is_user_type(type)) {
+        report_error(condition->location.line, "A condition can't be a pod (%s)", get_wlang_type_from_enum(type));
     } else if (type == TYPE_ZIL && condition->type == NODE_FUNCTION_CALL) {
         report_error(condition->location.line, "A condition can't be a call to a zil function");
     }

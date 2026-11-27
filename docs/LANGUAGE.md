@@ -88,20 +88,22 @@ pod Ball
     pos: Vec
     speed: real
 
-dec b := Ball(pos: Vec(x: 1, y: 2), speed: 3)
-b.pos.x = b.pos.x + b.speed
-log(b)                      -- Ball(pos: Vec(x: 4.000000, y: 2.000000), speed: 3.000000)
+fun w(): num
+    dec b := Ball(pos: Vec(x: 1, y: 2), speed: 3)
+    b.pos.x = b.pos.x + b.speed
+    log(b)                  -- Ball(pos: Vec(x: 4.000000, y: 2.000000), speed: 3.000000)
+    ret 0
 ```
 
 | Feature | Status | Notes |
 |---|---|---|
-| `pod Name` with `field: type` lines | ✅ | Top level only; at least one field. Fields are `num real chr bool` or another pod (`str` fields: roadmap 3.3). A pod can't contain itself |
+| `pod Name` with `field: type` lines | ✅ | Top level only (inside a function it's an error); at least one field. Fields are `num real chr bool` or another pod (`str` fields: roadmap 3.3). A pod can't contain itself |
 | Values: `Ball(pos: ..., speed: 3)` | ✅ | Every value names its field; left-out fields are zero; a value converts like an assignment (`num` → `real`) |
 | `b.x`, `b.pos.x`, `make().x` | ✅ | Reading fields of variables, calls and values |
 | `b.x = value` | ✅ | Assigning a field (of a field ...) of a variable |
 | Pods are values (D13) | ✅ | Assigning or passing a pod copies it; `dec b: Ball` with no value is all zero |
 | `log(pod)` | ✅ | Prints `Name(field: value, ...)` |
-| Operators on pods | ✅ | An error: use the fields |
+| Operators on pods | ✅ | An error: use the fields. A pod can't be a condition either |
 | `ref` parameters | 📐 | Roadmap 3.2 |
 
 ## 5. Variables

@@ -27,6 +27,7 @@ static Parameter* parse_parameter_list(int* param_count) {
         }
 
         char* param_name = strdup(yylval.string);
+        int param_line = token_line;
         eat(IDENTIFIER);
 
         // expect colon
@@ -39,6 +40,7 @@ static Parameter* parse_parameter_list(int* param_count) {
 
         Parameter* param = malloc(sizeof(Parameter));
         param->name = param_name;
+        param->line = param_line;
         param->type = parse_type_specifier();
         param->next = NULL;
 
@@ -87,7 +89,7 @@ ASTNode* parse_function(void) {
 
     // omitted return type means zil
     DataType return_type = TYPE_ZIL;
-    if (token_registry_is_type(token)) {
+    if (token_registry_is_type(token) || token == IDENTIFIER) {   // a pod's name too
         parser_error("Expected ':' before the return type");
     } else if (token == COLON) {
         eat(COLON);

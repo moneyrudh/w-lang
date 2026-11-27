@@ -9,9 +9,11 @@ typedef struct {
     const char* filename;
 } SourceLocation;
 
+// a function's parameter, or a pod's field
 typedef struct Parameter {
     char* name;
     DataType type;
+    int line;                  // where it's written, for errors about it
     struct Parameter* next;
 } Parameter;
 

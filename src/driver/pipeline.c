@@ -9,6 +9,7 @@
 #include "checker.h"
 #include "codegen.h"
 #include "diagnostics.h"
+#include "user_types.h"
 #include "language/type_registry.h"
 #include "language/token_registry.h"
 
@@ -45,6 +46,7 @@ bool transpile(const char* input_path, FILE* output) {
 
     token_registry_cleanup();
     type_registry_cleanup();
+    user_types_cleanup();
 
     return ok;
 }

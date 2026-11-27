@@ -1,4 +1,4 @@
--- error: line 2: Field 'a' can't be zil
+-- error: line 3: Field 'a' can't be zil
 pod P
     a: zil
 

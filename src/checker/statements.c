@@ -28,7 +28,7 @@ static void check_var_declaration(ASTNode* node) {
         node->data.var_declaration.type = type;
     } else if (init) {
         DataType init_type = check_expression(init);
-        if (init_type != TYPE_ERROR && !compare_types(type, init_type)) {
+        if (init_type != TYPE_ERROR && type != TYPE_ERROR && !compare_types(type, init_type)) {
             report_error(line, "Type mismatch in initialization: cannot assign %s to %s",
                          get_wlang_type_from_enum(init_type), get_wlang_type_from_enum(type));
         }
@@ -89,6 +89,11 @@ static bool has_text_operation(ASTNode* expr) {
                    has_text_operation(expr->data.binary_expr.right);
         case NODE_UNARY_EXPR:
             return has_text_operation(expr->data.unary_expr.operand);
+        case NODE_FUNCTION_CALL:   // a pod value: look inside its values
+            for (int i = 0; i < expr->data.function_call.arg_count; i++) {
+                if (has_text_operation(expr->data.function_call.args[i])) return true;
+            }
+            return false;
         default:
             return false;
     }
@@ -144,6 +149,11 @@ static bool divides_by_zero(ASTNode* expr) {
         }
         case NODE_UNARY_EXPR:
             return divides_by_zero(expr->data.unary_expr.operand);
+        case NODE_FUNCTION_CALL:   // a pod value: look inside its values
+            for (int i = 0; i < expr->data.function_call.arg_count; i++) {
+                if (divides_by_zero(expr->data.function_call.args[i])) return true;
+            }
+            return false;
         default:
             return false;
     }
@@ -157,6 +167,7 @@ void check_global(ASTNode* node) {
     const char* name = node->data.var_declaration.name;
 
     if (uses_names(init)) {
+        check_type_known(&node->data.var_declaration.type, node->location.line);
         report_error(node->location.line, GLOBAL_NOT_CONSTANT, name);
         // still declared, so functions using it don't add "undefined" errors
         if (node->data.var_declaration.type == TYPE_INFER) {

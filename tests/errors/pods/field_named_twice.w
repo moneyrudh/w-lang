@@ -1,4 +1,4 @@
--- error: line 2: Pod 'P' has two fields named 'a'
+-- error: line 4: Pod 'P' has two fields named 'a'
 pod P
     a: num
     a: real

@@ -148,16 +148,29 @@ static void generate_log_values(FILE* output, ASTNode* value) {
 
 // log(a, b, ...) -> printf("<spec a> <spec b> ...\n", a, b, ...). Every value, strings included,
 // is a printf argument, so a '%' in W text can't be read as a format directive
-// log with a pod among its values: plain values go through printf in runs, each pod through its
-// print function (W__Ball_print), with the same single spaces between values
+// log with a pod among its values. Each value is worked out first, in order, into a local
+// (W__log0, W__log1, ...): a call in a later value can't print in the middle of the line. Then
+// plain values go through printf in runs, each pod through its print function (W__Ball_print),
+// with the same single spaces between values.
+//   { W__Ball_p W__log0 = W__make_f(4); int W__log1 = 7;
+//     W__Ball_print(W__log0); printf(" %d", W__log1); printf("\n"); }
 static void generate_log_with_pods(FILE* output, ASTNode** args, int arg_count, int indent_level) {
+    emit_indent(output, indent_level);
+    fprintf(output, C_BLOCK_OPEN);
+    for (int i = 0; i < arg_count; i++) {
+        emit_indent(output, indent_level + 1);
+        fprintf(output, "%s " C_LOG_VALUE C_ASSIGN, get_c_type_from_enum(args[i]->expr_type), i);
+        generate(output, args[i], 0);
+        fprintf(output, C_SEMICOLON_NL);
+    }
+
     int i = 0;
     while (i < arg_count) {
-        emit_indent(output, indent_level);
+        emit_indent(output, indent_level + 1);
         if (is_user_type(args[i]->expr_type)) {
             if (i > 0) fprintf(output, C_PRINTF C_LPAREN C_STRING_QUOTE C_SPACE C_STRING_QUOTE C_RPAREN C_SEMICOLON " ");
-            generate_pod_print(output, args[i]);
-            fprintf(output, C_SEMICOLON_NL);
+            fprintf(output, C_POD_PRINT_FORMAT C_LPAREN C_LOG_VALUE C_RPAREN C_SEMICOLON_NL,
+                    user_type_name(args[i]->expr_type), i);
             i++;
             continue;
         }
@@ -166,17 +179,24 @@ static void generate_log_with_pods(FILE* output, ASTNode** args, int arg_count, 
         fprintf(output, C_PRINTF C_LPAREN C_STRING_QUOTE);
         for (int j = i; j < run_end; j++) {
             if (j > 0) fputs(C_SPACE, output);
-            generate_log_format(output, args[j]);
+            fputs(get_format_spec_from_enum(args[j]->expr_type), output);
         }
         fprintf(output, C_STRING_QUOTE);
         for (int j = i; j < run_end; j++) {
-            generate_log_values(output, args[j]);
+            fputs(C_COMMA, output);
+            if (args[j]->expr_type == TYPE_BOOL) {
+                fprintf(output, C_BOOL_TO_TEXT_OPEN C_LOG_VALUE C_BOOL_TO_TEXT_CLOSE, j);
+            } else {
+                fprintf(output, C_LOG_VALUE, j);
+            }
         }
         fprintf(output, C_RPAREN C_SEMICOLON_NL);
         i = run_end;
     }
-    emit_indent(output, indent_level);
+    emit_indent(output, indent_level + 1);
     fprintf(output, C_PRINTF C_LPAREN C_STRING_QUOTE C_ESC_NEWLINE C_STRING_QUOTE C_RPAREN C_SEMICOLON_NL);
+    emit_indent(output, indent_level);
+    fprintf(output, C_RBRACE);
 }
 
 void generate_log_statement(FILE* output, ASTNode* node, int indent_level) {

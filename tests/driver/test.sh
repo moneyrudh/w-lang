@@ -262,6 +262,33 @@ PY
 rm -f flat.w flat
 finish
 
+# ==================== checking stays fast ====================
+
+# 200 pods in a chain, each with 3 fields of the next: a check that walks every path through
+# them (instead of every pod) would take forever
+begin "checking many nested pods is fast"
+python3 - > chain.w <<'PY'
+n = 200
+for i in range(n):
+    print(f"pod P{i}")
+    for f in "abc":
+        print(f"    {f}: P{i + 1}" if i + 1 < n else f"    {f}: num")
+    print()
+print("fun w(): num\n    ret 0")
+PY
+verdict=$(python3 - "$WLANG" "$CASE/chain.w" <<'PY'
+import subprocess, sys
+try:
+    r = subprocess.run([sys.argv[1], "check", sys.argv[2]], capture_output=True, timeout=10)
+    print(f"exit {r.returncode}")
+except subprocess.TimeoutExpired:
+    print("took over 10 s")
+PY
+)
+[ "$verdict" = "exit 0" ] || problem "wlang check: $verdict"
+rm -f chain.w
+finish
+
 # ==================== -O2 keeps the program's meaning ====================
 
 # a loop with no visible effects whose condition never becomes false must keep running: C lets

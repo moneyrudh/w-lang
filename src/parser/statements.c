@@ -99,6 +99,8 @@ ASTNode* parse_pod(void) {
 
     if (token != IDENTIFIER) {
         parser_error("Expected the pod's name after 'pod'");
+        skip_rest_of_line();
+        skip_indented_block();   // its fields, unreported: they'd only cascade
         return NULL;
     }
     char* name = strdup(yylval.string);
@@ -123,12 +125,14 @@ ASTNode* parse_pod(void) {
     Parameter* tail = NULL;
     int count = 0;
     while (token != DEDENT && token != 0) {
+        start_statement();   // each field line reports its own error
         if (token != IDENTIFIER) {
             parser_error("Expected a field: name: type");
             skip_rest_of_line();
             continue;
         }
         char* field_name = strdup(yylval.string);
+        int field_line = token_line;
         eat(IDENTIFIER);
         if (!eat(COLON)) {
             free(field_name);
@@ -146,6 +150,7 @@ ASTNode* parse_pod(void) {
         Parameter* field = malloc(sizeof(Parameter));
         field->name = field_name;
         field->type = field_type;
+        field->line = field_line;
         field->next = NULL;
         if (tail) tail->next = field; else head = field;
         tail = field;

@@ -118,6 +118,11 @@
 #define C_RETURN_ZERO_NL      "return 0;\n"   // a w() with no return type exits with 0
 #define C_TYPEDEF_STRUCT      "typedef struct "
 #define C_POD_PRINT_FORMAT    "W__%s_print"   // a pod's print function, for log
+#define C_LOG_VALUE           "W__log%d"      // a log value worked out before printing
+#define C_FIELD_SELECT        ".%s"           // .W__x_m
+#define C_PRINT_PARAM         "(%s v)"        // a pod print function's parameter
+#define C_PRINT_FIELD_OF_V    "v.%s"
+#define C_LIST_SEPARATOR      ", "
 #define C_INIT_OPEN           "{ "
 #define C_INIT_CLOSE          " }"
 #define C_VOID_CAST           "(void)"

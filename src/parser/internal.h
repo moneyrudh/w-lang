@@ -44,6 +44,12 @@ bool eat(TokenType _token);
 // error recovery: drop the rest of the current line (closing any brackets left open)
 void skip_rest_of_line(void);
 
+// error recovery: drop an indented block (from its INDENT to the matching DEDENT), if one is next
+void skip_indented_block(void);
+
+// a new statement-like unit (e.g. each field line of a pod) gets its own one error
+void start_statement(void);
+
 // a statement ends at the end of its line
 void expect_end_of_statement(void);
 
