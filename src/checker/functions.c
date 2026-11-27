@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "checker.h"
 #include "checker/internal.h"
 #include "diagnostics.h"
@@ -101,7 +103,12 @@ void check_function(ASTNode* function) {
     check_statements(function->data.function.body);
     pop_scope();
 
-    if (return_type != TYPE_ZIL && !checker_context.has_return) {
+    // a w() whose return type was already rejected (checker.c) gets no second error about it
+    bool rejected_entry_point = strcmp(name, "w") == 0 && return_type != TYPE_NUM && return_type != TYPE_ZIL;
+
+    if (rejected_entry_point) {
+        // reported once, as the entry point's error
+    } else if (return_type != TYPE_ZIL && !checker_context.has_return) {
         report_error(line, "Function '%s' with return type '%s' must return a value",
                      name, get_wlang_type_from_enum(return_type));
     } else if (return_type != TYPE_ZIL && !always_returns(function->data.function.body)) {
@@ -124,7 +131,7 @@ void check_return(ASTNode* node) {
     if (return_type == TYPE_ZIL) {
         if (value) {
             check_expression(value);
-            report_error(line, "Function '%s' declared as void, cannot return a value", name);
+            report_error(line, "Function '%s' returns nothing (no return type), so 'ret' can't have a value", name);
         }
         return;
     }

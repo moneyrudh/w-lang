@@ -20,7 +20,7 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
 - ✅ CI on every PR and push: build with `-Werror`, tests, sanitizers (leaks on Linux), static analyzer, fuzzer
 - ✅ `ROADMAP.md`, `DECISIONS.md`, and the working process in `CLAUDE.md`
 
-## Step 2 — Finish the core language 🔨
+## Step 2 — Finish the core language ✅
 
 1. ✅ **Parser error recovery.** Done: an unclosed `(` / `[` / `{` reports `'(' was never closed`
    where it opened when a statement or the end of the file follows (a line starting with a name is
@@ -50,8 +50,8 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
 11. ✅ **Traces** (D12). Done: a run-time error prints the W call chain (function and line of each
    call), like Python's traceback; the generated C keeps a small call stack; `wlang` compiles with
    `-O2` by default.
-12. ⬜ **Small fixes from reviews:** `fun w()` without a return type exits 0 (today `void main`, garbage
-   exit code); unused parameters don't make the generated C warn.
+12. ✅ **Small fixes from reviews:** `fun w()` without a return type exits with 0; `w()` must return `num`
+   or nothing and takes no parameters; unused parameters don't make the generated C warn.
 
 ## Step 3 — Data ⬜
 
@@ -83,6 +83,4 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
   take ~17 s to reject. Find the quadratic step.
 - ⬜ `mangle_identifier()` uses a fixed 512-byte buffer: names over ~500 characters are truncated and
   two such names with the same start collide. Limit name length in the lexer, or emit names directly.
-- ⬜ `fun w()` (zil) becomes `void main` with a garbage exit code: emit `int main` returning 0.
-- ⬜ Unused parameters warn under `-Wunused-parameter`: mark them `(void)` in the generated C.
 - ⬜ Release script: tag, GitHub release, bump the Homebrew formula (still asks before running).

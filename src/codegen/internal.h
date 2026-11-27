@@ -53,6 +53,8 @@ void generate_function_declaration(FILE* output, ASTNode* node);
 // the globals list, so w() (main) can initialize str globals; and the current function's return type
 void set_program_globals(ASTNode* globals);
 DataType current_return_type(void);
+// a `fun w()` without a return type: its main() returns 0
+bool current_is_zil_entry_point(void);
 
 // ==================== control_flow.c ====================
 
