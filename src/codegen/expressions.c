@@ -191,11 +191,11 @@ void generate_function_call(FILE* output, ASTNode* node, int indent_level) {
         emit_indent(output, indent_level);
     }
 
-    fprintf(output, "%s" C_LPAREN, mangle_identifier(node->data.function_call.name, true));
+    // the call's line goes first, for traces (formatters.c: every W function takes it)
+    fprintf(output, "%s" C_LPAREN "%d", mangle_identifier(node->data.function_call.name, true),
+            node->location.line);
     for (int i = 0; i < node->data.function_call.arg_count; i++) {
-        if (i > 0) {
-            fprintf(output, C_COMMA);
-        }
+        fprintf(output, C_COMMA);
         generate(output, node->data.function_call.args[i], 0);
     }
     fprintf(output, C_RPAREN);

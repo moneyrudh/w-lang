@@ -262,6 +262,27 @@ PY
 rm -f flat.w flat
 finish
 
+# ==================== -O2 keeps the program's meaning ====================
+
+# a loop with no visible effects whose condition never becomes false must keep running: C lets
+# an optimizer assume such a loop ends, so wlang must not emit one the compiler may delete
+begin "an endless loop with no effects keeps running at -O2"
+printf 'fun w(): num\n    dec x := 1\n    loop while x > 0\n        x = x * 1\n    log("after")\n    ret 0\n' > endless.w
+wl build endless.w -o endless
+expect_status 0
+verdict=$(python3 - "$CASE/endless" <<'PY'
+import subprocess, sys
+try:
+    r = subprocess.run([sys.argv[1]], capture_output=True, timeout=2)
+    print(f"stopped after {r.returncode} with {r.stdout!r}")
+except subprocess.TimeoutExpired:
+    print("still running")
+PY
+)
+[ "$verdict" = "still running" ] || problem "expected the loop to keep running; the program $verdict"
+rm -f endless.w endless
+finish
+
 # ==================== make install ====================
 
 begin "make install and uninstall"

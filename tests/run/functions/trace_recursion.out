@@ -1,0 +1,17 @@
+W error on line 5: division by zero
+  in countdown, line 5
+  called from countdown, line 6
+  called from countdown, line 6
+  called from countdown, line 6
+  called from countdown, line 6
+  called from countdown, line 6
+  called from countdown, line 6
+  called from countdown, line 6
+  called from countdown, line 6
+  called from countdown, line 6
+  ... 87 more calls ...
+  called from countdown, line 6
+  called from countdown, line 6
+  called from countdown, line 6
+  called from countdown, line 6
+  called from w, line 9

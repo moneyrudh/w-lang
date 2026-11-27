@@ -173,6 +173,8 @@ loop until n >= 5, n = n + 1
 | Feature | Status | Notes |
 |---|---|---|
 | `wlang` CLI | ✅ | See below. Exits 1 on any W error and writes nothing; 2 on a bad command line. Syntax errors are reported first; type errors only once there are none, so one typo doesn't cascade. Each broken statement gives one syntax error and parsing continues on the next line, so several mistakes are reported in one run. An unclosed bracket is reported on the line where it opened when the next line starts a statement (`dec`, `ret`, `say`, `loop`, …) or the file ends |
+| Run-time errors and traces | ✅ | A run-time error (division or modulo by zero) stops the program and prints the chain of W calls that led to it, innermost first (`in average, line 4` / `called from update, line 7` / …). Up to 20 calls are all shown; a longer chain shows its 10 innermost and 5 outermost. Always on (D12) |
+| Optimization | ✅ | `wlang` compiles the generated C with `-O2`: programs run faster, compiling takes longer (noticeable only for very large functions, e.g. ~1.7 s for 2,000 statements). The C is written so the optimizer can't change what a program does |
 | Nesting limits | ✅ | Expressions: 150 levels, counting the expression itself, each `(`, `not` and call inside it, and each operator in a chain (so at most 149 nested parentheses). Statements: 100 levels counting the function body (so 99 nested blocks inside a function). A conditional: 1,000 branches. Past any of them, one error instead of a crash; together they keep the generated C within what clang accepts (256 nested brackets, and a long `else if` chain) |
 | Program arguments | 🚧 | Passed to the program, but W can't read them yet (💭) |
 

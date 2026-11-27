@@ -42,15 +42,20 @@ void emit_c_includes(FILE* out) {
 
 // ==================== function generation ====================
 
-// "type name, type name" or "void"
-static void emit_parameter_list(FILE* out, Parameter* params, int param_count) {
-    if (param_count == 0) {
+// "type name, type name" or "void". Every W function but main() first takes the caller's
+// line (int W__line), for traces
+static void emit_parameter_list(FILE* out, const char* name, Parameter* params, int param_count) {
+    bool call_line = strcmp(name, C_MAIN) != 0;
+    if (param_count == 0 && !call_line) {
         fprintf(out, C_VOID);
         return;
     }
 
+    if (call_line) {
+        fprintf(out, C_CALL_LINE_PARAM);
+    }
     for (Parameter* param = params; param != NULL; param = param->next) {
-        if (param != params) {
+        if (param != params || call_line) {
             fprintf(out, C_COMMA);
         }
         fprintf(out, "%s %s", get_c_type_from_enum(param->type),
@@ -61,14 +66,14 @@ static void emit_parameter_list(FILE* out, Parameter* params, int param_count) {
 void emit_function_signature(FILE* out, const char* return_type, const char* name,
                              Parameter* params, int param_count) {
     fprintf(out, "%s %s" C_LPAREN, return_type, name);
-    emit_parameter_list(out, params, param_count);
+    emit_parameter_list(out, name, params, param_count);
     fprintf(out, C_RPAREN C_LBRACE);
 }
 
 void emit_function_declaration(FILE* out, const char* return_type, const char* name,
                                 Parameter* params, int param_count) {
     fprintf(out, "%s %s" C_LPAREN, return_type, name);
-    emit_parameter_list(out, params, param_count);
+    emit_parameter_list(out, name, params, param_count);
     fprintf(out, C_RPAREN C_SEMICOLON_NL);
 }
 

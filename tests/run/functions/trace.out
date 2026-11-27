@@ -1,0 +1,5 @@
+starting
+W error on line 4: division by zero
+  in average, line 4
+  called from update, line 7
+  called from w, line 12
