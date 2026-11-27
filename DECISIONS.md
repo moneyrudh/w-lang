@@ -59,7 +59,7 @@ Drafts disagree: `vec[num]` vs `vec(num)`.
   `-2147483648`), like Java and Go. The generated C does `+ - * -x` on unsigned values, so it's
   defined behaviour on every C compiler, at no cost.
 - **Division by zero** (2026-11-27): `/` and `%` on whole numbers stop the program with the W line
-  (`W error on line 7: division by zero`) instead of crashing. The generated C checks the divisor
+  (`W error on line 7: division by zero`, `modulo by zero` for `%`) instead of crashing. The generated C checks the divisor
   (`W__div`). `real` division follows C (`1.0 / 0` is infinity).
 - **D12. Traces** (2026-11-27): run-time errors print the chain of W calls that led to them, like
   Python's traceback; always on (a later `wlang build --release` may turn them off).

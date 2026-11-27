@@ -70,8 +70,8 @@ void generate_loop_jump(FILE* output, ASTNode* node, int indent_level);
 
 void emit_arithmetic_runtime(FILE* output);
 
-// emits a num + - * / % and returns true; false (nothing emitted) for anything else, or inside
-// a global's value, which must stay a plain C constant
+// emits a num + - * / % and returns true; false (nothing emitted) for anything else. Inside a
+// global's value (a C constant) / and % don't call W__div
 bool generate_num_arithmetic(FILE* output, ASTNode* binary_expr, bool in_global);
 void generate_num_negation(FILE* output, ASTNode* operand);
 

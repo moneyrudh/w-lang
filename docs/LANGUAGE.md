@@ -58,7 +58,7 @@ Gotcha: `x--1` is `x` followed by a comment.
 
 | W Lang | C | Status | Notes |
 |---|---|---|---|
-| `num` | `int` | ✅ | -2147483648 to 2147483647. A literal outside that is an error (`-2147483648` itself works: a `-` written before a number is part of it). Arithmetic wraps around on overflow (`2147483647 + 1` is `-2147483648`), as in Java and Go (D11). Dividing by zero (`/` or `%`) stops the program: `W error on line N: division by zero` |
+| `num` | `int` | ✅ | -2147483648 to 2147483647. A literal outside that is an error (`-2147483648` itself works: a `-` written before a number is part of it). Arithmetic wraps around on overflow (`2147483647 + 1` is `-2147483648`), as in Java and Go (D11). Dividing by zero stops the program: `W error on line N: division by zero` (`modulo by zero` for `%`) |
 | `real` | `float` | ✅ | Up to about 3.4e38; a larger literal is an error |
 | `chr` | `char` | ✅ | Escapes `\n \t \\ \' \"` |
 | `str` | `char*` | ✅ | Literals, variables, comparison, `a + b` anywhere. Escapes `\n \t \\ \' \"` (an unknown one like `\q` is kept as written). Memory is handled for you: each variable owns its own copy of its text, which is freed when it's replaced or its block ends; joined text in the middle of an expression is freed after the statement. Memory stays flat in loops |
@@ -112,7 +112,7 @@ Operators by type (every combination is checked by `tests/unit/type_rules.c`): `
 | `%` / `mod` | ✅ | Remainder of whole-number division (`num`, `chr`; not `real`). Same precedence as `*` and `/`. The sign follows the left side, as in C: `-17 % 5` is `-2` |
 | Ternary `cond ? a : b` | 💭 | Early drafts; may get a W-style spelling instead |
 
-Precedence, lowest to highest: `or` → `and` → equality → comparison → `+ -` → `* /` → unary.
+Precedence, lowest to highest: `or` → `and` → equality → comparison → `+ -` → `* / %` → unary.
 
 ## 8. Output
 

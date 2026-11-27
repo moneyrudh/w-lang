@@ -82,7 +82,7 @@ static bool has_text_operation(ASTNode* expr) {
 }
 
 // the value of a constant integer expression (num / chr literals and + - * / and unary -),
-// or false when it isn't one or overflows (run-time overflow is undecided, D11)
+// or false when it isn't one or overflows a long long (only used to find a constant zero divisor)
 static bool constant_int(ASTNode* expr, long long* out) {
     long long a, b;
     switch (expr->type) {

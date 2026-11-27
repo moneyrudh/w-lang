@@ -6,8 +6,9 @@
 //    W__div(a, b, line). -2147483648 / -1 wraps too (to -2147483648).
 // real arithmetic is plain C (1.0 / 0 is infinity, as in C).
 //
-// A global's value is a C constant, so it uses plain operators: C folds them before the
-// program starts, and the checker has made sure no constant divisor is zero.
+// A global's value must be a C constant, so it can't call W__div. + - * use the same wrap form
+// (it's a constant expression); / and % become ((b) == -1 ? <wrapped> : (a) / (b)), which is
+// constant too. The checker has made sure no constant divisor is zero.
 
 #include <stdio.h>
 
@@ -47,13 +48,36 @@ static void generate_arith_operand(FILE* output, ASTNode* operand, DataType resu
     fputs(C_RPAREN, output);
 }
 
+// in a global's value: ((b) == -1 ? (int)(0u - (unsigned)(a)) : (a) / (b)), or 0 for %
+static void generate_constant_division(FILE* output, ASTNode* left, ASTNode* right, OperatorType op) {
+    fputs(C_LPAREN, output);
+    generate_arith_operand(output, right, TYPE_NUM);
+    fputs(C_CONST_IS_MINUS_ONE, output);
+    if (op == OP_DIV) {
+        fputs(C_WRAP_NEG_OPEN, output);
+        generate_arith_operand(output, left, TYPE_NUM);
+        fputs(C_WRAP_CLOSE, output);
+    } else {
+        fputs(C_ZERO, output);
+    }
+    fputs(C_CONST_OTHERWISE, output);
+    generate_arith_operand(output, left, TYPE_NUM);
+    fputs(get_binary_operator_string(op), output);
+    generate_arith_operand(output, right, TYPE_NUM);
+    fputs(C_RPAREN, output);
+}
+
 bool generate_num_arithmetic(FILE* output, ASTNode* node, bool in_global) {
-    if (node->expr_type != TYPE_NUM || in_global) return false;
+    if (node->expr_type != TYPE_NUM) return false;
 
     ASTNode* left = node->data.binary_expr.left;
     ASTNode* right = node->data.binary_expr.right;
     OperatorType op = node->data.binary_expr.operator;
 
+    if ((op == OP_DIV || op == OP_MOD) && in_global) {
+        generate_constant_division(output, left, right, op);
+        return true;
+    }
     if (op == OP_DIV || op == OP_MOD) {
         fputs(op == OP_DIV ? C_NUM_DIV C_LPAREN : C_NUM_MOD C_LPAREN, output);
         generate_arith_operand(output, left, TYPE_NUM);

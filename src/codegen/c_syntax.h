@@ -116,6 +116,8 @@
 #define C_WRAP_CLOSE          ")"
 #define C_NUM_DIV             "W__div"
 #define C_NUM_MOD             "W__mod"
+#define C_CONST_IS_MINUS_ONE  " == -1 ? "     // a global's constant division: (b) == -1 ? ...
+#define C_CONST_OTHERWISE     " : "
 
 #define C_INT_MIN             "(-2147483647 - 1)"   // C has no literal for the smallest int
 
