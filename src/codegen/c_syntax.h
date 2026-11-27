@@ -5,7 +5,8 @@
 #define C_INCLUDE_STDIO       "#include <stdio.h>\n"
 #define C_INCLUDE_STDBOOL     "#include <stdbool.h>\n"
 #define C_INCLUDE_STRING      "#include <string.h>\n"
-#define C_INCLUDES_BLOCK      C_INCLUDE_STDIO C_INCLUDE_STDBOOL C_INCLUDE_STRING "\n"
+#define C_INCLUDE_STDLIB      "#include <stdlib.h>\n"
+#define C_INCLUDES_BLOCK      C_INCLUDE_STDIO C_INCLUDE_STDBOOL C_INCLUDE_STRING C_INCLUDE_STDLIB "\n"
 
 // ===== C keywords =====
 #define C_MAIN                "main"
@@ -89,6 +90,22 @@
 #define C_PRINTF              "printf"
 #define C_STRCMP              "strcmp"
 #define C_ZERO                "0"
+// ===== strings (src/codegen/strings.c emits the helpers these name) =====
+#define C_SIZE_T              "size_t"
+#define C_FREE                "free"
+#define C_EMPTY_STRING        "\"\""
+#define C_STR_COPY            "W__str_copy"
+#define C_STR_JOIN            "W__str_join"
+#define C_STR_SET             "W__str_set"
+#define C_TEMP                "W__temp"
+#define C_TEMPS_FREE          "W__temps_free"
+#define C_TEMPS_MARK_CALL     "W__temps_mark()"
+#define C_FUNCTION_MARK       "W__fmark"      // the temporaries count when the function started
+#define C_RETURN_VALUE        "W__ret"        // a return value, computed before cleaning up
+#define C_ADDRESS_OF          "&"
+#define C_NULL                "NULL"
+#define C_BLOCK_OPEN          "{\n"   // a bare block (C_LBRACE follows a statement head)
+
 #define C_INT_MIN             "(-2147483647 - 1)"   // C has no literal for the smallest int
 
 #endif // W_CODEGEN_C_SYNTAX_H

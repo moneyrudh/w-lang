@@ -218,6 +218,38 @@ expect_status 0
 rm -f long.w long
 finish
 
+# ==================== strings don't pile up ====================
+
+# 200,000 loop iterations, each making ~5 KB of strings (a declaration, an assignment, a
+# condition): about 1 GB if any of it lived past its statement or variable, a few MB if not
+begin "string memory stays flat in a loop"
+python3 - > flat.w <<'PY'
+base = "y" * 1000
+print(f"""fun w(): num
+    dec base := "{base}"
+    dec s: str
+    dec i := 0
+    loop while i < 200000
+        dec joined := base + base
+        s = joined + "x"
+        say base + "z" is "never", log("never")
+        i = i + 1
+    log("done")
+    ret 0""")
+PY
+wl build flat.w -o flat
+expect_status 0
+peak_mb=$(python3 - "$CASE/flat" <<'PY'
+import resource, subprocess, sys
+subprocess.run([sys.argv[1]], stdout=subprocess.DEVNULL, check=True)
+peak = resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss
+print(peak // (1024 * 1024) if sys.platform == "darwin" else peak // 1024)   # bytes on macOS, KB on Linux
+PY
+)
+[ "${peak_mb:-999}" -lt 50 ] || problem "peak memory ${peak_mb} MB, expected under 50 MB"
+rm -f flat.w flat
+finish
+
 # ==================== make install ====================
 
 begin "make install and uninstall"

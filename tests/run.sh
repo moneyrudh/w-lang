@@ -13,6 +13,8 @@
 #                                   e.g. "loops" or "elf")
 # Env:   WLANG=path                (default ./build/wlang)
 #        CC=compiler               (default cc)
+#        PROGRAM_CFLAGS=flags      extra flags for compiling the test programs (make test-asan
+#                                  adds sanitizers, so leaks in generated C fail on Linux)
 #
 # The tests of the wlang command itself are in tests/driver/test.sh.
 
@@ -33,7 +35,7 @@ fi
 
 # the generated C must compile without warnings, so wlang builds with a strict compiler
 STRICT_CC="$WORK/strict-cc"
-printf '#!/bin/sh\nexec %s -Wall -Wextra -Werror "$@"\n' "$CC" >"$STRICT_CC"
+printf '#!/bin/sh\nexec %s -Wall -Wextra -Werror %s "$@"\n' "$CC" "${PROGRAM_CFLAGS:-}" >"$STRICT_CC"
 chmod +x "$STRICT_CC"
 
 pass=0

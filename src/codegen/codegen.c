@@ -5,6 +5,7 @@
 #include "codegen.h"
 #include "codegen/internal.h"
 #include "codegen/c_syntax.h"
+#include "language/type_registry.h"
 
 static bool is_entry_point(ASTNode* function) {
     return strcmp(function->data.function.name, "w") == 0;
@@ -25,11 +26,20 @@ static void generate_program(FILE* output, ASTNode* node, int indent_level) {
     ASTNode* entry_point = find_entry_point(node->data.program.functions);
 
     emit_c_includes(output);
+    if (program_uses_str(node)) {
+        emit_string_runtime(output);
+    }
 
-    // emit global variables
+    // emit global variables (a str global starts as NULL; main() copies its value in first)
+    set_program_globals(node->data.program.globals);
     if (node->data.program.globals) {
         for (ASTNode* global = node->data.program.globals; global; global = global->next) {
-            generate(output, global, 0);
+            if (global->data.var_declaration.type == TYPE_STR) {
+                fprintf(output, "%s %s" C_ASSIGN C_NULL C_SEMICOLON_NL,
+                        get_c_type_from_enum(TYPE_STR), mangle_identifier(global->data.var_declaration.name, false));
+            } else {
+                generate(output, global, 0);
+            }
         }
         fprintf(output, C_NEWLINE);
     }
@@ -58,6 +68,10 @@ static void generate_program(FILE* output, ASTNode* node, int indent_level) {
 void generate_block(FILE* output, ASTNode* statements, int indent_level) {
     for (ASTNode* statement = statements; statement != NULL; statement = statement->next) {
         generate(output, statement, indent_level);
+        // temporaries live until the end of the statement that made them (ret frees its own)
+        if (statement->type != NODE_RETURN && statement_makes_temps(statement)) {
+            strings_free_temps(output, indent_level);
+        }
     }
 }
 

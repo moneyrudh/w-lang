@@ -50,6 +50,10 @@ void generate_function(FILE* output, ASTNode* node, int indent_level);
 // forward declaration: signature + ';'
 void generate_function_declaration(FILE* output, ASTNode* node);
 
+// the globals list, so w() (main) can initialize str globals; and the current function's return type
+void set_program_globals(ASTNode* globals);
+DataType current_return_type(void);
+
 // ==================== control_flow.c ====================
 
 // NODE_IF chain -> if (...) { } else if (...) { } else { }
@@ -60,6 +64,43 @@ void generate_loop(FILE* output, ASTNode* node, int indent_level);
 
 // NODE_SKIP / NODE_STOP -> continue; / break;
 void generate_loop_jump(FILE* output, ASTNode* node, int indent_level);
+
+// ==================== strings.c ====================
+// Strings own their text; the generated C frees it (see the top of strings.c)
+
+bool program_uses_str(ASTNode* program);
+void emit_string_runtime(FILE* output);
+
+// a join (a + b) or a call returning str somewhere in the expression / the statement's own expressions
+bool expression_makes_temps(ASTNode* expr);
+bool statement_makes_temps(ASTNode* statement);
+
+// a function's start (W__fmark, copies of str parameters) and end
+void strings_begin_function(FILE* output, ASTNode* function, int indent_level);
+void strings_end_function(void);
+
+// blocks: closing one frees the str variables declared in it
+void strings_open_scope(void);
+void strings_close_scope(FILE* output, int indent_level);
+void strings_own(const char* mangled_name);
+
+// a loop body, so stop / skip know which variables they leave behind
+void strings_begin_loop_body(void);
+void strings_end_loop_body(void);
+
+// W__temps_free(W__fmark); when the function makes temporaries
+void strings_free_temps(FILE* output, int indent_level);
+bool strings_function_has_mark(void);
+
+// before ret: anything to free? then free temporaries and every live str variable
+bool strings_return_needs_cleanup(void);
+void strings_free_for_return(FILE* output, int indent_level);
+
+// before stop / skip: the str variables declared inside the loop body
+void strings_free_for_loop_jump(FILE* output, int indent_level);
+
+// main()'s first lines: give str globals their first value
+void strings_emit_global_inits(FILE* output, ASTNode* globals, int indent_level);
 
 // ==================== formatters.c ====================
 

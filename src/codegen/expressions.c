@@ -109,6 +109,16 @@ void generate_binary_expr(FILE* output, ASTNode* node, int indent_level) {
     DataType right_type = right->expr_type;
     OperatorCategory category = get_operator_category(op);
 
+    // str + str: a new string, freed after the statement (src/codegen/strings.c)
+    if (op == OP_ADD && node->expr_type == TYPE_STR) {
+        fprintf(output, C_STR_JOIN C_LPAREN);
+        generate(output, left, indent_level);
+        fprintf(output, C_COMMA);
+        generate(output, right, indent_level);
+        fprintf(output, C_RPAREN);
+        return;
+    }
+
     // str comparisons: strcmp(a, b) <op> 0
     if (category == OP_CAT_COMPARISON && left_type == TYPE_STR && right_type == TYPE_STR) {
         fprintf(output, C_STRCMP C_LPAREN);
