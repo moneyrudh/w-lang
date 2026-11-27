@@ -15,7 +15,7 @@ Legend: ✅ works end-to-end (transpiles, compiles with the C compiler, runs cor
 | Entry point `fun w(): num` → C `main()` | ✅ | Return value becomes the process exit code |
 | Functions in any order | ✅ | The checker collects every signature before checking bodies, so calls may come before definitions (including mutual recursion) |
 | Name mangling (`x` → `W__x_v`, `f` → `W__f_f`) | ✅ | Lets W names like `main` coexist with C |
-| Global variables (`dec` at top level) | ✅ | Visible in every function, wherever they're declared in the file; any function can assign them. The value must be a constant (literals and operators; no variables, calls or text operations), because it's set before any function runs. `dec g := 5` works too. A local may shadow a global |
+| Global variables (`dec` at top level) | ✅ | Visible in every function, wherever they're declared in the file; any function can assign them. The value must be a constant (literals and operators; no variables, calls or text operations, and no integer division by zero), because it's set before any function runs. `dec g := 5` works too. A local may shadow a global |
 | `use` imports | 💭 | Token exists, nothing parses it |
 | Macros, namespaces | 💭 | Listed as top-level constructs in early drafts |
 
@@ -82,7 +82,7 @@ Operators by type (every combination is checked by `tests/unit/type_rules.c`): `
 | Feature | Status | Notes |
 |---|---|---|
 | `dec x: num = 5` | ✅ | |
-| `dec x: num` (default value) | ✅ | Defaults from the type registry (`num` → 0) |
+| `dec x: num` (default value) | ✅ | `num` 0, `real` 0.0, `chr` `'\0'`, `bool` false, `str` empty text (never null) |
 | Assignment `x = expr` | ✅ | Type-checked |
 | `dec x := 5` (type inference) | ✅ | The variable takes the value's type, and keeps it (`dec r := 2.5` is a `real`; assigning a `str` to it later is an error). Needs a value; a `zil` call has no type to take. Function signatures always spell out their types, so inference stays local |
 | `x: num = 5` (without `dec`) | 🚧 | Old notes claim it works; it does not |

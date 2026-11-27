@@ -1,0 +1,8 @@
+chr w => w
+tab is 9 => 9
+real from -3 -3.000000 => -3.000000
+bool from 5 true, num from true 1 => true 1
+logic true => true
+text a<tab>b => a	b
+7 / 2 + 0.5 is 3.500000 => 3.500000
+unset str is empty [] => []

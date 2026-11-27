@@ -276,6 +276,17 @@ ASTNode* parse(void) {
     while (token != 0) {
         begin_statement();
 
+        // an indented block where none belongs: one error, and its contents are still checked
+        if (token == INDENT) {
+            parser_error("Unexpected indentation");
+            free_ast(parse_block());
+            continue;
+        }
+        if (token == DEDENT) {
+            advance();   // the end of such a block; already reported
+            continue;
+        }
+
         // a global variable
         if (token == DEC) {
             ASTNode* global = parse_variable_declaration();

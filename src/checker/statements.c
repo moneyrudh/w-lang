@@ -1,3 +1,5 @@
+#include <limits.h>
+
 #include "checker.h"
 #include "checker/internal.h"
 #include "diagnostics.h"
@@ -79,6 +81,56 @@ static bool has_text_operation(ASTNode* expr) {
     }
 }
 
+// the value of a constant integer expression (num / chr literals and + - * / and unary -),
+// or false when it isn't one or overflows (run-time overflow is undecided, D11)
+static bool constant_int(ASTNode* expr, long long* out) {
+    long long a, b;
+    switch (expr->type) {
+        case NODE_NUMBER: *out = expr->data.number.value; return true;
+        case NODE_CHAR:   *out = expr->data.char_val.value; return true;
+        case NODE_UNARY_EXPR:
+            if (expr->data.unary_expr.operator != OP_NEG || !constant_int(expr->data.unary_expr.operand, &a)) {
+                return false;
+            }
+            return !__builtin_sub_overflow(0, a, out);
+        case NODE_BINARY_EXPR:
+            if (!constant_int(expr->data.binary_expr.left, &a) || !constant_int(expr->data.binary_expr.right, &b)) {
+                return false;
+            }
+            switch (expr->data.binary_expr.operator) {
+                case OP_ADD: return !__builtin_add_overflow(a, b, out);
+                case OP_SUB: return !__builtin_sub_overflow(a, b, out);
+                case OP_MUL: return !__builtin_mul_overflow(a, b, out);
+                case OP_DIV:
+                    if (b == 0 || (a == LLONG_MIN && b == -1)) return false;
+                    *out = a / b;
+                    return true;
+                default: return false;
+            }
+        default:
+            return false;
+    }
+}
+
+// a num division (C integer division) by a constant zero: C rejects it in a global's value
+static bool divides_by_zero(ASTNode* expr) {
+    if (!expr) return false;
+    switch (expr->type) {
+        case NODE_BINARY_EXPR: {
+            long long divisor;
+            if (expr->data.binary_expr.operator == OP_DIV && expr->expr_type == TYPE_NUM &&
+                constant_int(expr->data.binary_expr.right, &divisor) && divisor == 0) {
+                return true;
+            }
+            return divides_by_zero(expr->data.binary_expr.left) || divides_by_zero(expr->data.binary_expr.right);
+        }
+        case NODE_UNARY_EXPR:
+            return divides_by_zero(expr->data.unary_expr.operand);
+        default:
+            return false;
+    }
+}
+
 #define GLOBAL_NOT_CONSTANT "The value of global '%s' must be a constant: literals and operators, " \
                             "without variables, calls or text operations"
 
@@ -102,6 +154,8 @@ void check_global(ASTNode* node) {
     check_var_declaration(node);
     if (error_count() == errors_before && has_text_operation(init)) {
         report_error(node->location.line, GLOBAL_NOT_CONSTANT, name);
+    } else if (error_count() == errors_before && divides_by_zero(init)) {
+        report_error(node->location.line, "The value of global '%s' divides by zero", name);
     }
 }
 

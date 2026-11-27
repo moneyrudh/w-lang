@@ -16,7 +16,7 @@ static TypeMapping type_mappings[] = {
     {TYPE_REAL,     REAL,        "real",      "float",      "%f",        "0.0f"},
     {TYPE_CHR,      CHR,         "chr",       "char",       "%c",        "'\\0'"},
     {TYPE_BOOL,     BOOL,        "bool",      "bool",       "%s",        "false"},   // printed as "true" / "false"
-    {TYPE_STR,      STR,         "str",       "char*",      "%s",        "NULL"},
+    {TYPE_STR,      STR,         "str",       "char*",      "%s",        "\"\""},   // empty text, never NULL
     {TYPE_ZIL,      ZIL,         "zil",       "void",       "",          ""},
 };
 
