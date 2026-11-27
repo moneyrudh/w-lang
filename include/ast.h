@@ -76,6 +76,7 @@ typedef struct ASTNode {
         } string;
         struct {
             char* name;
+            bool is_global;   // set by the checker: the name is a global variable
         } variable;
         struct {
             double value;

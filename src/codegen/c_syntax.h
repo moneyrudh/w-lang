@@ -94,6 +94,7 @@
 #define C_SIZE_T              "size_t"
 #define C_FREE                "free"
 #define C_EMPTY_STRING        "\"\""
+#define C_STR_TYPE            "char*"
 #define C_STR_COPY            "W__str_copy"
 #define C_STR_JOIN            "W__str_join"
 #define C_STR_SET             "W__str_set"

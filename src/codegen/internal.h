@@ -85,6 +85,8 @@ void strings_close_scope(FILE* output, int indent_level);
 // closes a scope whose end can't be reached (nothing is emitted)
 void strings_discard_scope(void);
 void strings_own(const char* mangled_name);
+// before declaring a str that shadows one this function owns: keep the outer one under an alias
+void strings_shadow(FILE* output, int indent_level, const char* mangled_name);
 
 // a loop body, so stop / skip know which variables they leave behind
 void strings_begin_loop_body(void);

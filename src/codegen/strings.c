@@ -84,6 +84,8 @@ static bool is_str_join(ASTNode* expr) {
 bool expression_makes_temps(ASTNode* expr) {
     if (!expr) return false;
     switch (expr->type) {
+        case NODE_VARIABLE:
+            return expr->data.variable.is_global && expr->expr_type == TYPE_STR;   // read through a copy
         case NODE_BINARY_EXPR:
             return is_str_join(expr) || expression_makes_temps(expr->data.binary_expr.left) ||
                    expression_makes_temps(expr->data.binary_expr.right);
@@ -234,6 +236,14 @@ void emit_string_runtime(FILE* output) {
 
 // ==================== the current function's owned variables ====================
 
+// a str variable shadowed by an inner one: while the inner scope is open, the outer one is freed
+// (by ret / stop / skip) through an alias, since both have the same C name
+typedef struct {
+    int owned_index;        // the outer variable's entry in fn.owned
+    char* name;             // its real C name, put back when the inner scope closes
+    int scope;              // the scope that holds the inner variable
+} Rename;
+
 static struct {
     bool has_mark;          // the function declared W__fmark (it makes temps or returns a str)
     char** owned;           // mangled names of the str variables alive right now, innermost last
@@ -242,6 +252,9 @@ static struct {
     int scope_count, scope_capacity;
     int* loop_scopes;       // the scope index of each enclosing loop's body
     int loop_count, loop_capacity;
+    Rename* renames;        // outer variables currently known by an alias, innermost last
+    int rename_count, rename_capacity;
+    int alias_counter;      // makes alias names unique within the function
 } fn;
 
 static void* grow(void* array, int* capacity, size_t element_size) {
@@ -255,7 +268,7 @@ static void* grow(void* array, int* capacity, size_t element_size) {
 }
 
 void strings_begin_function(FILE* output, ASTNode* function, int indent_level) {
-    fn.owned_count = fn.scope_count = fn.loop_count = 0;
+    fn.owned_count = fn.scope_count = fn.loop_count = fn.rename_count = fn.alias_counter = 0;
     fn.has_mark = function->data.function.return_type == TYPE_STR ||
                   statements_make_temps(function->data.function.body);
 
@@ -277,7 +290,8 @@ void strings_begin_function(FILE* output, ASTNode* function, int indent_level) {
 
 void strings_end_function(void) {
     for (int i = 0; i < fn.owned_count; i++) free(fn.owned[i]);
-    fn.owned_count = fn.scope_count = fn.loop_count = 0;
+    for (int i = 0; i < fn.rename_count; i++) free(fn.renames[i].name);
+    fn.owned_count = fn.scope_count = fn.loop_count = fn.rename_count = 0;
 }
 
 void strings_open_scope(void) {
@@ -295,9 +309,17 @@ static void emit_frees_down_to(FILE* output, int indent_level, int first) {
 }
 
 static void forget_scope(void) {
-    int first = fn.scope_starts[--fn.scope_count];
+    int scope = --fn.scope_count;
+    int first = fn.scope_starts[scope];
     for (int i = first; i < fn.owned_count; i++) free(fn.owned[i]);
     fn.owned_count = first;
+
+    // outer variables shadowed in this scope get their own names back
+    while (fn.rename_count > 0 && fn.renames[fn.rename_count - 1].scope == scope) {
+        Rename* r = &fn.renames[--fn.rename_count];
+        free(fn.owned[r->owned_index]);
+        fn.owned[r->owned_index] = r->name;
+    }
 }
 
 void strings_close_scope(FILE* output, int indent_level) {
@@ -307,6 +329,34 @@ void strings_close_scope(FILE* output, int indent_level) {
 
 void strings_discard_scope(void) {
     forget_scope();
+}
+
+void strings_shadow(FILE* output, int indent_level, const char* mangled_name) {
+    int outer = -1;
+    for (int i = fn.owned_count - 1; i >= 0; i--) {
+        if (strcmp(fn.owned[i], mangled_name) == 0) {
+            outer = i;
+            break;
+        }
+    }
+    if (outer < 0) return;   // not a str this function owns (a global, or nothing)
+
+    char alias[600];
+    snprintf(alias, sizeof(alias), "%s_outer%d", mangled_name, ++fn.alias_counter);
+    emit_indent(output, indent_level);
+    fprintf(output, "%s %s" C_ASSIGN "%s" C_SEMICOLON_NL, C_STR_TYPE, alias, mangled_name);
+    emit_indent(output, indent_level);
+    fprintf(output, "(void)%s" C_SEMICOLON_NL, alias);   // only used if a ret / stop / skip leaves early
+
+    if (fn.rename_count == fn.rename_capacity) {
+        fn.renames = grow(fn.renames, &fn.rename_capacity, sizeof(Rename));
+    }
+    fn.renames[fn.rename_count++] = (Rename){ outer, fn.owned[outer], fn.scope_count - 1 };
+    fn.owned[outer] = strdup(alias);
+    if (!fn.owned[outer]) {
+        fprintf(stderr, "Out of memory\n");
+        exit(1);
+    }
 }
 
 void strings_own(const char* mangled_name) {
@@ -352,6 +402,7 @@ void strings_free_for_return(FILE* output, int indent_level) {
 }
 
 void strings_free_for_loop_jump(FILE* output, int indent_level) {
+    strings_free_temps(output, indent_level);   // the jump skips the statement-end free
     if (fn.loop_count == 0) return;
     int body_scope = fn.loop_scopes[fn.loop_count - 1];
     emit_frees_down_to(output, indent_level, fn.scope_starts[body_scope]);

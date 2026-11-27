@@ -59,6 +59,13 @@ void generate_literal(FILE* output, ASTNode* node) {
 }
 
 void generate_variable(FILE* output, ASTNode* node) {
+    // a global str is read through a temporary copy: a call in the same expression may replace
+    // (and free) the global's text while this expression still uses it
+    if (node->data.variable.is_global && node->expr_type == TYPE_STR) {
+        fprintf(output, C_TEMP C_LPAREN C_STR_COPY C_LPAREN "%s" C_RPAREN C_RPAREN,
+                mangle_identifier(node->data.variable.name, false));
+        return;
+    }
     fprintf(output, "%s", mangle_identifier(node->data.variable.name, false));
 }
 

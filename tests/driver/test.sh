@@ -221,11 +221,17 @@ finish
 # ==================== strings don't pile up ====================
 
 # 200,000 loop iterations, each making ~5 KB of strings (a declaration, an assignment, a
-# condition): about 1 GB if any of it lived past its statement or variable, a few MB if not
+# condition), then 200,000 more leaving through stop and skip with temporaries in flight:
+# about 1 GB if any of it lived past its statement or variable, a few MB if not
 begin "string memory stays flat in a loop"
 python3 - > flat.w <<'PY'
 base = "y" * 1000
-print(f"""fun w(): num
+print(f"""fun stopper(base: str)
+    -- stop leaves temporaries from its condition
+    loop forever
+        say base + "z" is base + "z", stop
+
+fun w(): num
     dec base := "{base}"
     dec s: str
     dec i := 0
@@ -234,6 +240,12 @@ print(f"""fun w(): num
         s = joined + "x"
         say base + "z" is "never", log("never")
         i = i + 1
+    i = 0
+    loop while i < 200000
+        i = i + 1
+        stopper(base)
+        -- skip leaves temporaries from its condition
+        say base + "q" is base + "q", skip
     log("done")
     ret 0""")
 PY

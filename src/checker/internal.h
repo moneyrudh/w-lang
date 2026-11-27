@@ -22,6 +22,7 @@ extern CheckerContext checker_context;
 typedef struct Symbol {
     char* name;
     DataType type;
+    bool is_global;      // declared at the top level (outside every function)
     struct Symbol* next;
 } Symbol;
 

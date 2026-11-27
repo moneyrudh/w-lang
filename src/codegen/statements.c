@@ -12,6 +12,10 @@ static void generate_str_declaration(FILE* output, ASTNode* node, int indent_lev
     ASTNode* init = node->data.var_declaration.init_expr;
     bool via_temp = node->data.var_declaration.shadows_outer && init;
 
+    if (node->data.var_declaration.shadows_outer) {
+        strings_shadow(output, indent_level, mangle_identifier(name, false));
+    }
+
     emit_indent(output, indent_level);
     fprintf(output, "%s %s" C_ASSIGN C_STR_COPY C_LPAREN, c_type,
             via_temp ? mangle_init_temp(name) : mangle_identifier(name, false));
