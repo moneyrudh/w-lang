@@ -71,10 +71,12 @@ void generate_literal(FILE* output, ASTNode* node) {
 
 void generate_variable(FILE* output, ASTNode* node) {
     // a global str is read through a temporary copy: a call in the same expression may replace
-    // (and free) the global's text while this expression still uses it
-    if (node->data.variable.is_global && node->expr_type == TYPE_STR) {
+    // (and free) the global's text while this expression still uses it. So is a ref str, which
+    // may be a global's slot (f(ref g)), or reached by a call through another ref
+    bool is_ref = node->data.variable.is_ref;
+    if ((node->data.variable.is_global || is_ref) && node->expr_type == TYPE_STR) {
         fprintf(output, C_TEMP C_LPAREN C_STR_COPY C_LPAREN "%s" C_RPAREN C_RPAREN,
-                mangle_identifier(node->data.variable.name, false));
+                variable_c_name(node->data.variable.name, is_ref));
         return;
     }
     fprintf(output, "%s", variable_c_name(node->data.variable.name, node->data.variable.is_ref));

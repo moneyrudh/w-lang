@@ -86,7 +86,8 @@ bool expression_makes_temps(ASTNode* expr) {
     if (!expr) return false;
     switch (expr->type) {
         case NODE_VARIABLE:
-            return expr->data.variable.is_global && expr->expr_type == TYPE_STR;   // read through a copy
+            // a global str, or a ref str (which may be a global's slot), is read through a copy
+            return (expr->data.variable.is_global || expr->data.variable.is_ref) && expr->expr_type == TYPE_STR;
         case NODE_BINARY_EXPR:
             return is_str_join(expr) || expression_makes_temps(expr->data.binary_expr.left) ||
                    expression_makes_temps(expr->data.binary_expr.right);

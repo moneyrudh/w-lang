@@ -8,8 +8,9 @@ static void check_condition(ASTNode* condition) {
     // NULL: a plain 'else' or 'loop forever' (or a condition the parser already reported)
     if (!condition) return;
 
+    int errors_before = error_count();
     DataType type = check_expression(condition);
-    check_ref_uses(&condition, 1, condition->location.line);
+    if (error_count() == errors_before) check_ref_uses(&condition, 1, condition->location.line);
     if (type == TYPE_STR) {
         report_error(condition->location.line, "A condition can't be a str - compare it instead (e.g. name is \"bob\")");
     } else if (is_user_type(type)) {

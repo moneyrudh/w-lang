@@ -67,7 +67,7 @@ Gotcha: `x--1` is `x` followed by a comment.
 | `vec map set heap stack que link tree` | — | 📐 / 💭 | Reserved words. `vec` is decided (D4, D14, D15) and comes in roadmap step 3 |
 | `pod` | struct | ✅ | See §4a |
 
-Collection ideas from early drafts (💭): data structures ship with the transpiler and are pulled in with `use`; `map` uses a random hash seed per run; `que` may get a priority option; `link[Node]` / `tree[Node]` take a `pod`; `ref` (pointers) may be dropped entirely. Literal syntax drafts:
+Collection ideas from early drafts (💭): data structures ship with the transpiler and are pulled in with `use`; `map` uses a random hash seed per run; `que` may get a priority option; `link[Node]` / `tree[Node]` take a `pod`. Literal syntax drafts:
 ```
 dec m: map(num, str) = {2: "two", 3: "three"}
 dec q: que(str) = ["one", "two", "three"]
@@ -128,7 +128,7 @@ fun w(): num
 | Missing `ret` in non-`zil` function is an error | ✅ | Checked per path: every way through the body must end in `ret`. A `say` chain counts when it has an `else` and every branch returns; a `loop forever` (or `loop while true` / `loop until false`) counts when no `stop` leaves it, and the body still needs a `ret` somewhere; other `loop while` / `until` may run zero times, so they don't |
 | Calls as expressions and statements | ✅ | |
 | Argument count and types checked against the signature | ✅ | Arguments convert like assignments (e.g. `num` → `real`) |
-| `ref` parameters: `fun bounce(b: ref Ball)`, called `bounce(ref b)` | ✅ | D13, D16. The function changes the caller's variable (any type, `str` too). The call must say `ref`; it takes a variable or a field of one (`ref b.pos`), of exactly the parameter's type. A variable passed with `ref` can't be used elsewhere in the same statement (non-overlapping fields can). `ref` goes only before a parameter's type |
+| `ref` parameters: `fun bounce(b: ref Ball)`, called `bounce(ref b)` | ✅ | D13, D16. The function changes the caller's variable (any type, `str` too). The call must say `ref`; it takes a variable or a field of one (`ref b.pos`), of exactly the parameter's type. A variable passed with `ref` can't be used elsewhere in the same statement (non-overlapping fields can). `ref` goes only before a parameter's type. Inside the function, a ref can be a global under another name (`f(ref g)`): a `str` ref is read through a copy, like a global, so that's safe; for other types, `log(a, bump_g())` may print `a` before or after the call changes it, as `log(g, bump_g())` already does |
 
 ## 7. Operators
 

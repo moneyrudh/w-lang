@@ -46,7 +46,9 @@ Implementation details (how the compiler does it) are not listed here.
   variable or a field of one, of exactly the parameter's type. A variable passed with `ref` is used
   nowhere else in the same statement: C doesn't fix the order arguments are worked out in, so
   `log(grow(ref s), s)` could read `s` after `grow` freed its text. Fields that don't overlap are
-  separate (`move(ref b.pos, b.vel)` is fine).
+  separate (`move(ref b.pos, b.vel)` is fine). The rule compares names, so it can't see a global
+  reached under a ref's name inside the function: a `str` ref is read through a copy (like a
+  global) to stay safe there.
 - **D4. Arrays** (2026-11-26): `vec[num]` for the type, `[1, 2, 3]` for a value, `v[0]` to index.
 - **D14. Arrays are copy-on-write** (2026-11-26): assigning or passing a `vec` shares it, so it's
   as fast as passing a pointer; a real copy happens only when a shared `vec` is changed. No aliasing
