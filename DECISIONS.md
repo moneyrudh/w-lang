@@ -8,14 +8,6 @@ Implementation details (how the compiler does it) are not listed here.
 
 ## Open
 
-### D11. Integer overflow (step 2, before `%`)
-`num` is a C `int`. Today `2147483647 + 1` or `-x` on the smallest `num` overflows, which is
-undefined behaviour in C (anything may happen; in practice it wraps around).
-- **Proposal:** wrap around, and make it defined: the generated C does `num` arithmetic in a way that
-  wraps like Java and Go (`2147483647 + 1` is `-2147483648`), at almost no cost.
-- Alternatives: stop the program with an error on overflow (safer, like Swift and Rust's debug
-  builds, a little slower); leave it undefined like C.
-
 ### D3. Structs (`pod`) (step 3.1)
 Early drafts used `pod` for a struct with functions and `type` for plain data.
 - **Proposal:** one keyword, `pod`, plain data first; functions on pods later.
@@ -63,6 +55,14 @@ Drafts disagree: `vec[num]` vs `vec(num)`.
 - **D9. `bool` in arithmetic** (2026-11-25): an error (`true + 1`, `n + flag`). `chr` arithmetic stays
   (`'a' + 1`). Comparisons and `and` / `or` / `not` on `bool` are unaffected.
 - **D10. Printing `bool`** (2026-11-25): `log` prints `true` / `false`, not `1` / `0`.
+- **D11. Integer overflow** (2026-11-27): `num` arithmetic wraps around (`2147483647 + 1` is
+  `-2147483648`), like Java and Go. The generated C does `+ - * -x` on unsigned values, so it's
+  defined behaviour on every C compiler, at no cost.
+- **Division by zero** (2026-11-27): `/` and `%` on whole numbers stop the program with the W line
+  (`W error on line 7: division by zero`) instead of crashing. The generated C checks the divisor
+  (`W__div`). `real` division follows C (`1.0 / 0` is infinity).
+- **D12. Traces** (2026-11-27): run-time errors print the chain of W calls that led to them, like
+  Python's traceback; always on (a later `wlang build --release` may turn them off).
 - **`:=` type inference** (2026-11-25): kept. The type is the type of the value, which the checker
   already computes; function signatures always spell out types, so inference stays local. A value with
   no type to take (a `zil` call, later an empty `[]`) is an error asking for the type.

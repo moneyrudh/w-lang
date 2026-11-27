@@ -65,6 +65,19 @@ void generate_loop(FILE* output, ASTNode* node, int indent_level);
 // NODE_SKIP / NODE_STOP -> continue; / break;
 void generate_loop_jump(FILE* output, ASTNode* node, int indent_level);
 
+// ==================== arithmetic.c ====================
+// num arithmetic: + - * -x wrap around (D11), / % stop on a zero divisor with the W line
+
+void emit_arithmetic_runtime(FILE* output);
+
+// emits a num + - * / % and returns true; false (nothing emitted) for anything else, or inside
+// a global's value, which must stay a plain C constant
+bool generate_num_arithmetic(FILE* output, ASTNode* binary_expr, bool in_global);
+void generate_num_negation(FILE* output, ASTNode* operand);
+
+// set while emitting globals' values (file-scope C constants)
+void set_in_global_value(bool in_global);
+
 // ==================== strings.c ====================
 // Strings own their text; the generated C frees it (see the top of strings.c)
 

@@ -72,6 +72,8 @@ typedef enum {
     MINUS,
     MULTIPLY,
     DIVIDE,
+    MODULO,     // %
+    MOD,        // mod (word form of %)
 
     EQUAL,
     NOT_EQUAL,
@@ -122,6 +124,7 @@ typedef enum {
     OP_SUB,
     OP_MUL,
     OP_DIV,
+    OP_MOD,
 
     OP_EQ,
     OP_NE,

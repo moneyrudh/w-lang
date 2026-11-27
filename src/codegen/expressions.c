@@ -7,6 +7,13 @@
 #include "language/operators.h"
 #include "language/type_registry.h"
 
+// while emitting globals' values: those are C constants, so no helper calls
+static bool in_global_value = false;
+
+void set_in_global_value(bool in_global) {
+    in_global_value = in_global;
+}
+
 // ==================== literals & names ====================
 
 void generate_literal(FILE* output, ASTNode* node) {
@@ -136,6 +143,11 @@ void generate_binary_expr(FILE* output, ASTNode* node, int indent_level) {
         return;
     }
 
+    // num + - * / %: wrapping, and checked division (arithmetic.c)
+    if (category == OP_CAT_ARITHMETIC && generate_num_arithmetic(output, node, in_global_value)) {
+        return;
+    }
+
     // arithmetic operands are cast to the result type; comparisons and logic
     // operate on the operands as-is (casting x > y to bool operands would be wrong)
     if (category == OP_CAT_ARITHMETIC) {
@@ -156,6 +168,10 @@ void generate_binary_expr(FILE* output, ASTNode* node, int indent_level) {
 void generate_unary_expr(FILE* output, ASTNode* node, int indent_level) {
     if (!node || node->type != NODE_UNARY_EXPR) return;
 
+    if (node->data.unary_expr.operator == OP_NEG && node->expr_type == TYPE_NUM) {
+        generate_num_negation(output, node->data.unary_expr.operand);
+        return;
+    }
     if (node->data.unary_expr.operator == OP_NEG) {
         fprintf(output, C_NEG_OPEN);
         generate(output, node->data.unary_expr.operand, indent_level);

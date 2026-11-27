@@ -10,6 +10,8 @@ static const struct {
     {MINUS,         OP_SUB},
     {MULTIPLY,      OP_MUL},
     {DIVIDE,        OP_DIV},
+    {MODULO,        OP_MOD},
+    {MOD,           OP_MOD},
 
     {EQUAL,         OP_EQ},
     {EQ,            OP_EQ},
@@ -36,6 +38,7 @@ static const OperatorCategory operator_categories[] = {
     [OP_SUB] = OP_CAT_ARITHMETIC,
     [OP_MUL] = OP_CAT_ARITHMETIC,
     [OP_DIV] = OP_CAT_ARITHMETIC,
+    [OP_MOD] = OP_CAT_ARITHMETIC,
     [OP_EQ]  = OP_CAT_COMPARISON,
     [OP_NE]  = OP_CAT_COMPARISON,
     [OP_LT]  = OP_CAT_COMPARISON,
@@ -65,7 +68,7 @@ OperatorCategory get_operator_category(OperatorType op) {
 
 // how error messages show each operator (W's spelling)
 static const char* const operator_symbols[] = {
-    [OP_ADD] = "+",  [OP_SUB] = "-",  [OP_MUL] = "*",  [OP_DIV] = "/",
+    [OP_ADD] = "+",  [OP_SUB] = "-",  [OP_MUL] = "*",  [OP_DIV] = "/",  [OP_MOD] = "%",
     [OP_EQ]  = "==", [OP_NE]  = "!=", [OP_LT]  = "<",  [OP_GT]  = ">",
     [OP_LE]  = "<=", [OP_GE]  = ">=",
     [OP_AND] = "and", [OP_OR] = "or", [OP_NOT] = "not", [OP_NEG] = "-",

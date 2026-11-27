@@ -181,6 +181,7 @@
 "stop"      { STATEMENT_KEYWORD(STOP) }
 
 "is"        { return IS; }
+"mod"       { return MOD; }
 "eq"        { return EQ; }
 "ne"        { return NE; }
 "gt"        { return GT; }
@@ -215,6 +216,7 @@
 "-"         { return MINUS; }
 "*"         { return MULTIPLY; }
 "/"         { return DIVIDE; }
+"%"         { return MODULO; }
 
 [0-9]+      {
     // saturates far past num's range (strtoll stops at LLONG_MAX); the checker reports it

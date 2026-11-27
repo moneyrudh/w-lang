@@ -87,6 +87,7 @@ static const char* binary_operator_strings[] = {
     [OP_SUB] = C_MINUS,
     [OP_MUL] = C_MULTIPLY,
     [OP_DIV] = C_DIVIDE,
+    [OP_MOD] = C_MODULO,
     [OP_EQ]  = C_EQUAL,
     [OP_NE]  = C_NOT_EQUAL,
     [OP_LT]  = C_LESS,
