@@ -115,6 +115,7 @@
 #define C_WRAP_NEG_OPEN       "(int)(0u - (unsigned)"
 #define C_WRAP_CLOSE          ")"
 #define C_NUM_DIV             "W__div"
+#define C_VOID_CAST           "(void)"
 #define C_CALL_LINE_PARAM     "int W__line"   // the caller's line, every W function's first parameter
 #define C_CALL_LINE           "W__line"
 #define C_PUSH_FRAME          "W__push"

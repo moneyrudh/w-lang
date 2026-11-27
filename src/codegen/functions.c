@@ -12,6 +12,8 @@ void set_program_globals(ASTNode* globals) {
     program_globals = globals;
 }
 
+static bool is_entry_point(ASTNode* function);
+
 // the function being generated, for ret (its return type)
 static ASTNode* current_function = NULL;
 
@@ -19,7 +21,20 @@ DataType current_return_type(void) {
     return current_function ? current_function->data.function.return_type : TYPE_ZIL;
 }
 
+bool current_is_zil_entry_point(void) {
+    return current_function && is_entry_point(current_function) &&
+           current_function->data.function.return_type == TYPE_ZIL;
+}
+
+static bool is_entry_point(ASTNode* function) {
+    return strcmp(function->data.function.name, "w") == 0;
+}
+
+// main() always returns int: w()'s num result, or 0 when w() returns nothing
 static const char* c_return_type(ASTNode* function) {
+    if (is_entry_point(function)) {
+        return get_c_type_from_enum(TYPE_NUM);
+    }
     return get_c_type_from_enum(function->data.function.return_type);
 }
 
@@ -37,15 +52,21 @@ void generate_function(FILE* output, ASTNode* node, int indent_level) {
                             node->data.function.param_count);
 
     current_function = node;
-    bool is_entry_point = strcmp(node->data.function.name, "w") == 0;
+    bool entry = is_entry_point(node);
 
     // this call's frame, for traces: W__push("name", W__line); main() has no caller
     emit_indent(output, indent_level + 1);
     fprintf(output, C_PUSH_FRAME C_LPAREN C_STRING_QUOTE "%s" C_STRING_QUOTE C_COMMA "%s" C_RPAREN C_SEMICOLON_NL,
-            node->data.function.name, is_entry_point ? C_ZERO : C_CALL_LINE);
+            node->data.function.name, entry ? C_ZERO : C_CALL_LINE);
+
+    // a parameter the body never reads mustn't make the C compiler warn
+    for (Parameter* p = node->data.function.parameters; p; p = p->next) {
+        emit_indent(output, indent_level + 1);
+        fprintf(output, C_VOID_CAST "%s" C_SEMICOLON_NL, mangle_identifier(p->name, false));
+    }
 
     strings_begin_function(output, node, indent_level + 1);
-    if (is_entry_point) {
+    if (entry) {
         strings_emit_global_inits(output, program_globals, indent_level + 1);
     }
     generate_block(output, node->data.function.body, indent_level + 1);
@@ -53,6 +74,10 @@ void generate_function(FILE* output, ASTNode* node, int indent_level) {
         strings_close_scope(output, indent_level + 1);   // falling off the end of the body
         emit_indent(output, indent_level + 1);
         fprintf(output, C_POP_FRAME_NL);
+        if (entry) {
+            emit_indent(output, indent_level + 1);
+            fprintf(output, C_RETURN C_SPACE C_ZERO C_SEMICOLON_NL);   // a zil w(): exit 0
+        }
     } else {
         // the checker made sure every path returns, so this is never reached. Saying so keeps
         // C compilers that can't follow every path (gcc with sanitizers) from warning

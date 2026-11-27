@@ -12,7 +12,7 @@ Legend: ✅ works end-to-end (transpiles, compiles with the C compiler, runs cor
 
 | Feature | Status | Notes |
 |---|---|---|
-| Entry point `fun w(): num` → C `main()` | ✅ | Return value becomes the process exit code |
+| Entry point `fun w(): num` → C `main()` | ✅ | Return value becomes the process exit code. `fun w()` with no return type exits with 0. `w()` takes no parameters, and returns `num` or nothing |
 | Functions in any order | ✅ | The checker collects every signature before checking bodies, so calls may come before definitions (including mutual recursion) |
 | Name mangling (`x` → `W__x_v`, `f` → `W__f_f`) | ✅ | Lets W names like `main` coexist with C |
 | Global variables (`dec` at top level) | ✅ | Visible in every function, wherever they're declared in the file; any function can assign them. The value must be a constant (literals and operators; no variables, calls or text operations, and no integer division by zero), because it's set before any function runs. `dec g := 5` works too. A local may shadow a global |
@@ -202,5 +202,3 @@ Arguments after the `.w` file are passed to the program, so `run`'s options go b
 ## 12. Known bugs
 
 - An unclosed bracket followed by a line that starts with a name or a value (`x = 3`, `f()`) is reported on that line (`Expected ')', got name`), not where it opened: such a line could be continuing the expression
-- `fun w()` without a return type compiles to `void main`: the C compiler warns, and the program's exit code is garbage instead of 0
-- A parameter a function never uses makes the generated C warn (`-Wunused-parameter`); only matters when compiling it with `-Werror`
