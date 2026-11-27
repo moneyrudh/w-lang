@@ -294,11 +294,19 @@ static void emit_frees_down_to(FILE* output, int indent_level, int first) {
     }
 }
 
-void strings_close_scope(FILE* output, int indent_level) {
+static void forget_scope(void) {
     int first = fn.scope_starts[--fn.scope_count];
-    emit_frees_down_to(output, indent_level, first);
     for (int i = first; i < fn.owned_count; i++) free(fn.owned[i]);
     fn.owned_count = first;
+}
+
+void strings_close_scope(FILE* output, int indent_level) {
+    emit_frees_down_to(output, indent_level, fn.scope_starts[fn.scope_count - 1]);
+    forget_scope();
+}
+
+void strings_discard_scope(void) {
+    forget_scope();
 }
 
 void strings_own(const char* mangled_name) {

@@ -104,6 +104,7 @@
 #define C_RETURN_VALUE        "W__ret"        // a return value, computed before cleaning up
 #define C_ADDRESS_OF          "&"
 #define C_NULL                "NULL"
+#define C_UNREACHABLE         "abort();"   // compilers know it never returns
 #define C_BLOCK_OPEN          "{\n"   // a bare block (C_LBRACE follows a statement head)
 
 #define C_INT_MIN             "(-2147483647 - 1)"   // C has no literal for the smallest int

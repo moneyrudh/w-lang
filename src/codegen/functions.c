@@ -42,7 +42,15 @@ void generate_function(FILE* output, ASTNode* node, int indent_level) {
         strings_emit_global_inits(output, program_globals, indent_level + 1);
     }
     generate_block(output, node->data.function.body, indent_level + 1);
-    strings_close_scope(output, indent_level + 1);   // the end of a zil function's body
+    if (node->data.function.return_type == TYPE_ZIL) {
+        strings_close_scope(output, indent_level + 1);   // falling off the end of the body
+    } else {
+        // the checker made sure every path returns, so this is never reached. Saying so keeps
+        // C compilers that can't follow every path (gcc with sanitizers) from warning
+        emit_indent(output, indent_level + 1);
+        fprintf(output, C_UNREACHABLE "\n");
+        strings_discard_scope();
+    }
     strings_end_function();
     current_function = NULL;
     fprintf(output, C_RBRACE);

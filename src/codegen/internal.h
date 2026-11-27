@@ -82,6 +82,8 @@ void strings_end_function(void);
 // blocks: closing one frees the str variables declared in it
 void strings_open_scope(void);
 void strings_close_scope(FILE* output, int indent_level);
+// closes a scope whose end can't be reached (nothing is emitted)
+void strings_discard_scope(void);
 void strings_own(const char* mangled_name);
 
 // a loop body, so stop / skip know which variables they leave behind
