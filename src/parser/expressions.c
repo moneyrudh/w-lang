@@ -125,7 +125,7 @@ static const TokenType AND_TOKENS[]        = {AND};
 static const TokenType EQUALITY_TOKENS[]   = {EQUAL, EQ, IS, NOT_EQUAL, NE};
 static const TokenType COMPARISON_TOKENS[] = {LESS, LT, GREATER, GT, LESS_EQUAL, LE, GREATER_EQUAL, GE};
 static const TokenType ADDITIVE_TOKENS[]   = {PLUS, MINUS};
-static const TokenType TERM_TOKENS[]       = {MULTIPLY, DIVIDE};
+static const TokenType TERM_TOKENS[]       = {MULTIPLY, DIVIDE, MODULO, MOD};
 
 #define TOKEN_COUNT(arr) (sizeof(arr) / sizeof((arr)[0]))
 

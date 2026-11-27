@@ -57,6 +57,8 @@ static TokenMetadata token_metadata[] = {
     {MINUS,         "'-'",           "-",     TOKEN_CAT_OPERATOR},
     {MULTIPLY,      "'*'",           "*",     TOKEN_CAT_OPERATOR},
     {DIVIDE,        "'/'",           "/",     TOKEN_CAT_OPERATOR},
+    {MODULO,        "'%'",           "%",     TOKEN_CAT_OPERATOR},
+    {MOD,           "'mod'",         "mod",   TOKEN_CAT_OPERATOR},
 
     // comparison operators (symbol form)
     {EQUAL,         "'=='",          "==",    TOKEN_CAT_OPERATOR},

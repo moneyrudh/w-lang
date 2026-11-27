@@ -22,7 +22,7 @@ SRCS = src/main.c \
        src/checker/checker.c src/checker/expressions.c src/checker/statements.c \
        src/checker/functions.c src/checker/control_flow.c src/checker/scopes.c src/checker/types.c \
        src/codegen/codegen.c src/codegen/expressions.c src/codegen/statements.c \
-       src/codegen/functions.c src/codegen/control_flow.c src/codegen/formatters.c src/codegen/strings.c \
+       src/codegen/functions.c src/codegen/control_flow.c src/codegen/formatters.c src/codegen/strings.c src/codegen/arithmetic.c \
        src/util/map.c \
        src/runtime/wlang_runtime.c
 

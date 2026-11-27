@@ -82,7 +82,7 @@ static bool has_text_operation(ASTNode* expr) {
 }
 
 // the value of a constant integer expression (num / chr literals and + - * / and unary -),
-// or false when it isn't one or overflows (run-time overflow is undecided, D11)
+// or false when it isn't one or overflows a long long (only used to find a constant zero divisor)
 static bool constant_int(ASTNode* expr, long long* out) {
     long long a, b;
     switch (expr->type) {
@@ -105,6 +105,10 @@ static bool constant_int(ASTNode* expr, long long* out) {
                     if (b == 0 || (a == LLONG_MIN && b == -1)) return false;
                     *out = a / b;
                     return true;
+                case OP_MOD:
+                    if (b == 0 || (a == LLONG_MIN && b == -1)) return false;
+                    *out = a % b;
+                    return true;
                 default: return false;
             }
         default:
@@ -118,7 +122,8 @@ static bool divides_by_zero(ASTNode* expr) {
     switch (expr->type) {
         case NODE_BINARY_EXPR: {
             long long divisor;
-            if (expr->data.binary_expr.operator == OP_DIV && expr->expr_type == TYPE_NUM &&
+            OperatorType op = expr->data.binary_expr.operator;
+            if ((op == OP_DIV || op == OP_MOD) && expr->expr_type == TYPE_NUM &&
                 constant_int(expr->data.binary_expr.right, &divisor) && divisor == 0) {
                 return true;
             }

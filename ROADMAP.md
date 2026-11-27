@@ -33,7 +33,8 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
    `bool` prints `true` / `false` (D10), and one test covers every type × operator pair (D8, D9);
    pieces are separated by spaces as today.
 4. ✅ **Unary minus.** Done: `-x`, `-3`, `-(a + b)`, `- -x` for `num` and `real`.
-5. ⬜ **`%` / `mod` modulo** for `num` (D1).
+5. ✅ **`%` / `mod` modulo** for `num` (D1), with wrap-around arithmetic (D11) and division by zero
+   stopping the program with its line.
 6. ✅ **`str + str`.** Done: concatenation produces a new string (needs a small runtime: allocation and
    freeing rules, D2): the generated C frees it, W code never does.
 7. ✅ **`dec x := 5`** type inference. Done: the type comes from the initializer; `:=` without a
@@ -45,6 +46,12 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
 10. ✅ **Number literal ranges.** Done: a `num` literal outside -2147483648..2147483647 or a `real`
    literal past the largest float is a type error (the checker's, so other type errors still show);
    `-2147483648` works and its C compiles with `-Werror`. Overflow at run time is D11.
+
+11. ⬜ **Traces** (D12). Done: a run-time error prints the W call chain (function and line of each
+   call), like Python's traceback; the generated C keeps a small call stack; `wlang` compiles with
+   `-O2` by default.
+12. ⬜ **Small fixes from reviews:** `fun w()` without a return type exits 0 (today `void main`, garbage
+   exit code); unused parameters don't make the generated C warn.
 
 ## Step 3 — Data ⬜
 

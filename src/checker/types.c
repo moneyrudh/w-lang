@@ -91,6 +91,12 @@ DataType operation_type(DataType left, DataType right, OperatorType op, const ch
         return TYPE_ERROR;
     }
 
+    // % is the remainder of a whole-number division
+    if (op == OP_MOD && (left == TYPE_REAL || right == TYPE_REAL)) {
+        *error = "% works on whole numbers (num, chr), not real";
+        return TYPE_ERROR;
+    }
+
     if (left == TYPE_REAL || right == TYPE_REAL) {
         return TYPE_REAL;
     }

@@ -45,6 +45,7 @@
 #define C_MINUS               " - "
 #define C_MULTIPLY            " * "
 #define C_DIVIDE              " / "
+#define C_MODULO              " % "
 #define C_EQUAL               " == "
 #define C_NOT_EQUAL           " != "
 #define C_LESS                " < "
@@ -107,6 +108,16 @@
 #define C_NULL                "NULL"
 #define C_UNREACHABLE         "abort();"   // compilers know it never returns
 #define C_BLOCK_OPEN          "{\n"   // a bare block (C_LBRACE follows a statement head)
+
+// ===== num arithmetic (src/codegen/arithmetic.c): wrapping + - * -x, checked / % =====
+#define C_TO_UNSIGNED         "(unsigned)"
+#define C_WRAP_OPEN           "(int)((unsigned)"     // ... + (unsigned)(b))
+#define C_WRAP_NEG_OPEN       "(int)(0u - (unsigned)"
+#define C_WRAP_CLOSE          ")"
+#define C_NUM_DIV             "W__div"
+#define C_NUM_MOD             "W__mod"
+#define C_CONST_IS_MINUS_ONE  " == -1 ? "     // a global's constant division: (b) == -1 ? ...
+#define C_CONST_OTHERWISE     " : "
 
 #define C_INT_MIN             "(-2147483647 - 1)"   // C has no literal for the smallest int
 

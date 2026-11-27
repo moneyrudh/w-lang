@@ -1,0 +1,6 @@
+17 % 5 2, 17 mod 5 2 => 2 2
+-17 % 5 -2 (the sign follows the left side, as in C) => -2
+17 % -5 2 => 2
+'a' % 10 7 => 7
+precedence like *: 1 + 7 % 4 * 2 7 => 7
+evens below 10 5 => 5

@@ -26,12 +26,14 @@ static void generate_program(FILE* output, ASTNode* node, int indent_level) {
     ASTNode* entry_point = find_entry_point(node->data.program.functions);
 
     emit_c_includes(output);
+    emit_arithmetic_runtime(output);
     if (program_uses_str(node)) {
         emit_string_runtime(output);
     }
 
     // emit global variables (a str global starts as NULL; main() copies its value in first)
     set_program_globals(node->data.program.globals);
+    set_in_global_value(true);
     if (node->data.program.globals) {
         for (ASTNode* global = node->data.program.globals; global; global = global->next) {
             if (global->data.var_declaration.type == TYPE_STR) {
@@ -43,6 +45,7 @@ static void generate_program(FILE* output, ASTNode* node, int indent_level) {
         }
         fprintf(output, C_NEWLINE);
     }
+    set_in_global_value(false);
 
     // emit forward declarations for all non-w functions
     for (ASTNode* function = node->data.program.functions; function != NULL; function = function->next) {
