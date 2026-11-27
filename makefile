@@ -60,9 +60,11 @@ HEADERS = $(shell find include src -name '*.h')
 # command itself (tests/driver/test.sh)
 UNIT_TESTS = $(BUILD)/unit/type_rules
 
-$(BUILD)/unit/type_rules: tests/unit/type_rules.c src/checker/types.c src/language/operators.c $(HEADERS)
+UNIT_SRCS = src/checker/types.c src/language/operators.c src/core/user_types.c
+
+$(BUILD)/unit/type_rules: tests/unit/type_rules.c $(UNIT_SRCS) $(HEADERS)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(WARNFLAGS) tests/unit/type_rules.c src/checker/types.c src/language/operators.c -o $@
+	$(CC) $(CFLAGS) $(WARNFLAGS) tests/unit/type_rules.c $(UNIT_SRCS) -o $@
 
 unit: $(UNIT_TESTS)
 	@for t in $(UNIT_TESTS); do ./$$t || exit 1; done
