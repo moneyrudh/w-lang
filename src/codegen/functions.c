@@ -52,7 +52,7 @@ void generate_function(FILE* output, ASTNode* node, int indent_level) {
     if (node->data.function.return_type == TYPE_ZIL) {
         strings_close_scope(output, indent_level + 1);   // falling off the end of the body
         emit_indent(output, indent_level + 1);
-        fprintf(output, C_POP_FRAME "\n");
+        fprintf(output, C_POP_FRAME_NL);
     } else {
         // the checker made sure every path returns, so this is never reached. Saying so keeps
         // C compilers that can't follow every path (gcc with sanitizers) from warning

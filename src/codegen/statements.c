@@ -187,7 +187,7 @@ void generate_return(FILE* output, ASTNode* node, int indent_level) {
     }
     strings_free_for_return(output, indent_level + 1);
     emit_indent(output, indent_level + 1);
-    fprintf(output, C_POP_FRAME "\n");
+    fprintf(output, C_POP_FRAME_NL);
     emit_indent(output, indent_level + 1);
     if (!value) {
         fprintf(output, C_RETURN C_SEMICOLON_NL);

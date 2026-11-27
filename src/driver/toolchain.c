@@ -65,8 +65,9 @@ static int spawn_and_wait(char* const argv[], bool search_path) {
 }
 
 bool compile_c(const char* cc, const char* c_path, const char* exe_path) {
-    // -O2: W programs (games especially) run much faster, and the generated C has no
-    // undefined behaviour for the optimizer to trip over
+    // -O2: W programs (games especially) run much faster. The generated C is written so the
+    // optimizer can't change what the program does: num arithmetic is defined (D11) and every
+    // loop is `while (true)` with its condition inside (codegen/control_flow.c)
     char* argv[] = { (char*)cc, "-O2", (char*)c_path, "-o", (char*)exe_path, NULL };
     int code = spawn_and_wait(argv, true);
 

@@ -118,7 +118,7 @@
 #define C_CALL_LINE_PARAM     "int W__line"   // the caller's line, every W function's first parameter
 #define C_CALL_LINE           "W__line"
 #define C_PUSH_FRAME          "W__push"
-#define C_POP_FRAME           "W__pop();"
+#define C_POP_FRAME_NL        "W__pop();\n"
 #define C_NUM_MOD             "W__mod"
 #define C_CONST_IS_MINUS_ONE  " == -1 ? "     // a global's constant division: (b) == -1 ? ...
 #define C_CONST_OTHERWISE     " : "
