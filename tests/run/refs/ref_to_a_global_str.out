@@ -1,5 +1,4 @@
 log original x => original x
 show => original x
 join originalx => originalx
-before grow replaced => replaced
-global replaced => replaced
+global changed => changed
