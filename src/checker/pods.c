@@ -33,24 +33,41 @@ bool check_type_known(DataType* type, int line) {
 
 // a pod that contains itself by value (directly or through other pods) would be infinitely big.
 // One depth-first walk over the pods: each is visited once, so this is linear in their fields.
-// A field leading back to a pod still being walked closes a cycle; it's reported at that pod
+// A field leading back to a pod still being walked closes a cycle; it's reported at that pod,
+// once (a pod can close several cycles: `a: P` and `b: P`, or a figure eight)
 typedef enum { NOT_VISITED, IN_PROGRESS, DONE } VisitState;
 
-static void find_cycles(ASTNode* pod, VisitState* state) {
+typedef struct {
+    VisitState state;
+    bool reported;
+    int depth;        // levels of pods, itself included (fields closing a cycle don't count)
+} PodVisit;
+
+// how deep pods may nest: much deeper and clang crashes on the struct types (it did at 1000)
+#define MAX_POD_DEPTH 100
+
+static void find_cycles(ASTNode* pod, PodVisit* visits) {
     int index = (int)pod->data.pod.type - TYPE_USER_BASE;
-    state[index] = IN_PROGRESS;
+    visits[index].state = IN_PROGRESS;
+    int deepest_field = 0;
     for (Parameter* f = pod->data.pod.fields; f; f = f->next) {
         ASTNode* inner = is_user_type(f->type) ? user_type_pod(f->type) : NULL;
         if (!inner) continue;
         int inner_index = (int)inner->data.pod.type - TYPE_USER_BASE;
-        if (state[inner_index] == IN_PROGRESS) {
+        PodVisit* inner_visit = &visits[inner_index];
+        if (inner_visit->state == IN_PROGRESS && !inner_visit->reported) {
             report_error(inner->location.line, "Pod '%s' contains itself, so it would never end",
                          inner->data.pod.name);
-        } else if (state[inner_index] == NOT_VISITED) {
-            find_cycles(inner, state);
+            inner_visit->reported = true;
+        } else if (inner_visit->state == NOT_VISITED) {
+            find_cycles(inner, visits);
+        }
+        if (inner_visit->state == DONE && inner_visit->depth > deepest_field) {
+            deepest_field = inner_visit->depth;
         }
     }
-    state[index] = DONE;
+    visits[index].state = DONE;
+    visits[index].depth = deepest_field + 1;
 }
 
 void declare_pods(ASTNode* pods) {
@@ -90,18 +107,34 @@ void declare_pods(ASTNode* pods) {
         int index = (int)pod->data.pod.type - TYPE_USER_BASE;
         if (index + 1 > max_index) max_index = index + 1;
     }
-    VisitState* state = calloc((size_t)(max_index > 0 ? max_index : 1), sizeof(VisitState));
-    if (!state) {
+    PodVisit* visits = calloc((size_t)(max_index > 0 ? max_index : 1), sizeof(PodVisit));
+    if (!visits) {
         report_error(0, "Out of memory");
         return;
     }
     for (ASTNode* pod = pods; pod; pod = pod->next) {
         if (user_type_pod(pod->data.pod.type) != pod) continue;
-        if (state[(int)pod->data.pod.type - TYPE_USER_BASE] == NOT_VISITED) {
-            find_cycles(pod, state);
+        if (visits[(int)pod->data.pod.type - TYPE_USER_BASE].state == NOT_VISITED) {
+            find_cycles(pod, visits);
         }
     }
-    free(state);
+
+    // too deep: reported once, at the outermost pod
+    ASTNode* deepest = NULL;
+    for (ASTNode* pod = pods; pod; pod = pod->next) {
+        if (user_type_pod(pod->data.pod.type) != pod) continue;
+        int depth = visits[(int)pod->data.pod.type - TYPE_USER_BASE].depth;
+        if (depth > MAX_POD_DEPTH &&
+            (!deepest || depth > visits[(int)deepest->data.pod.type - TYPE_USER_BASE].depth)) {
+            deepest = pod;
+        }
+    }
+    if (deepest) {
+        report_error(deepest->location.line, "Pod '%s' has pods nested %d deep inside it; the limit is %d",
+                     deepest->data.pod.name, visits[(int)deepest->data.pod.type - TYPE_USER_BASE].depth,
+                     MAX_POD_DEPTH);
+    }
+    free(visits);
 }
 
 DataType check_field_access(ASTNode* node) {
@@ -155,6 +188,7 @@ DataType check_pod_literal(ASTNode* node, ASTNode* pod) {
         if (earlier == 1) {
             report_error(line, "Field '%s' is given twice", name);
         }
+        if (earlier > 0) continue;   // that's its one error
         if (type != TYPE_ERROR && f->type != TYPE_ERROR && !compare_types(f->type, type)) {
             report_error(line, "Field '%s' of '%s': cannot use %s as %s", name, pod->data.pod.name,
                          get_wlang_type_from_enum(type), get_wlang_type_from_enum(f->type));

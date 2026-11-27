@@ -110,6 +110,8 @@ ASTNode* parse_pod(void) {
     if (token != NEWLINE) {
         parser_error("Expected the pod's fields on the lines below its name");
         free(name);
+        skip_rest_of_line();
+        skip_indented_block();   // its fields, unreported: they'd only cascade
         return NULL;
     }
     eat(NEWLINE);
@@ -126,6 +128,12 @@ ASTNode* parse_pod(void) {
     int count = 0;
     while (token != DEDENT && token != 0) {
         start_statement();   // each field line reports its own error
+        if (token == INDENT) {
+            // lines indented further than the fields above them: one error, then carry on
+            parser_error("This field is indented further than the ones above it");
+            skip_indented_block();
+            continue;
+        }
         if (token != IDENTIFIER) {
             parser_error("Expected a field: name: type");
             skip_rest_of_line();

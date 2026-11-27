@@ -35,6 +35,7 @@ TOKENS = [
     "'a'", "'\\n'", "''", '"text"', '""', '"unterminated',
     "x", "y", "w()", "f(1, 2)", "--", "---", "note", "\t", "\n", "    ", "\r\n",
     "pod", ".", ".x", "Vec(x: 1, y: 2)", "b.pos.x", "x: 1",
+    "say b,", "loop while P()", "dec g := P(a: 1 / 0)", "P(a: 1, a: 2)",
 ]
 
 

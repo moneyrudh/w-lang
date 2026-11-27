@@ -60,7 +60,7 @@ HEADERS = $(shell find include src -name '*.h')
 # command itself (tests/driver/test.sh)
 UNIT_TESTS = $(BUILD)/unit/type_rules
 
-UNIT_SRCS = src/checker/types.c src/language/operators.c src/core/user_types.c
+UNIT_SRCS = src/checker/types.c src/language/operators.c src/core/user_types.c src/util/map.c
 
 $(BUILD)/unit/type_rules: tests/unit/type_rules.c $(UNIT_SRCS) $(HEADERS)
 	@mkdir -p $(dir $@)

@@ -226,7 +226,10 @@ finish
 begin "string memory stays flat in a loop"
 python3 - > flat.w <<'PY'
 base = "y" * 1000
-print(f"""fun stopper(base: str)
+print(f"""pod P
+    a: num
+
+fun stopper(base: str)
     -- stop leaves temporaries from its condition
     loop forever
         say base + "z" is base + "z", stop
@@ -239,6 +242,12 @@ fun w(): num
         dec joined := base + base
         s = joined + "x"
         say base + "z" is "never", log("never")
+        i = i + 1
+    -- a log with a pod works out each value first, so the join is a temporary there (in a
+    -- loop of its own: another statement's string temporaries would free it too)
+    i = 0
+    loop while i < 200000
+        log(P(), base + base)
         i = i + 1
     i = 0
     loop while i < 200000
@@ -264,11 +273,11 @@ finish
 
 # ==================== checking stays fast ====================
 
-# 200 pods in a chain, each with 3 fields of the next: a check that walks every path through
-# them (instead of every pod) would take forever
+# 100 pods in a chain (the deepest allowed), each with 3 fields of the next: a check that walks
+# every path through them (instead of every pod) would take forever
 begin "checking many nested pods is fast"
 python3 - > chain.w <<'PY'
-n = 200
+n = 100
 for i in range(n):
     print(f"pod P{i}")
     for f in "abc":

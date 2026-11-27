@@ -1,8 +1,10 @@
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "user_types.h"
+#include "util/map.h"
 
 typedef struct {
     char* name;
@@ -13,14 +15,26 @@ typedef struct {
 static UserType* user_types = NULL;
 static int user_type_count = 0, user_type_capacity = 0;
 
+// name -> index + 1 (so index 0 isn't NULL). Keys point at the names in user_types
+static Map* by_name = NULL;
+
+static int index_of(const char* name) {
+    void* found = by_name ? map_get(by_name, name) : NULL;
+    return found ? (int)(intptr_t)found - 1 : -1;
+}
+
 static void out_of_memory(void) {
     fprintf(stderr, "Out of memory\n");
     exit(1);
 }
 
 DataType user_type_named(const char* name) {
-    for (int i = 0; i < user_type_count; i++) {
-        if (strcmp(user_types[i].name, name) == 0) return (DataType)(TYPE_USER_BASE + i);
+    int existing = index_of(name);
+    if (existing >= 0) return (DataType)(TYPE_USER_BASE + existing);
+    if (!by_name) {
+        MapConfig config = { .hash = hash_string, .key_equal = key_equal_string };
+        by_name = map_create(64, config);
+        if (!by_name) out_of_memory();
     }
     if (user_type_count == user_type_capacity) {
         user_type_capacity = user_type_capacity ? user_type_capacity * 2 : 16;
@@ -35,14 +49,13 @@ DataType user_type_named(const char* name) {
     if (!t->name || !t->c_name) out_of_memory();
     snprintf(t->c_name, c_size, "W__%s_p", name);
     t->pod = NULL;
+    map_put(by_name, t->name, (void*)(intptr_t)(user_type_count + 1));
     return (DataType)(TYPE_USER_BASE + user_type_count++);
 }
 
 DataType user_type_find(const char* name) {
-    for (int i = 0; i < user_type_count; i++) {
-        if (strcmp(user_types[i].name, name) == 0) return (DataType)(TYPE_USER_BASE + i);
-    }
-    return TYPE_ERROR;
+    int existing = index_of(name);
+    return existing >= 0 ? (DataType)(TYPE_USER_BASE + existing) : TYPE_ERROR;
 }
 
 bool is_user_type(DataType type) {
@@ -80,5 +93,7 @@ void user_types_cleanup(void) {
     }
     free(user_types);
     user_types = NULL;
+    if (by_name) map_destroy(by_name);
+    by_name = NULL;
     user_type_count = user_type_capacity = 0;
 }
