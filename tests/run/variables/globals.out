@@ -1,0 +1,4 @@
+count 2 => 2
+rate 2.500000, name W, on true => 2.500000 W true
+big -2147483648, unset 0, later 42 => -2147483648 0 42
+a local shadowing count 42 => 42

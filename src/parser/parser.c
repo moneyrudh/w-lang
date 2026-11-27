@@ -272,12 +272,39 @@ ASTNode* parse(void) {
 
     // yylex() returns 0 at end of input
     ASTNode* last_function = NULL;
+    ASTNode* last_global = NULL;
     while (token != 0) {
         begin_statement();
+
+        // an indented block where none belongs: one error, and its contents are still checked
+        if (token == INDENT) {
+            parser_error("Unexpected indentation");
+            free_ast(parse_block());
+            continue;
+        }
+        if (token == DEDENT) {
+            advance();   // the end of such a block; already reported
+            continue;
+        }
+
+        // a global variable
+        if (token == DEC) {
+            ASTNode* global = parse_variable_declaration();
+            if (in_panic()) recover();
+            if (!global) continue;
+            if (last_global == NULL) {
+                program->data.program.globals = global;
+            } else {
+                last_global->next = global;
+            }
+            last_global = global;
+            continue;
+        }
+
         if (token != FUN) {
             char error_msg[100];
             snprintf(error_msg, sizeof(error_msg),
-                "Unexpected %s at top level. Expected 'fun' for function definition.",
+                "Unexpected %s at top level. Expected 'fun' or 'dec'.",
                 token_registry_describe(token));
             parser_error(error_msg);
             recover();

@@ -23,7 +23,11 @@ void check_program(ASTNode* program) {
     checker_context.has_return = false;
     checker_context.loop_depth = 0;
 
-    // pass 1: every signature, so a call can come before the function's definition
+    // pass 1: globals, then every signature, so a function can use a global, and a call can
+    // come before the function's definition, wherever they appear in the file
+    for (ASTNode* global = program->data.program.globals; global != NULL; global = global->next) {
+        check_global(global);
+    }
     declare_functions(functions);
 
     if (!has_entry_point(functions)) {
