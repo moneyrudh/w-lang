@@ -105,6 +105,8 @@ void check_function(ASTNode* function) {
         }
         if (!declare_variable(param->name, param->type)) {
             report_error(line, "Duplicate parameter name");
+        } else {
+            lookup_variable(param->name)->is_ref = param->is_ref;
         }
     }
     check_statements(function->data.function.body);
@@ -168,9 +170,14 @@ DataType check_call(ASTNode* node) {
     int arg_count = node->data.function_call.arg_count;
     int line = node->location.line;
 
+    bool* refs = node->data.function_call.arg_is_ref;
+
     // Name(field: value, ...) is a pod value (it checks its own values)
     ASTNode* pod = find_pod(name);
     if (pod) {
+        if (refs) {
+            report_error(line, "'ref' is for a function's ref parameters, not a pod's values");
+        }
         return check_pod_literal(node, pod);
     }
 
@@ -199,6 +206,28 @@ DataType check_call(ASTNode* node) {
     } else {
         Parameter* param = function->data.function.parameters;
         for (int i = 0; i < arg_count; i++, param = param->next) {
+            bool is_ref = refs && refs[i];
+            if (param->is_ref != is_ref) {
+                if (param->is_ref) {
+                    report_error(line, "Argument %d of '%s' is a ref parameter: pass it with ref (the function can change it)",
+                                 i + 1, name);
+                } else {
+                    report_error(line, "Argument %d of '%s' isn't a ref parameter: drop the 'ref'", i + 1, name);
+                }
+                continue;
+            }
+            if (is_ref) {
+                // the function changes it in place: a variable (or a field of one), of exactly its type
+                if (!ref_root(node->data.function_call.args[i])) {
+                    report_error(line, "Argument %d of '%s': only a variable or a field of one can be passed with ref",
+                                 i + 1, name);
+                } else if (arg_types[i] != TYPE_ERROR && param->type != TYPE_ERROR && arg_types[i] != param->type) {
+                    report_error(line, "Argument %d of '%s': a ref %s needs a %s variable, got %s",
+                                 i + 1, name, get_wlang_type_from_enum(param->type),
+                                 get_wlang_type_from_enum(param->type), get_wlang_type_from_enum(arg_types[i]));
+                }
+                continue;
+            }
             if (arg_types[i] != TYPE_ERROR && param->type != TYPE_ERROR && !compare_types(param->type, arg_types[i])) {
                 report_error(line, "Argument %d of '%s': cannot pass %s as %s",
                              i + 1, name, get_wlang_type_from_enum(arg_types[i]),

@@ -29,6 +29,16 @@ const char* mangle_field(const char* w_name) {
     return buffer;
 }
 
+// a variable as an expression: W__x_v, or (*W__x_v) for a ref parameter (a pointer to the
+// caller's variable)
+const char* variable_c_name(const char* w_name, bool is_ref) {
+    const char* name = mangle_identifier(w_name, false);
+    if (!is_ref) return name;
+    static char buffer[520];
+    snprintf(buffer, sizeof(buffer), C_DEREF_FORMAT, name);
+    return buffer;
+}
+
 const char* mangle_init_temp(const char* w_name) {
     static char buffer[512];
     snprintf(buffer, sizeof(buffer), "W__%s_init", w_name);
@@ -65,7 +75,7 @@ static void emit_parameter_list(FILE* out, const char* name, Parameter* params, 
         if (param != params || call_line) {
             fprintf(out, C_COMMA);
         }
-        fprintf(out, "%s %s", get_c_type_from_enum(param->type),
+        fprintf(out, "%s%s %s", get_c_type_from_enum(param->type), param->is_ref ? C_POINTER : "",
                 mangle_identifier(param->name, false));
     }
 }

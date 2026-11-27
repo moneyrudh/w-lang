@@ -78,6 +78,7 @@ bool declare_variable(const char* name, DataType type) {
     symbol->name = strdup(name);
     symbol->type = type;
     symbol->is_global = scope_depth == 0;   // globals are declared before any function scope opens
+    symbol->is_ref = false;
     symbol->next = variables;
     variables = symbol;
     return true;

@@ -23,6 +23,7 @@ typedef struct Symbol {
     char* name;
     DataType type;
     bool is_global;      // declared at the top level (outside every function)
+    bool is_ref;         // a ref parameter: the caller's variable
     struct Symbol* next;
 } Symbol;
 
@@ -44,6 +45,15 @@ Symbol* lookup_variable(const char* name);
 // false if a function with this name already exists
 bool declare_function(ASTNode* function);
 FunctionSymbol* lookup_function(const char* name);
+
+// ==================== refs.c ====================
+
+// the variable a `ref` argument names (`b`, or the `b` of `b.pos.x`), or NULL if it isn't one
+ASTNode* ref_root(ASTNode* arg);
+
+// one statement's expressions: a variable passed with ref is used nowhere else in them
+// (reported once, on `line`)
+void check_ref_uses(ASTNode** roots, int count, int line);
 
 // ==================== types.c ====================
 

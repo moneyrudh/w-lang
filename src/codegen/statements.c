@@ -94,7 +94,7 @@ void generate_assignment(FILE* output, ASTNode* node, int indent_level) {
     // a str variable frees its old text: W__str_set(&W__s_v, value);
     if (target_type == TYPE_STR) {
         fprintf(output, C_STR_SET C_LPAREN C_ADDRESS_OF "%s" C_COMMA,
-                mangle_identifier(node->data.assignment.target, false));
+                variable_c_name(node->data.assignment.target, node->data.assignment.target_is_ref));
         generate(output, node->data.assignment.value, 0);
         fprintf(output, C_RPAREN C_SEMICOLON_NL);
         return;
@@ -105,7 +105,8 @@ void generate_assignment(FILE* output, ASTNode* node, int indent_level) {
         generate(output, node->data.assignment.target_field, 0);
         fprintf(output, C_ASSIGN);
     } else {
-        fprintf(output, "%s" C_ASSIGN, mangle_identifier(node->data.assignment.target, false));
+        fprintf(output, "%s" C_ASSIGN,
+                variable_c_name(node->data.assignment.target, node->data.assignment.target_is_ref));
     }
 
     generate_cast_if_needed(output, value_type, target_type);

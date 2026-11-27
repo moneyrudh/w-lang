@@ -92,8 +92,10 @@ ASTNode* parse_function(void);
 // '(' argument, ... ')': a malloc'd array (NULL when empty) the caller owns, with its count in
 // arg_count. An argument is `value` or `name: value` (for pod values); the names come back in
 // *arg_names (NULL when there are none; NULL entries for unnamed ones), or are reported as an
-// error when arg_names is NULL. `context` names the construct in errors ("function call", "log")
-ASTNode** parse_argument_list(const char* context, int* arg_count, char*** arg_names);
+// error when arg_names is NULL. `ref value` arguments come back as true entries in *arg_refs (NULL
+// when there are none), or are an error when arg_refs is NULL. `context` names the construct in
+// errors ("function call", "log")
+ASTNode** parse_argument_list(const char* context, int* arg_count, char*** arg_names, bool** arg_refs);
 
 // called after the function name, at '('
 ASTNode* parse_function_call(char* name, SourceLocation loc);

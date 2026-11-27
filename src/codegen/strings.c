@@ -290,10 +290,11 @@ void strings_begin_function(FILE* output, ASTNode* function, int indent_level) {
         fprintf(output, C_SIZE_T " " C_FUNCTION_MARK C_ASSIGN C_TEMPS_MARK_CALL C_SEMICOLON_NL);
     }
 
-    // the function's own scope: its str parameters become copies it owns
+    // the function's own scope: its str parameters become copies it owns (a ref str stays the
+    // caller's: assigning it replaces the caller's text, and the caller frees it)
     strings_open_scope();
     for (Parameter* p = function->data.function.parameters; p; p = p->next) {
-        if (p->type != TYPE_STR) continue;
+        if (p->type != TYPE_STR || p->is_ref) continue;
         const char* name = mangle_identifier(p->name, false);
         emit_indent(output, indent_level);
         fprintf(output, "%s" C_ASSIGN C_STR_COPY "(%s)" C_SEMICOLON_NL, name, name);

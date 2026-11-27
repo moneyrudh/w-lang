@@ -13,6 +13,7 @@ static DataType check_variable(ASTNode* node) {
         return TYPE_ERROR;
     }
     node->data.variable.is_global = symbol->is_global;
+    node->data.variable.is_ref = symbol->is_ref;
     return symbol->type;
 }
 

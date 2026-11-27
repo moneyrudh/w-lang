@@ -77,7 +77,18 @@ void generate_variable(FILE* output, ASTNode* node) {
                 mangle_identifier(node->data.variable.name, false));
         return;
     }
-    fprintf(output, "%s", mangle_identifier(node->data.variable.name, false));
+    fprintf(output, "%s", variable_c_name(node->data.variable.name, node->data.variable.is_ref));
+}
+
+// a `ref` argument's place, for its address: the variable itself (a global str too, not a
+// copy of it), then its fields
+static void generate_place(FILE* output, ASTNode* node) {
+    if (node->type == NODE_FIELD_ACCESS) {
+        generate_place(output, node->data.field_access.object);
+        fprintf(output, C_FIELD_SELECT, mangle_field(node->data.field_access.field));
+        return;
+    }
+    fprintf(output, "%s", variable_c_name(node->data.variable.name, node->data.variable.is_ref));
 }
 
 // ==================== casts ====================
@@ -203,9 +214,17 @@ void generate_function_call(FILE* output, ASTNode* node, int indent_level) {
     // the call's line goes first, for traces (formatters.c: every W function takes it)
     fprintf(output, "%s" C_LPAREN "%d", mangle_identifier(node->data.function_call.name, true),
             node->location.line);
+    bool* refs = node->data.function_call.arg_is_ref;
     for (int i = 0; i < node->data.function_call.arg_count; i++) {
         fprintf(output, C_COMMA);
-        generate(output, node->data.function_call.args[i], 0);
+        if (refs && refs[i]) {
+            // ref: the caller's variable's address, &(W__b_v.W__pos_m)
+            fprintf(output, C_ADDRESS_OF C_LPAREN);
+            generate_place(output, node->data.function_call.args[i]);
+            fprintf(output, C_RPAREN);
+        } else {
+            generate(output, node->data.function_call.args[i], 0);
+        }
     }
     fprintf(output, C_RPAREN);
 

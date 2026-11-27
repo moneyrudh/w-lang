@@ -57,8 +57,8 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
 
 1. ✅ **Pods** (D3, D13). Declarations, values with field names, reading and assigning fields,
    passing and returning (copied), nested pods, globals, `log` printing a pod.
-2. ⬜ **`ref` parameters** (D13). Done: `fun bounce(b: ref Ball)` changes the caller's pod; passing
-   a value that isn't a variable (or field of one) to a `ref` parameter is an error.
+2. ✅ **`ref` parameters** (D13, D16). `fun bounce(b: ref Ball)`, called `bounce(ref b)`, changes
+   the caller's variable (any type, `str` too); one use per statement for a variable passed with ref.
 3. ⬜ **`str` fields in pods.** Done: a pod with `str` fields is copied and freed correctly (the
    string memory model, D2, extended to pods); LeakSanitizer and the flat-memory test cover it.
 4. ⬜ **`vec`** (D4, D14, D15). Done: `vec[T]` for any T, literals, indexing with a bounds check that

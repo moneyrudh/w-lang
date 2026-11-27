@@ -52,6 +52,7 @@ ASTNode* create_function_call_node(char* name, ASTNode** args, int arg_count, So
     }
     node->data.function_call.arg_count = arg_count;
     node->data.function_call.arg_names = NULL;
+    node->data.function_call.arg_is_ref = NULL;
     node->data.function_call.is_pod_literal = false;
     return node;
 }
@@ -75,6 +76,7 @@ ASTNode* create_assignment_node(char* target, ASTNode* value, SourceLocation loc
     node->data.assignment.target = strdup(target);
     node->data.assignment.target_type = TYPE_ERROR;
     node->data.assignment.target_field = NULL;
+    node->data.assignment.target_is_ref = false;
     node->data.assignment.value = value;
     return node;
 }
@@ -149,6 +151,7 @@ ASTNode* create_variable_node(char* name, SourceLocation loc) {
     ASTNode* node = new_node(NODE_VARIABLE, loc);
     node->data.variable.name = strdup(name);
     node->data.variable.is_global = false;
+    node->data.variable.is_ref = false;
     return node;
 }
 
@@ -212,6 +215,7 @@ void free_ast(ASTNode* node) {
                     }
                     free(node->data.function_call.args);
                     free(node->data.function_call.arg_names);
+                    free(node->data.function_call.arg_is_ref);
                 }
                 break;
             case NODE_LOG:

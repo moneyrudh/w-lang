@@ -1,0 +1,17 @@
+n 3 => 3
+global score 1 => 1
+vel.y -4 => -4.000000 bounces 1 => 1
+pos 4 -2 => 4.000000 -2.000000
+bounces 3 => 3
+copy 100 => 100 original 3 => 3
+reset => Ball(pos: Vec(x: 0.000000, y: 0.000000), vel: Vec(x: 0.000000, y: 0.000000), bounces: 0)
+grown hi!! => hi!!
+swapped there hi!! => there hi!!
+shadow inner => inner
+shadow outer hi!!? => hi!!?
+flag true => true
+loop 5 there!!!!! => 5 there!!!!!
+returned a! a! => a! a!
+joined a!!? => a!!?
+n 4 => 4
+pos 1 1 => 1.000000 1.000000

@@ -14,6 +14,7 @@ typedef struct Parameter {
     char* name;
     DataType type;
     int line;                  // where it's written, for errors about it
+    bool is_ref;               // `b: ref Ball`: the function changes the caller's variable
     struct Parameter* next;
 } Parameter;
 
@@ -47,6 +48,7 @@ typedef struct ASTNode {
         struct {
             char* target;             // the variable assigned, or the variable a field belongs to
             struct ASTNode* target_field;   // NODE_FIELD_ACCESS for `a.b = value`, else NULL
+            bool target_is_ref;       // set by the checker: the target is a ref parameter
             DataType target_type;     // filled in by the checker
             struct ASTNode* value;
         } assignment;
@@ -81,6 +83,7 @@ typedef struct ASTNode {
             char* name;
             struct ASTNode** args;    // array of argument expressions
             char** arg_names;         // `name: value` arguments (NULL entries for plain ones), or NULL
+            bool* arg_is_ref;         // `ref x` arguments (true entries), or NULL when there are none
             int arg_count;
             bool is_pod_literal;      // set by the checker: Name(field: value, ...) builds a pod
         } function_call;
@@ -93,6 +96,7 @@ typedef struct ASTNode {
         struct {
             char* name;
             bool is_global;   // set by the checker: the name is a global variable
+            bool is_ref;      // set by the checker: the name is a ref parameter (a pointer in C)
         } variable;
         struct {
             double value;
