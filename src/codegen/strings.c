@@ -392,10 +392,6 @@ void strings_free_temps(FILE* output, int indent_level) {
     fprintf(output, C_TEMPS_FREE "(" C_FUNCTION_MARK ")" C_SEMICOLON_NL);
 }
 
-bool strings_return_needs_cleanup(void) {
-    return fn.has_mark || fn.owned_count > 0;
-}
-
 void strings_free_for_return(FILE* output, int indent_level) {
     strings_free_temps(output, indent_level);
     emit_frees_down_to(output, indent_level, 0);

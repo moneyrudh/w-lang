@@ -35,6 +35,7 @@ Each stage is a folder under `src/`. Its public API is one header in `include/` 
   - `codegen.c` — `generate()` dispatch and the program layout (includes, forward declarations, `w()` last)
   - `expressions.c`, `statements.c`, `functions.c`, `control_flow.c` — One file per kind of construct
   - `formatters.c` — Helpers for emitting C constructs (mangling, signatures, casts, operators, indentation)
+  - `arithmetic.c` — The always-emitted runtime: call frames for traces (`W__push` / `W__pop` / `W__runtime_error`), checked `W__div` / `W__mod`, and the wrap-around forms of `num` arithmetic (D11). Every W function but `main()` takes the caller's line as a hidden first parameter (`int W__line`); every call passes it, and every way out of a function pops its frame
   - `strings.c` — String memory (D2): the small runtime emitted into programs that use `str`, and the bookkeeping for which `str` variables are alive, so blocks, `ret`, `stop` and `skip` free them. Any new statement that leaves a block early, or new place a `str` can be stored, must go through it
   - `c_syntax.h` — `#define` constants for all C syntax strings (keywords, operators, punctuation, escapes)
 - `src/util/map.c` — Generic hashmap used internally by the registries

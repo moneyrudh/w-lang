@@ -47,7 +47,7 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
    literal past the largest float is a type error (the checker's, so other type errors still show);
    `-2147483648` works and its C compiles with `-Werror`. Overflow at run time is D11.
 
-11. ⬜ **Traces** (D12). Done: a run-time error prints the W call chain (function and line of each
+11. ✅ **Traces** (D12). Done: a run-time error prints the W call chain (function and line of each
    call), like Python's traceback; the generated C keeps a small call stack; `wlang` compiles with
    `-O2` by default.
 12. ⬜ **Small fixes from reviews:** `fun w()` without a return type exits 0 (today `void main`, garbage

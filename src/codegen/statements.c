@@ -164,18 +164,11 @@ void generate_log_statement(FILE* output, ASTNode* node, int indent_level) {
 // function's temporaries and str variables are freed. A str result is a copy, handed to the
 // caller as one of its temporaries:
 //   { char* W__ret = W__str_copy(value); W__temps_free(W__fmark); free(W__s_v); return W__temp(W__ret); }
+//
+// Every return also pops the function's frame (for traces), after the value is computed: an
+// error while computing it belongs to this function.
 void generate_return(FILE* output, ASTNode* node, int indent_level) {
     ASTNode* value = node->data.return_statement.expression;
-
-    if (!strings_return_needs_cleanup()) {
-        emit_indent(output, indent_level);
-        fprintf(output, C_RETURN C_SPACE);
-        if (value) {
-            generate(output, value, 0);
-        }
-        fprintf(output, C_SEMICOLON_NL);
-        return;
-    }
 
     DataType return_type = current_return_type();
     emit_indent(output, indent_level);
@@ -193,6 +186,8 @@ void generate_return(FILE* output, ASTNode* node, int indent_level) {
         fprintf(output, C_SEMICOLON_NL);
     }
     strings_free_for_return(output, indent_level + 1);
+    emit_indent(output, indent_level + 1);
+    fprintf(output, C_POP_FRAME "\n");
     emit_indent(output, indent_level + 1);
     if (!value) {
         fprintf(output, C_RETURN C_SEMICOLON_NL);

@@ -109,8 +109,7 @@ void strings_end_loop_body(void);
 void strings_free_temps(FILE* output, int indent_level);
 bool strings_function_has_mark(void);
 
-// before ret: anything to free? then free temporaries and every live str variable
-bool strings_return_needs_cleanup(void);
+// before ret: free temporaries and every live str variable
 void strings_free_for_return(FILE* output, int indent_level);
 
 // before stop / skip: the str variables declared inside the loop body

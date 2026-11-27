@@ -37,13 +37,22 @@ void generate_function(FILE* output, ASTNode* node, int indent_level) {
                             node->data.function.param_count);
 
     current_function = node;
+    bool is_entry_point = strcmp(node->data.function.name, "w") == 0;
+
+    // this call's frame, for traces: W__push("name", W__line); main() has no caller
+    emit_indent(output, indent_level + 1);
+    fprintf(output, C_PUSH_FRAME C_LPAREN C_STRING_QUOTE "%s" C_STRING_QUOTE C_COMMA "%s" C_RPAREN C_SEMICOLON_NL,
+            node->data.function.name, is_entry_point ? C_ZERO : C_CALL_LINE);
+
     strings_begin_function(output, node, indent_level + 1);
-    if (strcmp(node->data.function.name, "w") == 0) {
+    if (is_entry_point) {
         strings_emit_global_inits(output, program_globals, indent_level + 1);
     }
     generate_block(output, node->data.function.body, indent_level + 1);
     if (node->data.function.return_type == TYPE_ZIL) {
         strings_close_scope(output, indent_level + 1);   // falling off the end of the body
+        emit_indent(output, indent_level + 1);
+        fprintf(output, C_POP_FRAME "\n");
     } else {
         // the checker made sure every path returns, so this is never reached. Saying so keeps
         // C compilers that can't follow every path (gcc with sanitizers) from warning
