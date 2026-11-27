@@ -35,20 +35,28 @@ Implementation details (how the compiler does it) are not listed here.
   (`W__div`). `real` division follows C (`1.0 / 0` is infinity).
 - **D12. Traces** (2026-11-27): run-time errors print the chain of W calls that led to them, like
   Python's traceback; always on (a later `wlang build --release` may turn them off).
-- **D3. Pods** (2026-11-28): `pod Name` with an indented list of `field: type`; values are written
+- **D3. Pods** (2026-11-26): `pod Name` with an indented list of `field: type`; values are written
   with field names, `Ball(x: 10, y: 20)` (left-out fields are zero); fields are read and assigned
   with `.`. Functions on pods come later.
-- **D13. Pods are values** (2026-11-28): assigning or passing a pod copies it, like a C struct (cheap:
+- **D13. Pods are values** (2026-11-26): assigning or passing a pod copies it, like a C struct (cheap:
   a pod of numbers lives on the stack). A function changes its caller's value only through a `ref`
   parameter: `fun bounce(b: ref Ball)`.
-- **D4. Arrays** (2026-11-28): `vec[num]` for the type, `[1, 2, 3]` for a value, `v[0]` to index.
-- **D14. Arrays are copy-on-write** (2026-11-28): assigning or passing a `vec` shares it, so it's
+- **D16. Calls say `ref` too** (2026-11-27): `bounce(ref b)`, so a reader sees which calls can change
+  their variables; leaving it out (or adding it to a plain parameter) is an error. A `ref` takes a
+  variable or a field of one, of exactly the parameter's type. A variable passed with `ref` is used
+  nowhere else in the same statement: C doesn't fix the order arguments are worked out in, so
+  `log(grow(ref s), s)` could read `s` after `grow` freed its text. Fields that don't overlap are
+  separate (`move(ref b.pos, b.vel)` is fine). The rule compares names, so it can't see a global
+  reached under a ref's name inside the function: a `str` ref is read through a copy (like a
+  global) to stay safe there.
+- **D4. Arrays** (2026-11-26): `vec[num]` for the type, `[1, 2, 3]` for a value, `v[0]` to index.
+- **D14. Arrays are copy-on-write** (2026-11-26): assigning or passing a `vec` shares it, so it's
   as fast as passing a pointer; a real copy happens only when a shared `vec` is changed. No aliasing
   surprises, no garbage collector (values can't form cycles).
-- **D15. Array operations** (2026-11-28): `v.add(x)`, `v.pop()`, `v.add_front(x)`, `v.pop_front()`,
+- **D15. Array operations** (2026-11-26): `v.add(x)`, `v.pop()`, `v.add_front(x)`, `v.pop_front()`,
   `v.len`. A `vec` is a ring buffer: both ends and `v[i]` are constant time.
-- **D5. Looping over an array** (2026-11-28): `loop x in v`, and `loop i, x in v` with the index.
-- **D6. Modules** (2026-11-28): `use name` loads `name.w` from the same folder (then the standard
+- **D5. Looping over an array** (2026-11-26): `loop x in v`, and `loop i, x in v` with the index.
+- **D6. Modules** (2026-11-26): `use name` loads `name.w` from the same folder (then the standard
   library); `use folder.name` loads `folder/name.w`. What a module defines is used qualified:
   `use math` then `math.sqrt(2)`. Bringing names in directly (`use math.sqrt`) may come later.
 - **`:=` type inference** (2026-11-25): kept. The type is the type of the value, which the checker

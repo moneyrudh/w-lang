@@ -141,6 +141,9 @@ const char* mangle_identifier(const char* w_name, bool is_function);
 const char* mangle_init_temp(const char* w_name);
 const char* mangle_field(const char* w_name);
 
+// a variable as an expression: W__x_v, or (*W__x_v) for a ref parameter
+const char* variable_c_name(const char* w_name, bool is_ref);
+
 // emit indentation (level * 4 spaces)
 void emit_indent(FILE* out, int level);
 

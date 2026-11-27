@@ -1,0 +1,4 @@
+log original x => original x
+show => original x
+join originalx => originalx
+global changed => changed

@@ -32,6 +32,7 @@ Each stage is a folder under `src/`. Its public API is one header in `include/` 
   - `control_flow.c` — Conditions, loops, `skip`/`stop` placement
   - `scopes.c` — Scoped variable table (`push_scope`/`pop_scope`) and function table
   - `pods.c` — Pod declarations (fields, cycles), unknown type names, field access, pod values
+  - `refs.c` — `ref` arguments: what can be passed, and a variable passed with ref used nowhere else in its statement
   - `types.c` — Pure type rules (`compare_types`, `can_convert_type`, `operation_type`); no AST, no printing
 - `src/codegen/` — Walks the AST and emits C via `fprintf`:
   - `codegen.c` — `generate()` dispatch and the program layout (includes, forward declarations, `w()` last)

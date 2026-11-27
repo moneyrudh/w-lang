@@ -86,7 +86,8 @@ bool expression_makes_temps(ASTNode* expr) {
     if (!expr) return false;
     switch (expr->type) {
         case NODE_VARIABLE:
-            return expr->data.variable.is_global && expr->expr_type == TYPE_STR;   // read through a copy
+            // a global str, or a ref str (which may be a global's slot), is read through a copy
+            return (expr->data.variable.is_global || expr->data.variable.is_ref) && expr->expr_type == TYPE_STR;
         case NODE_BINARY_EXPR:
             return is_str_join(expr) || expression_makes_temps(expr->data.binary_expr.left) ||
                    expression_makes_temps(expr->data.binary_expr.right);
@@ -290,10 +291,11 @@ void strings_begin_function(FILE* output, ASTNode* function, int indent_level) {
         fprintf(output, C_SIZE_T " " C_FUNCTION_MARK C_ASSIGN C_TEMPS_MARK_CALL C_SEMICOLON_NL);
     }
 
-    // the function's own scope: its str parameters become copies it owns
+    // the function's own scope: its str parameters become copies it owns (a ref str stays the
+    // caller's: assigning it replaces the caller's text, and the caller frees it)
     strings_open_scope();
     for (Parameter* p = function->data.function.parameters; p; p = p->next) {
-        if (p->type != TYPE_STR) continue;
+        if (p->type != TYPE_STR || p->is_ref) continue;
         const char* name = mangle_identifier(p->name, false);
         emit_indent(output, indent_level);
         fprintf(output, "%s" C_ASSIGN C_STR_COPY "(%s)" C_SEMICOLON_NL, name, name);

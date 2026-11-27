@@ -105,6 +105,8 @@
 #define C_FUNCTION_MARK       "W__fmark"      // the temporaries count when the function started
 #define C_RETURN_VALUE        "W__ret"        // a return value, computed before cleaning up
 #define C_ADDRESS_OF          "&"
+#define C_POINTER             "*"             // a ref parameter's type: W__Ball_p* W__b_v
+#define C_DEREF_FORMAT        "(*%s)"         // a ref parameter's variable: (*W__b_v)
 #define C_NULL                "NULL"
 #define C_UNREACHABLE         "abort();"   // compilers know it never returns
 #define C_BLOCK_OPEN          "{\n"   // a bare block (C_LBRACE follows a statement head)

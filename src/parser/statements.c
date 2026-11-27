@@ -17,6 +17,10 @@ DataType parse_type_specifier(void) {
         eat(IDENTIFIER);
         return type;
     }
+    if (token == REF) {
+        parser_error("'ref' only goes before a parameter's type (b: ref Ball)");
+        return TYPE_ERROR;
+    }
     if (!token_registry_is_type(token)) {
         parser_error("Expected a type (num, real, chr, str, bool, zil, or a pod's name)");
         return TYPE_ERROR;
@@ -159,6 +163,7 @@ ASTNode* parse_pod(void) {
         field->name = field_name;
         field->type = field_type;
         field->line = field_line;
+        field->is_ref = false;
         field->next = NULL;
         if (tail) tail->next = field; else head = field;
         tail = field;
@@ -177,7 +182,7 @@ ASTNode* parse_log(void) {
     eat(LOG);
 
     int arg_count;
-    ASTNode** args = parse_argument_list("log", &arg_count, NULL);
+    ASTNode** args = parse_argument_list("log", &arg_count, NULL, NULL);
     expect_end_of_statement();
 
     return create_log_node(args, arg_count, loc);

@@ -201,6 +201,8 @@ static void check_assignment(ASTNode* node) {
         return;
     }
 
+    node->data.assignment.target_is_ref = symbol->is_ref;
+
     // a.b.c = value: the type of that field
     DataType target_type = symbol->type;
     ASTNode* field = node->data.assignment.target_field;
@@ -231,19 +233,31 @@ static void check_log(ASTNode* node) {
 
 // ==================== statements & blocks ====================
 
+// the ref rule is checked only for a statement without other errors (an argument count error
+// would otherwise come with an overlap error for the same call)
+static void check_ref_uses_if_clean(int errors_before, ASTNode** roots, int count, int line) {
+    if (error_count() == errors_before) check_ref_uses(roots, count, line);
+}
+
 void check_statement(ASTNode* node) {
+    int line = node->location.line;
+    int errors_before = error_count();
     switch (node->type) {
         case NODE_VAR_DECLARATION:
             check_var_declaration(node);
+            check_ref_uses_if_clean(errors_before, &node->data.var_declaration.init_expr, 1, line);
             break;
         case NODE_ASSIGNMENT:
             check_assignment(node);
+            check_ref_uses_if_clean(errors_before, &node->data.assignment.value, 1, line);
             break;
         case NODE_LOG:
             check_log(node);
+            check_ref_uses_if_clean(errors_before, node->data.log.args, node->data.log.arg_count, line);
             break;
         case NODE_RETURN:
             check_return(node);
+            check_ref_uses_if_clean(errors_before, &node->data.return_statement.expression, 1, line);
             break;
         case NODE_IF:
             check_if(node);
@@ -261,6 +275,7 @@ void check_statement(ASTNode* node) {
             if (node->type == NODE_FUNCTION_CALL && node->data.function_call.is_pod_literal) {
                 report_error(node->location.line, "A pod value on its own does nothing (assign it or pass it)");
             }
+            check_ref_uses_if_clean(errors_before, &node, 1, line);
             break;
     }
 }

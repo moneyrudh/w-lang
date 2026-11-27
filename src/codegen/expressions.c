@@ -71,13 +71,26 @@ void generate_literal(FILE* output, ASTNode* node) {
 
 void generate_variable(FILE* output, ASTNode* node) {
     // a global str is read through a temporary copy: a call in the same expression may replace
-    // (and free) the global's text while this expression still uses it
-    if (node->data.variable.is_global && node->expr_type == TYPE_STR) {
+    // (and free) the global's text while this expression still uses it. So is a ref str, which
+    // may be a global's slot (f(ref g)), or reached by a call through another ref
+    bool is_ref = node->data.variable.is_ref;
+    if ((node->data.variable.is_global || is_ref) && node->expr_type == TYPE_STR) {
         fprintf(output, C_TEMP C_LPAREN C_STR_COPY C_LPAREN "%s" C_RPAREN C_RPAREN,
-                mangle_identifier(node->data.variable.name, false));
+                variable_c_name(node->data.variable.name, is_ref));
         return;
     }
-    fprintf(output, "%s", mangle_identifier(node->data.variable.name, false));
+    fprintf(output, "%s", variable_c_name(node->data.variable.name, node->data.variable.is_ref));
+}
+
+// a `ref` argument's place, for its address: the variable itself (a global str too, not a
+// copy of it), then its fields
+static void generate_place(FILE* output, ASTNode* node) {
+    if (node->type == NODE_FIELD_ACCESS) {
+        generate_place(output, node->data.field_access.object);
+        fprintf(output, C_FIELD_SELECT, mangle_field(node->data.field_access.field));
+        return;
+    }
+    fprintf(output, "%s", variable_c_name(node->data.variable.name, node->data.variable.is_ref));
 }
 
 // ==================== casts ====================
@@ -203,9 +216,17 @@ void generate_function_call(FILE* output, ASTNode* node, int indent_level) {
     // the call's line goes first, for traces (formatters.c: every W function takes it)
     fprintf(output, "%s" C_LPAREN "%d", mangle_identifier(node->data.function_call.name, true),
             node->location.line);
+    bool* refs = node->data.function_call.arg_is_ref;
     for (int i = 0; i < node->data.function_call.arg_count; i++) {
         fprintf(output, C_COMMA);
-        generate(output, node->data.function_call.args[i], 0);
+        if (refs && refs[i]) {
+            // ref: the caller's variable's address, &(W__b_v.W__pos_m)
+            fprintf(output, C_ADDRESS_OF C_LPAREN);
+            generate_place(output, node->data.function_call.args[i]);
+            fprintf(output, C_RPAREN);
+        } else {
+            generate(output, node->data.function_call.args[i], 0);
+        }
     }
     fprintf(output, C_RPAREN);
 
