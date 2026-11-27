@@ -96,7 +96,7 @@ Operators by type (every combination is checked by `tests/unit/type_rules.c`): `
 | `fun name(a: num, b: real): num` | ✅ | |
 | Omitted return type means `zil` | ✅ | |
 | `ret` / `ret expr` | ✅ | Return type checked against the declaration |
-| Missing `ret` in non-`zil` function is an error | ✅ | Any `ret` anywhere counts; no per-path analysis |
+| Missing `ret` in non-`zil` function is an error | ✅ | Checked per path: every way through the body must end in `ret`. A `say` chain counts when it has an `else` and every branch returns; a `loop forever` counts when no `stop` leaves it; `loop while` / `until` may run zero times, so they don't |
 | Calls as expressions and statements | ✅ | |
 | Argument count and types checked against the signature | ✅ | Arguments convert like assignments (e.g. `num` → `real`) |
 
@@ -200,5 +200,4 @@ Arguments after the `.w` file are passed to the program, so `run`'s options go b
 ## 12. Known bugs
 
 - `str + str` outside `log` (in a `dec`, assignment, argument or `ret`) emits invalid C (§4, roadmap 2.6)
-- Return checking isn't per-path: any `ret` anywhere satisfies "must return a value" (§6)
 - An unclosed bracket followed by a line that starts with a name or a value (`x = 3`, `f()`) is reported on that line (`Expected ')', got name`), not where it opened: such a line could be continuing the expression

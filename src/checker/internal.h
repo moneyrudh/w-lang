@@ -11,7 +11,7 @@
 // what the checker is inside of right now
 typedef struct {
     ASTNode* function;   // function whose body is being checked
-    bool has_return;     // a 'ret' was seen in it (not per path)
+    bool has_return;     // a 'ret' was seen in it (every path is checked separately, at the end)
     int loop_depth;      // > 0 inside a loop body: skip / stop are valid
 } CheckerContext;
 
