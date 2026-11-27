@@ -40,7 +40,7 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
    value is an error.
 8. ✅ **Global variables** (`dec` at top level). Done: readable and assignable from every function;
    initializers must be constant.
-9. ⬜ **Per-path return checking.** Done: a `ret` inside only one branch of `say` no longer satisfies
+9. ✅ **Per-path return checking.** Done: a `ret` inside only one branch of `say` no longer satisfies
    "must return a value".
 10. ✅ **Number literal ranges.** Done: a `num` literal outside -2147483648..2147483647 or a `real`
    literal past the largest float is a type error (the checker's, so other type errors still show);

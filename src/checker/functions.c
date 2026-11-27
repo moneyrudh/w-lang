@@ -16,6 +16,69 @@ void declare_functions(ASTNode* functions) {
 
 // ==================== definitions ====================
 
+// ==================== return paths ====================
+//
+// A function with a return type must return on every path: running off the end of its body
+// would leave the caller with no value (undefined behaviour in C). Recursion here follows
+// statement nesting, which the parser limits.
+
+static bool always_returns(ASTNode* statements);
+
+// a `stop` that leaves this loop (one inside a nested loop belongs to that loop)
+static bool stops_loop(ASTNode* statements) {
+    for (ASTNode* s = statements; s != NULL; s = s->next) {
+        switch (s->type) {
+            case NODE_STOP:
+                return true;
+            case NODE_IF:
+                for (ASTNode* branch = s; branch != NULL; branch = branch->data.if_statement.else_branch) {
+                    if (stops_loop(branch->data.if_statement.body)) return true;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    return false;
+}
+
+// `loop forever`, or a loop whose condition is a literal that never ends it
+// (`loop while true`, `loop until false`)
+static bool loops_forever(ASTNode* loop) {
+    ASTNode* condition = loop->data.loop_statement.condition;
+    if (condition == NULL) return true;
+    return condition->type == NODE_BOOL &&
+           condition->data.bool_val.value != loop->data.loop_statement.negated;
+}
+
+static bool statement_always_returns(ASTNode* s) {
+    switch (s->type) {
+        case NODE_RETURN:
+            return true;
+        case NODE_IF:
+            // every branch returns, and there's an `else`, so some branch always runs
+            for (ASTNode* branch = s; branch != NULL; branch = branch->data.if_statement.else_branch) {
+                if (!always_returns(branch->data.if_statement.body)) return false;
+                if (branch->data.if_statement.else_branch == NULL) {
+                    return branch->data.if_statement.condition == NULL;
+                }
+            }
+            return false;
+        case NODE_LOOP:
+            // a loop that never ends by itself only ends through a stop (or a ret inside it)
+            return loops_forever(s) && !stops_loop(s->data.loop_statement.body);
+        default:
+            return false;
+    }
+}
+
+static bool always_returns(ASTNode* statements) {
+    for (ASTNode* s = statements; s != NULL; s = s->next) {
+        if (statement_always_returns(s)) return true;
+    }
+    return false;
+}
+
 void check_function(ASTNode* function) {
     const char* name = function->data.function.name;
     DataType return_type = function->data.function.return_type;
@@ -41,6 +104,9 @@ void check_function(ASTNode* function) {
     if (return_type != TYPE_ZIL && !checker_context.has_return) {
         report_error(line, "Function '%s' with return type '%s' must return a value",
                      name, get_wlang_type_from_enum(return_type));
+    } else if (return_type != TYPE_ZIL && !always_returns(function->data.function.body)) {
+        report_error(line, "Function '%s' with return type '%s' doesn't return a value on every path "
+                     "(it can reach the end of its body)", name, get_wlang_type_from_enum(return_type));
     }
 
     checker_context.function = NULL;
