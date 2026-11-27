@@ -144,6 +144,7 @@ ASTNode* create_bool_node(bool value, SourceLocation loc) {
 ASTNode* create_variable_node(char* name, SourceLocation loc) {
     ASTNode* node = new_node(NODE_VARIABLE, loc);
     node->data.variable.name = strdup(name);
+    node->data.variable.is_global = false;
     return node;
 }
 

@@ -22,7 +22,7 @@ SRCS = src/main.c \
        src/checker/checker.c src/checker/expressions.c src/checker/statements.c \
        src/checker/functions.c src/checker/control_flow.c src/checker/scopes.c src/checker/types.c \
        src/codegen/codegen.c src/codegen/expressions.c src/codegen/statements.c \
-       src/codegen/functions.c src/codegen/control_flow.c src/codegen/formatters.c \
+       src/codegen/functions.c src/codegen/control_flow.c src/codegen/formatters.c src/codegen/strings.c \
        src/util/map.c \
        src/runtime/wlang_runtime.c
 
@@ -81,7 +81,7 @@ ASAN_LEAKS = 0
 ASAN_ENV = ASAN_OPTIONS=detect_leaks=$(ASAN_LEAKS):exitcode=99 UBSAN_OPTIONS=halt_on_error=1:exitcode=99
 
 test-asan: $(ASAN_TARGET)
-	$(ASAN_ENV) WLANG=./$(ASAN_TARGET) ./tests/run.sh
+	$(ASAN_ENV) WLANG=./$(ASAN_TARGET) PROGRAM_CFLAGS="-g -fsanitize=address,undefined" ./tests/run.sh
 	$(ASAN_ENV) WLANG=./$(ASAN_TARGET) ./tests/driver/test.sh
 
 # clang's static analyzer over our own sources (not flex's output); any finding fails

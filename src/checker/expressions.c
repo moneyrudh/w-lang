@@ -12,6 +12,7 @@ static DataType check_variable(ASTNode* node) {
         report_error(node->location.line, "Undefined variable: '%s'", node->data.variable.name);
         return TYPE_ERROR;
     }
+    node->data.variable.is_global = symbol->is_global;
     return symbol->type;
 }
 

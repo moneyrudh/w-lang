@@ -52,9 +52,12 @@ Drafts disagree: `vec[num]` vs `vec(num)`.
 ## Decided
 
 - **D1. Modulo** (2026-11-25): both `%` and `mod`, like `<` / `lt`.
-- **D2. Strings made by `+`** (2026-11-25): freed automatically by the generated C when the function that
-  made them returns; returning one or storing it in a global keeps a copy. W code never frees anything:
-  chores C can do for the programmer, the compiler does.
+- **D2. String memory** (2026-11-25, refined 2026-11-27): the generated C frees strings; W code never
+  does. Chores C can do for the programmer, the compiler does. How (2026-11-27): each `str` variable owns
+  its own copy of its text (assigning frees the old text, the copy is freed when its block ends or a
+  `ret` / `stop` / `skip` leaves it); joins and `str` results of calls are temporaries freed after their
+  statement; a returned `str` is handed to the caller. The first version ("freed when the function
+  returns") would have grown without limit in a game's main loop, which never returns.
 - **D8. `str + num`** (2026-11-25): an error, with a hint to use `log("text", value)`; an explicit
   conversion function comes later. `str + str` joins strings.
 - **D9. `bool` in arithmetic** (2026-11-25): an error (`true + 1`, `n + flag`). `chr` arithmetic stays

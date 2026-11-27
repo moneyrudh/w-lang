@@ -35,6 +35,7 @@ Each stage is a folder under `src/`. Its public API is one header in `include/` 
   - `codegen.c` — `generate()` dispatch and the program layout (includes, forward declarations, `w()` last)
   - `expressions.c`, `statements.c`, `functions.c`, `control_flow.c` — One file per kind of construct
   - `formatters.c` — Helpers for emitting C constructs (mangling, signatures, casts, operators, indentation)
+  - `strings.c` — String memory (D2): the small runtime emitted into programs that use `str`, and the bookkeeping for which `str` variables are alive, so blocks, `ret`, `stop` and `skip` free them. Any new statement that leaves a block early, or new place a `str` can be stored, must go through it
   - `c_syntax.h` — `#define` constants for all C syntax strings (keywords, operators, punctuation, escapes)
 - `src/util/map.c` — Generic hashmap used internally by the registries
 - `src/runtime/` — Helpers for generated programs (not yet linked into them)
@@ -108,7 +109,7 @@ make clean && make                          # everything goes to build/ (gitigno
 ### Tests
 ```
 make test          # all tests: tests/unit/ (pure rules, e.g. every type × operator), tests/run.sh, tests/driver/test.sh
-make test-asan     # same tests, wlang built with AddressSanitizer + UBSan (ASAN_LEAKS=1 on Linux adds leak checks)
+make test-asan     # same tests, wlang and the test programs built with AddressSanitizer + UBSan (ASAN_LEAKS=1 on Linux adds leak checks)
 make analyze       # clang static analyzer over src/
 make fuzz          # mutation fuzzer (tests/fuzz/fuzz.py) against the sanitizer build; FUZZ_RUNS=, FUZZ_SEED=
 tests/run.sh loops # only tests whose path contains "loops" (a feature folder or a file name)

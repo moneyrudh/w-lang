@@ -1,0 +1,12 @@
+join ab => ab
+self join abab => abab
+call hey! => hey!
+repeat abcabcabc => abcabcabc
+pick positive, not positive => positive not positive
+recursion xxxxx => xxxxx
+global W lang => W lang
+empty global [] => []
+loop item!!! => item!!!
+compare true false => true false
+shadow abab! => abab!
+outer abab => abab

@@ -1,0 +1,6 @@
+shadowing with an early ret 1 => 1
+shadowing in a loop with skip and stop 3 => 3
+a num shadowing a str, early ret 5 => 5
+in a loop with skip and stop 3 => 3
+a global replaced while the caller reads it old ! => old !
+a global replaced inside a join old? => old?
