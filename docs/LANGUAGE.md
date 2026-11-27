@@ -96,7 +96,7 @@ Operators by type (every combination is checked by `tests/unit/type_rules.c`): `
 | `fun name(a: num, b: real): num` | ✅ | |
 | Omitted return type means `zil` | ✅ | |
 | `ret` / `ret expr` | ✅ | Return type checked against the declaration |
-| Missing `ret` in non-`zil` function is an error | ✅ | Checked per path: every way through the body must end in `ret`. A `say` chain counts when it has an `else` and every branch returns; a `loop forever` counts when no `stop` leaves it; `loop while` / `until` may run zero times, so they don't |
+| Missing `ret` in non-`zil` function is an error | ✅ | Checked per path: every way through the body must end in `ret`. A `say` chain counts when it has an `else` and every branch returns; a `loop forever` (or `loop while true` / `loop until false`) counts when no `stop` leaves it, and the body still needs a `ret` somewhere; other `loop while` / `until` may run zero times, so they don't |
 | Calls as expressions and statements | ✅ | |
 | Argument count and types checked against the signature | ✅ | Arguments convert like assignments (e.g. `num` → `real`) |
 

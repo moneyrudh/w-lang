@@ -3,3 +3,6 @@ first_over_ten(1) 13 => 13
 nested 1 2 3 => 1 2 3
 opposite 2 1 => 2 1
 inner_stop(-2) 1 => 1
+while_true(0) 4, until_false(0) 4 => 4 4
+one_line(9) 9 => 9
+with_nor 3 1 2 => 3 1 2

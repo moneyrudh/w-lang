@@ -42,6 +42,15 @@ static bool stops_loop(ASTNode* statements) {
     return false;
 }
 
+// `loop forever`, or a loop whose condition is a literal that never ends it
+// (`loop while true`, `loop until false`)
+static bool loops_forever(ASTNode* loop) {
+    ASTNode* condition = loop->data.loop_statement.condition;
+    if (condition == NULL) return true;
+    return condition->type == NODE_BOOL &&
+           condition->data.bool_val.value != loop->data.loop_statement.negated;
+}
+
 static bool statement_always_returns(ASTNode* s) {
     switch (s->type) {
         case NODE_RETURN:
@@ -56,8 +65,8 @@ static bool statement_always_returns(ASTNode* s) {
             }
             return false;
         case NODE_LOOP:
-            // `loop forever` only ends through a stop (or a ret inside it)
-            return s->data.loop_statement.condition == NULL && !stops_loop(s->data.loop_statement.body);
+            // a loop that never ends by itself only ends through a stop (or a ret inside it)
+            return loops_forever(s) && !stops_loop(s->data.loop_statement.body);
         default:
             return false;
     }
