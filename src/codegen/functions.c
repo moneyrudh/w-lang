@@ -5,14 +5,16 @@
 #include "codegen/c_syntax.h"
 #include "language/type_registry.h"
 
+static bool is_entry_point(ASTNode* function) {
+    return strcmp(function->data.function.name, "w") == 0;
+}
+
 // the program's globals, for main() to give str globals their first value
 static ASTNode* program_globals = NULL;
 
 void set_program_globals(ASTNode* globals) {
     program_globals = globals;
 }
-
-static bool is_entry_point(ASTNode* function);
 
 // the function being generated, for ret (its return type)
 static ASTNode* current_function = NULL;
@@ -24,10 +26,6 @@ DataType current_return_type(void) {
 bool current_is_zil_entry_point(void) {
     return current_function && is_entry_point(current_function) &&
            current_function->data.function.return_type == TYPE_ZIL;
-}
-
-static bool is_entry_point(ASTNode* function) {
-    return strcmp(function->data.function.name, "w") == 0;
 }
 
 // main() always returns int: w()'s num result, or 0 when w() returns nothing
@@ -76,7 +74,7 @@ void generate_function(FILE* output, ASTNode* node, int indent_level) {
         fprintf(output, C_POP_FRAME_NL);
         if (entry) {
             emit_indent(output, indent_level + 1);
-            fprintf(output, C_RETURN C_SPACE C_ZERO C_SEMICOLON_NL);   // a zil w(): exit 0
+            fprintf(output, C_RETURN_ZERO_NL);
         }
     } else {
         // the checker made sure every path returns, so this is never reached. Saying so keeps

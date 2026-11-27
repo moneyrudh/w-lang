@@ -50,8 +50,8 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
 11. ✅ **Traces** (D12). Done: a run-time error prints the W call chain (function and line of each
    call), like Python's traceback; the generated C keeps a small call stack; `wlang` compiles with
    `-O2` by default.
-12. ✅ **Small fixes from reviews:** `fun w()` without a return type exits 0 (today `void main`, garbage
-   exit code); unused parameters don't make the generated C warn.
+12. ✅ **Small fixes from reviews:** `fun w()` without a return type exits with 0; `w()` must return `num`
+   or nothing and takes no parameters; unused parameters don't make the generated C warn.
 
 ## Step 3 — Data ⬜
 

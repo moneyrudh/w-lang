@@ -190,7 +190,7 @@ void generate_return(FILE* output, ASTNode* node, int indent_level) {
     fprintf(output, C_POP_FRAME_NL);
     emit_indent(output, indent_level + 1);
     if (!value && current_is_zil_entry_point()) {
-        fprintf(output, C_RETURN C_SPACE C_ZERO C_SEMICOLON_NL);   // exit code 0
+        fprintf(output, C_RETURN_ZERO_NL);
     } else if (!value) {
         fprintf(output, C_RETURN C_SEMICOLON_NL);
     } else if (return_type == TYPE_STR) {
