@@ -18,17 +18,17 @@ static TokenMetadata token_metadata[] = {
     {BOOL,          "'bool'",        "bool",  TOKEN_CAT_TYPE},
     {ZIL,           "'zil'",         "zil",   TOKEN_CAT_TYPE},
 
-    // future types
-    {VEC,           "'vec'",         "vec",   TOKEN_CAT_TYPE},
-    {MAP,           "'map'",         "map",   TOKEN_CAT_TYPE},
-    {SET,           "'set'",         "set",   TOKEN_CAT_TYPE},
-    {REF,           "'ref'",         "ref",   TOKEN_CAT_TYPE},
-    {HEAP,          "'heap'",        "heap",  TOKEN_CAT_TYPE},
-    {STACK,         "'stack'",       "stack", TOKEN_CAT_TYPE},
-    {QUE,           "'que'",         "que",   TOKEN_CAT_TYPE},
-    {LINK,          "'link'",        "link",  TOKEN_CAT_TYPE},
-    {TREE,          "'tree'",        "tree",  TOKEN_CAT_TYPE},
-    {POD,           "'pod'",         "pod",   TOKEN_CAT_TYPE},
+    // reserved for future types and keywords (not usable as types until their feature lands)
+    {VEC,           "'vec'",         "vec",   TOKEN_CAT_KEYWORD},
+    {MAP,           "'map'",         "map",   TOKEN_CAT_KEYWORD},
+    {SET,           "'set'",         "set",   TOKEN_CAT_KEYWORD},
+    {REF,           "'ref'",         "ref",   TOKEN_CAT_KEYWORD},
+    {HEAP,          "'heap'",        "heap",  TOKEN_CAT_KEYWORD},
+    {STACK,         "'stack'",       "stack", TOKEN_CAT_KEYWORD},
+    {QUE,           "'que'",         "que",   TOKEN_CAT_KEYWORD},
+    {LINK,          "'link'",        "link",  TOKEN_CAT_KEYWORD},
+    {TREE,          "'tree'",        "tree",  TOKEN_CAT_KEYWORD},
+    {POD,           "'pod'",         "pod",   TOKEN_CAT_KEYWORD},
 
     // keywords
     {FUN,           "'fun'",         "fun",   TOKEN_CAT_KEYWORD},
@@ -91,6 +91,7 @@ static TokenMetadata token_metadata[] = {
     {SEMICOLON,     "';'",           ";",     TOKEN_CAT_PUNCTUATION},
     {COLON,         "':'",           ":",     TOKEN_CAT_PUNCTUATION},
     {COMMA,         "','",           ",",     TOKEN_CAT_PUNCTUATION},
+    {DOT,           "'.'",           ".",     TOKEN_CAT_PUNCTUATION},
     {LBRACKET,      "'['",           "[",     TOKEN_CAT_PUNCTUATION},
     {RBRACKET,      "']'",           "]",     TOKEN_CAT_PUNCTUATION},
 

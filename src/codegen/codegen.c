@@ -30,6 +30,8 @@ static void generate_program(FILE* output, ASTNode* node, int indent_level) {
     if (program_uses_str(node)) {
         emit_string_runtime(output);
     }
+    emit_pod_types(output, node->data.program.pods);
+    emit_pod_printers(output, node->data.program.pods);
 
     // emit global variables (a str global starts as NULL; main() copies its value in first)
     set_program_globals(node->data.program.globals);
@@ -121,6 +123,9 @@ void generate(FILE* output, ASTNode* node, int indent_level) {
             break;
         case NODE_VARIABLE:
             generate_variable(output, node);
+            break;
+        case NODE_FIELD_ACCESS:
+            generate_field_access(output, node);
             break;
         case NODE_NUMBER:
         case NODE_STRING:

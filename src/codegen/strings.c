@@ -16,6 +16,7 @@
 
 #include "codegen/internal.h"
 #include "codegen/c_syntax.h"
+#include "user_types.h"
 
 // ==================== the runtime emitted into programs that use str ====================
 
@@ -91,6 +92,8 @@ bool expression_makes_temps(ASTNode* expr) {
                    expression_makes_temps(expr->data.binary_expr.right);
         case NODE_UNARY_EXPR:
             return expression_makes_temps(expr->data.unary_expr.operand);
+        case NODE_FIELD_ACCESS:
+            return expression_makes_temps(expr->data.field_access.object);
         case NODE_FUNCTION_CALL:
             if (expr->expr_type == TYPE_STR) return true;
             for (int i = 0; i < expr->data.function_call.arg_count; i++) {
@@ -118,11 +121,19 @@ bool statement_makes_temps(ASTNode* s) {
             return expression_makes_temps(s->data.var_declaration.init_expr);
         case NODE_ASSIGNMENT:
             return expression_makes_temps(s->data.assignment.value);
-        case NODE_LOG:
+        case NODE_LOG: {
+            // with a pod among the values, each value (a join too) is worked out on its own
+            // first (statements.c), so a join makes a temporary there
+            bool has_pod = false;
             for (int i = 0; i < s->data.log.arg_count; i++) {
-                if (log_arg_makes_temps(s->data.log.args[i])) return true;
+                has_pod |= is_user_type(s->data.log.args[i]->expr_type);
+            }
+            for (int i = 0; i < s->data.log.arg_count; i++) {
+                ASTNode* arg = s->data.log.args[i];
+                if (has_pod ? expression_makes_temps(arg) : log_arg_makes_temps(arg)) return true;
             }
             return false;
+        }
         case NODE_RETURN:
             return expression_makes_temps(s->data.return_statement.expression);
         case NODE_IF:
@@ -166,6 +177,8 @@ static bool expression_uses_str(ASTNode* expr) {
                    expression_uses_str(expr->data.binary_expr.right);
         case NODE_UNARY_EXPR:
             return expression_uses_str(expr->data.unary_expr.operand);
+        case NODE_FIELD_ACCESS:
+            return expression_uses_str(expr->data.field_access.object);
         case NODE_FUNCTION_CALL:
             for (int i = 0; i < expr->data.function_call.arg_count; i++) {
                 if (expression_uses_str(expr->data.function_call.args[i])) return true;

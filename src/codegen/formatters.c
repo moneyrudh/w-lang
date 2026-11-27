@@ -22,6 +22,13 @@ const char* mangle_identifier(const char* w_name, bool is_function) {
 
 // a temporary for a declaration that shadows an outer variable: W__name_init (no _v suffix, so
 // it can't collide with a W variable)
+// a pod's field: W__x_m
+const char* mangle_field(const char* w_name) {
+    static char buffer[512];
+    snprintf(buffer, sizeof(buffer), "W__%s_m", w_name);
+    return buffer;
+}
+
 const char* mangle_init_temp(const char* w_name) {
     static char buffer[512];
     snprintf(buffer, sizeof(buffer), "W__%s_init", w_name);

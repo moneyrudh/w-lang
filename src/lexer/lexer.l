@@ -211,6 +211,7 @@
 "{"         { open_bracket('{'); return LBRACE; }
 "}"         { close_bracket(); return RBRACE; }
 ","	    { return COMMA; }
+"."         { return DOT; }
 ";"         { return SEMICOLON; }
 "+"         { return PLUS; }
 "-"         { return MINUS; }

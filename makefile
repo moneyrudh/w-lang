@@ -14,15 +14,15 @@ OBJ = $(BUILD)/obj
 # Sources, by stage
 SRCS = src/main.c \
        src/driver/pipeline.c src/driver/toolchain.c \
-       src/core/ast.c src/core/diagnostics.c \
+       src/core/ast.c src/core/diagnostics.c src/core/user_types.c \
        src/language/token_registry.c src/language/type_registry.c src/language/operators.c \
        src/lexer/layout.c \
        src/parser/parser.c src/parser/expressions.c src/parser/statements.c \
        src/parser/functions.c src/parser/control_flow.c \
        src/checker/checker.c src/checker/expressions.c src/checker/statements.c \
-       src/checker/functions.c src/checker/control_flow.c src/checker/scopes.c src/checker/types.c \
+       src/checker/functions.c src/checker/control_flow.c src/checker/scopes.c src/checker/types.c src/checker/pods.c \
        src/codegen/codegen.c src/codegen/expressions.c src/codegen/statements.c \
-       src/codegen/functions.c src/codegen/control_flow.c src/codegen/formatters.c src/codegen/strings.c src/codegen/arithmetic.c \
+       src/codegen/functions.c src/codegen/control_flow.c src/codegen/formatters.c src/codegen/strings.c src/codegen/arithmetic.c src/codegen/pods.c \
        src/util/map.c \
        src/runtime/wlang_runtime.c
 
@@ -60,9 +60,11 @@ HEADERS = $(shell find include src -name '*.h')
 # command itself (tests/driver/test.sh)
 UNIT_TESTS = $(BUILD)/unit/type_rules
 
-$(BUILD)/unit/type_rules: tests/unit/type_rules.c src/checker/types.c src/language/operators.c $(HEADERS)
+UNIT_SRCS = src/checker/types.c src/language/operators.c src/core/user_types.c src/util/map.c
+
+$(BUILD)/unit/type_rules: tests/unit/type_rules.c $(UNIT_SRCS) $(HEADERS)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $(WARNFLAGS) tests/unit/type_rules.c src/checker/types.c src/language/operators.c -o $@
+	$(CC) $(CFLAGS) $(WARNFLAGS) tests/unit/type_rules.c $(UNIT_SRCS) -o $@
 
 unit: $(UNIT_TESTS)
 	@for t in $(UNIT_TESTS); do ./$$t || exit 1; done

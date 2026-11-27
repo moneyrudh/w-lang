@@ -1,0 +1,8 @@
+fields 1.000000 2.000000 3.000000 true 0 b => 1.000000 2.000000 3.000000 true 0 b
+the caller's copy is unchanged 1.000000 4.000000 => 1.000000 4.000000
+assigning copies 0 5 => 0 5
+left-out fields are zero false 0 => false 0
+a pod with no value is zero 0.000000 false => 0.000000 false
+a global pod -1.000000 2.500000 => -1.000000 2.500000
+fields of a call and of a value 7.000000 3.000000 => 7.000000 3.000000
+logging a pod => Vec(x: 1.000000, y: 2.000000) and 9

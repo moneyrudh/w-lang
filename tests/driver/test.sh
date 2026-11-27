@@ -226,7 +226,10 @@ finish
 begin "string memory stays flat in a loop"
 python3 - > flat.w <<'PY'
 base = "y" * 1000
-print(f"""fun stopper(base: str)
+print(f"""pod P
+    a: num
+
+fun stopper(base: str)
     -- stop leaves temporaries from its condition
     loop forever
         say base + "z" is base + "z", stop
@@ -239,6 +242,12 @@ fun w(): num
         dec joined := base + base
         s = joined + "x"
         say base + "z" is "never", log("never")
+        i = i + 1
+    -- a log with a pod works out each value first, so the join is a temporary there (in a
+    -- loop of its own: another statement's string temporaries would free it too)
+    i = 0
+    loop while i < 200000
+        log(P(), base + base)
         i = i + 1
     i = 0
     loop while i < 200000
@@ -260,6 +269,33 @@ PY
 )
 [ "${peak_mb:-999}" -lt 50 ] || problem "peak memory ${peak_mb} MB, expected under 50 MB"
 rm -f flat.w flat
+finish
+
+# ==================== checking stays fast ====================
+
+# 100 pods in a chain (the deepest allowed), each with 3 fields of the next: a check that walks
+# every path through them (instead of every pod) would take forever
+begin "checking many nested pods is fast"
+python3 - > chain.w <<'PY'
+n = 100
+for i in range(n):
+    print(f"pod P{i}")
+    for f in "abc":
+        print(f"    {f}: P{i + 1}" if i + 1 < n else f"    {f}: num")
+    print()
+print("fun w(): num\n    ret 0")
+PY
+verdict=$(python3 - "$WLANG" "$CASE/chain.w" <<'PY'
+import subprocess, sys
+try:
+    r = subprocess.run([sys.argv[1], "check", sys.argv[2]], capture_output=True, timeout=10)
+    print(f"exit {r.returncode}")
+except subprocess.TimeoutExpired:
+    print("took over 10 s")
+PY
+)
+[ "$verdict" = "exit 0" ] || problem "wlang check: $verdict"
+rm -f chain.w
 finish
 
 # ==================== -O2 keeps the program's meaning ====================

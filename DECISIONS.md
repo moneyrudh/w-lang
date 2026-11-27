@@ -8,34 +8,6 @@ Implementation details (how the compiler does it) are not listed here.
 
 ## Open
 
-### D3. Structs (`pod`) (step 3.1)
-Early drafts used `pod` for a struct with functions and `type` for plain data.
-- **Proposal:** one keyword, `pod`, plain data first; functions on pods later.
-  ```
-  pod Ball
-      x: real
-      y: real
-      speed: real
-
-  dec b: Ball = Ball(x: 10, y: 20, speed: 3)
-  b.x = b.x + b.speed
-  ```
-- Alternatives: `type` for data and `pod` for data + functions; positional literals `Ball(10, 20, 3)`.
-
-### D4. Arrays (`vec`) (step 3.2)
-Drafts disagree: `vec[num]` vs `vec(num)`.
-- **Proposal:** `vec[num]` (brackets read as "of"), literals `[1, 2, 3]`, indexing `v[0]`, length `v.len`.
-- Alternatives: `vec(num)`; `num[]`.
-
-### D5. Looping over an array (step 3.3)
-- **Proposal:** `loop each x in v` (fits the existing `loop while` / `until` / `forever`).
-- Alternatives: `loop x in v`; `loop over v as x`.
-
-### D6. Modules (step 3.4)
-- **Proposal:** `use name` loads `name.w` from the same folder, then the standard library; everything a
-  module defines is visible to the file that uses it.
-- Alternatives: explicit exports (`pub fun`); qualified names only (`math.sqrt`).
-
 ### D7. Declaring C functions (step 4.1)
 - **Proposal:** `ext fun DrawRectangle(x: num, y: num, w: num, h: num, color: Color)` with no body; the
   C name is the W name.
@@ -63,6 +35,22 @@ Drafts disagree: `vec[num]` vs `vec(num)`.
   (`W__div`). `real` division follows C (`1.0 / 0` is infinity).
 - **D12. Traces** (2026-11-27): run-time errors print the chain of W calls that led to them, like
   Python's traceback; always on (a later `wlang build --release` may turn them off).
+- **D3. Pods** (2026-11-28): `pod Name` with an indented list of `field: type`; values are written
+  with field names, `Ball(x: 10, y: 20)` (left-out fields are zero); fields are read and assigned
+  with `.`. Functions on pods come later.
+- **D13. Pods are values** (2026-11-28): assigning or passing a pod copies it, like a C struct (cheap:
+  a pod of numbers lives on the stack). A function changes its caller's value only through a `ref`
+  parameter: `fun bounce(b: ref Ball)`.
+- **D4. Arrays** (2026-11-28): `vec[num]` for the type, `[1, 2, 3]` for a value, `v[0]` to index.
+- **D14. Arrays are copy-on-write** (2026-11-28): assigning or passing a `vec` shares it, so it's
+  as fast as passing a pointer; a real copy happens only when a shared `vec` is changed. No aliasing
+  surprises, no garbage collector (values can't form cycles).
+- **D15. Array operations** (2026-11-28): `v.add(x)`, `v.pop()`, `v.add_front(x)`, `v.pop_front()`,
+  `v.len`. A `vec` is a ring buffer: both ends and `v[i]` are constant time.
+- **D5. Looping over an array** (2026-11-28): `loop x in v`, and `loop i, x in v` with the index.
+- **D6. Modules** (2026-11-28): `use name` loads `name.w` from the same folder (then the standard
+  library); `use folder.name` loads `folder/name.w`. What a module defines is used qualified:
+  `use math` then `math.sqrt(2)`. Bringing names in directly (`use math.sqrt`) may come later.
 - **`:=` type inference** (2026-11-25): kept. The type is the type of the value, which the checker
   already computes; function signatures always spell out types, so inference stays local. A value with
   no type to take (a `zil` call, later an empty `[]`) is an error asking for the type.

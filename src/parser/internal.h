@@ -44,6 +44,12 @@ bool eat(TokenType _token);
 // error recovery: drop the rest of the current line (closing any brackets left open)
 void skip_rest_of_line(void);
 
+// error recovery: drop an indented block (from its INDENT to the matching DEDENT), if one is next
+void skip_indented_block(void);
+
+// a new statement-like unit (e.g. each field line of a pod) gets its own one error
+void start_statement(void);
+
 // a statement ends at the end of its line
 void expect_end_of_statement(void);
 
@@ -55,6 +61,14 @@ ASTNode* parse_block(void);
 // ==================== expressions.c ====================
 
 ASTNode* parse_expression(void);
+
+// object.field.field... after an operand (each '.' counts toward the nesting limit)
+ASTNode* parse_field_chain(ASTNode* object);
+
+// the nesting limit for constructs parsed outside expressions.c: enter returns false (after
+// reporting) when one more level would pass MAX_EXPRESSION_DEPTH; leave undoes an enter
+bool expression_enter(void);
+void expression_leave(void);
 
 // ==================== statements.c ====================
 
@@ -68,13 +82,18 @@ ASTNode* parse_assignment(char* name, SourceLocation loc);
 
 ASTNode* parse_log(void);
 
+// pod Name with an indented list of `field: type` (top level only)
+ASTNode* parse_pod(void);
+
 // ==================== functions.c ====================
 
 ASTNode* parse_function(void);
 
-// '(' expression, ... ')': a malloc'd array (NULL when empty) the caller owns, with its
-// count in arg_count. `context` names the construct in errors ("function call", "log")
-ASTNode** parse_argument_list(const char* context, int* arg_count);
+// '(' argument, ... ')': a malloc'd array (NULL when empty) the caller owns, with its count in
+// arg_count. An argument is `value` or `name: value` (for pod values); the names come back in
+// *arg_names (NULL when there are none; NULL entries for unnamed ones), or are reported as an
+// error when arg_names is NULL. `context` names the construct in errors ("function call", "log")
+ASTNode** parse_argument_list(const char* context, int* arg_count, char*** arg_names);
 
 // called after the function name, at '('
 ASTNode* parse_function_call(char* name, SourceLocation loc);

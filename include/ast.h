@@ -9,9 +9,11 @@ typedef struct {
     const char* filename;
 } SourceLocation;
 
+// a function's parameter, or a pod's field
 typedef struct Parameter {
     char* name;
     DataType type;
+    int line;                  // where it's written, for errors about it
     struct Parameter* next;
 } Parameter;
 
@@ -23,7 +25,18 @@ typedef struct ASTNode {
         struct {
             struct ASTNode* functions;
             struct ASTNode* globals;
+            struct ASTNode* pods;       // NODE_POD_DECL list
         } program;
+        struct {
+            char* name;
+            DataType type;              // the pod's type (user_types.h)
+            Parameter* fields;          // name + type of each field, in order
+            int field_count;
+        } pod;
+        struct {
+            struct ASTNode* object;
+            char* field;
+        } field_access;
         struct {
             DataType return_type;
             char* name;
@@ -32,7 +45,8 @@ typedef struct ASTNode {
             struct ASTNode* body;
         } function;
         struct {
-            char* target;
+            char* target;             // the variable assigned, or the variable a field belongs to
+            struct ASTNode* target_field;   // NODE_FIELD_ACCESS for `a.b = value`, else NULL
             DataType target_type;     // filled in by the checker
             struct ASTNode* value;
         } assignment;
@@ -66,7 +80,9 @@ typedef struct ASTNode {
         struct {
             char* name;
             struct ASTNode** args;    // array of argument expressions
+            char** arg_names;         // `name: value` arguments (NULL entries for plain ones), or NULL
             int arg_count;
+            bool is_pod_literal;      // set by the checker: Name(field: value, ...) builds a pod
         } function_call;
         struct {
             long long value;   // as written; the checker reports it if it doesn't fit a num
@@ -116,6 +132,10 @@ ASTNode* create_float_node(double value, SourceLocation loc);
 ASTNode* create_char_node(char value, SourceLocation loc);
 ASTNode* create_bool_node(bool value, SourceLocation loc);
 ASTNode* create_var_declaration_node(char* name, DataType type, ASTNode* init_expr, SourceLocation loc);
+// takes ownership of name and fields
+ASTNode* create_pod_node(char* name, DataType type, Parameter* fields, int field_count, SourceLocation loc);
+// takes ownership of object; copies field
+ASTNode* create_field_access_node(ASTNode* object, const char* field, SourceLocation loc);
 
 void free_parameters(Parameter* parameters);
 void free_ast(ASTNode* node);

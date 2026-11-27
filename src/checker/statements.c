@@ -12,6 +12,10 @@ static void check_var_declaration(ASTNode* node) {
     DataType type = node->data.var_declaration.type;
     int line = node->location.line;
 
+    if (type != TYPE_INFER && !check_type_known(&node->data.var_declaration.type, line)) {
+        type = TYPE_ERROR;   // an unknown type, reported: declared anyway, so uses don't cascade
+    }
+
     // the initializer is checked first: it can't see the variable it initializes
     ASTNode* init = node->data.var_declaration.init_expr;
     if (type == TYPE_INFER) {
@@ -24,7 +28,7 @@ static void check_var_declaration(ASTNode* node) {
         node->data.var_declaration.type = type;
     } else if (init) {
         DataType init_type = check_expression(init);
-        if (init_type != TYPE_ERROR && !compare_types(type, init_type)) {
+        if (init_type != TYPE_ERROR && type != TYPE_ERROR && !compare_types(type, init_type)) {
             report_error(line, "Type mismatch in initialization: cannot assign %s to %s",
                          get_wlang_type_from_enum(init_type), get_wlang_type_from_enum(type));
         }
@@ -54,8 +58,17 @@ static void check_var_declaration(ASTNode* node) {
 static bool uses_names(ASTNode* expr) {
     if (!expr) return false;
     switch (expr->type) {
-        case NODE_VARIABLE:
         case NODE_FUNCTION_CALL:
+            // a pod value made of constants is a constant
+            if (find_pod(expr->data.function_call.name)) {
+                for (int i = 0; i < expr->data.function_call.arg_count; i++) {
+                    if (uses_names(expr->data.function_call.args[i])) return true;
+                }
+                return false;
+            }
+            return true;
+        case NODE_VARIABLE:
+        case NODE_FIELD_ACCESS:
             return true;
         case NODE_BINARY_EXPR:
             return uses_names(expr->data.binary_expr.left) || uses_names(expr->data.binary_expr.right);
@@ -76,6 +89,11 @@ static bool has_text_operation(ASTNode* expr) {
                    has_text_operation(expr->data.binary_expr.right);
         case NODE_UNARY_EXPR:
             return has_text_operation(expr->data.unary_expr.operand);
+        case NODE_FUNCTION_CALL:   // a pod value: look inside its values
+            for (int i = 0; i < expr->data.function_call.arg_count; i++) {
+                if (has_text_operation(expr->data.function_call.args[i])) return true;
+            }
+            return false;
         default:
             return false;
     }
@@ -131,6 +149,11 @@ static bool divides_by_zero(ASTNode* expr) {
         }
         case NODE_UNARY_EXPR:
             return divides_by_zero(expr->data.unary_expr.operand);
+        case NODE_FUNCTION_CALL:   // a pod value: look inside its values
+            for (int i = 0; i < expr->data.function_call.arg_count; i++) {
+                if (divides_by_zero(expr->data.function_call.args[i])) return true;
+            }
+            return false;
         default:
             return false;
     }
@@ -144,6 +167,7 @@ void check_global(ASTNode* node) {
     const char* name = node->data.var_declaration.name;
 
     if (uses_names(init)) {
+        check_type_known(&node->data.var_declaration.type, node->location.line);
         report_error(node->location.line, GLOBAL_NOT_CONSTANT, name);
         // still declared, so functions using it don't add "undefined" errors
         if (node->data.var_declaration.type == TYPE_INFER) {
@@ -176,12 +200,19 @@ static void check_assignment(ASTNode* node) {
         report_error(line, "Assignment to undeclared variable '%s'", target);
         return;
     }
-    node->data.assignment.target_type = symbol->type;
+
+    // a.b.c = value: the type of that field
+    DataType target_type = symbol->type;
+    ASTNode* field = node->data.assignment.target_field;
+    if (field) {
+        target_type = check_expression(field);
+    }
+    node->data.assignment.target_type = target_type;
 
     // a variable whose type is already an error (dec n := missing) was reported where it was declared
-    if (value_type != TYPE_ERROR && symbol->type != TYPE_ERROR && !compare_types(symbol->type, value_type)) {
+    if (value_type != TYPE_ERROR && target_type != TYPE_ERROR && !compare_types(target_type, value_type)) {
         report_error(line, "Type mismatch in assignment to '%s': cannot assign %s to %s",
-                     target, get_wlang_type_from_enum(value_type), get_wlang_type_from_enum(symbol->type));
+                     target, get_wlang_type_from_enum(value_type), get_wlang_type_from_enum(target_type));
     }
 }
 
@@ -227,6 +258,9 @@ void check_statement(ASTNode* node) {
         default:
             // an expression used as a statement, e.g. a call
             check_expression(node);
+            if (node->type == NODE_FUNCTION_CALL && node->data.function_call.is_pod_literal) {
+                report_error(node->location.line, "A pod value on its own does nothing (assign it or pass it)");
+            }
             break;
     }
 }

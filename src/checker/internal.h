@@ -72,6 +72,23 @@ void check_statement(ASTNode* node);
 // a top-level dec: declared for every function; its value must be a constant
 void check_global(ASTNode* node);
 
+// ==================== pods.c ====================
+
+// records every pod's type, then checks their fields (before anything that could use them)
+void declare_pods(ASTNode* pods);
+
+// the pod named `name` (NULL if there's none)
+ASTNode* find_pod(const char* name);
+Parameter* pod_field(ASTNode* pod, const char* name);
+
+// reports a type name no pod defines, and turns it into TYPE_ERROR (no cascade)
+bool check_type_known(DataType* type, int line);
+
+DataType check_field_access(ASTNode* node);
+
+// Name(field: value, ...)
+DataType check_pod_literal(ASTNode* call, ASTNode* pod);
+
 // ==================== functions.c ====================
 
 // declares every function, so calls can come before definitions

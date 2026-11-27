@@ -64,8 +64,8 @@ Gotcha: `x--1` is `x` followed by a comment.
 | `str` | `char*` | ✅ | Literals, variables, comparison, `a + b` anywhere. Escapes `\n \t \\ \' \"` (an unknown one like `\q` is kept as written). Memory is handled for you: each variable owns its own copy of its text, which is freed when it's replaced or its block ends; joined text in the middle of an expression is freed after the statement. Memory stays flat in loops |
 | `bool` | `bool` | ✅ | `true` / `false`, printed by `log` as `true` / `false`. No arithmetic on `bool` (D9): `true + 1` is an error |
 | `zil` | `void` | ✅ | Function return type only: a `zil` variable or parameter is an error, and so is using a `zil` call's result as a value |
-| `vec map set ref heap stack que link tree pod` | — | 💭 | Tokens only. Spec drafts disagree on syntax: `map[num, str]` vs `map(num, str)` |
-| `pod` (struct with functions) vs `type` (plain data) | — | 💭 | |
+| `vec map set ref heap stack que link tree` | — | 📐 / 💭 | Reserved words. `vec` and `ref` are decided (D4, D13, D14) and come in roadmap step 3 |
+| `pod` | struct | ✅ | See §4a |
 
 Collection ideas from early drafts (💭): data structures ship with the transpiler and are pulled in with `use`; `map` uses a random hash seed per run; `que` may get a priority option; `link[Node]` / `tree[Node]` take a `pod`; `ref` (pointers) may be dropped entirely. Literal syntax drafts:
 ```
@@ -76,6 +76,35 @@ dec q: que(str) = ["one", "two", "three"]
 Implicit conversions (assignment, arguments, `ret`): `num ↔ chr`, `num ↔ bool`, `num/chr/bool → real`. `str` converts to nothing.
 
 Operators by type (every combination is checked by `tests/unit/type_rules.c`): `+ - * /` take `num`, `real`, `chr` (`'a' + 1` is `98`; any `real` makes the result `real`), and `+` also joins two `str`s; `str` with anything else and any `bool` are errors (D8, D9). Comparisons take any two non-`str` values, or two `str`s. `and` / `or` take anything but `str`. Unary `-x` takes `num`, `real` and `chr` (`-'a'` is a `num`, so `dec c: chr = -'a'` is an error); `not x` takes anything but `str`. Nothing takes `zil`.
+
+## 4a. Pods
+
+```
+pod Vec
+    x: real
+    y: real
+
+pod Ball
+    pos: Vec
+    speed: real
+
+fun w(): num
+    dec b := Ball(pos: Vec(x: 1, y: 2), speed: 3)
+    b.pos.x = b.pos.x + b.speed
+    log(b)                  -- Ball(pos: Vec(x: 4.000000, y: 2.000000), speed: 3.000000)
+    ret 0
+```
+
+| Feature | Status | Notes |
+|---|---|---|
+| `pod Name` with `field: type` lines | ✅ | Top level only (inside a function it's an error); at least one field. Fields are `num real chr bool` or another pod (`str` fields: roadmap 3.3). A pod can't contain itself |
+| Values: `Ball(pos: ..., speed: 3)` | ✅ | Every value names its field; left-out fields are zero; a value converts like an assignment (`num` → `real`) |
+| `b.x`, `b.pos.x`, `make().x` | ✅ | Reading fields of variables, calls and values |
+| `b.x = value` | ✅ | Assigning a field (of a field ...) of a variable |
+| Pods are values (D13) | ✅ | Assigning or passing a pod copies it; `dec b: Ball` with no value is all zero |
+| `log(pod)` | ✅ | Prints `Name(field: value, ...)` |
+| Operators on pods | ✅ | An error: use the fields. A pod can't be a condition either |
+| `ref` parameters | 📐 | Roadmap 3.2 |
 
 ## 5. Variables
 
@@ -175,7 +204,7 @@ loop until n >= 5, n = n + 1
 | `wlang` CLI | ✅ | See below. Exits 1 on any W error and writes nothing; 2 on a bad command line. Syntax errors are reported first; type errors only once there are none, so one typo doesn't cascade. Each broken statement gives one syntax error and parsing continues on the next line, so several mistakes are reported in one run. An unclosed bracket is reported on the line where it opened when the next line starts a statement (`dec`, `ret`, `say`, `loop`, …) or the file ends |
 | Run-time errors and traces | ✅ | A run-time error (division or modulo by zero) stops the program and prints the chain of W calls that led to it, innermost first (`in average, line 4` / `called from update, line 7` / …). Up to 20 calls are all shown; a longer chain shows its 10 innermost and 5 outermost. Always on (D12) |
 | Optimization | ✅ | `wlang` compiles the generated C with `-O2`: programs run faster, compiling takes longer (noticeable only for very large functions, e.g. ~1.7 s for 2,000 statements). The C is written so the optimizer can't change what a program does |
-| Nesting limits | ✅ | Expressions: 150 levels, counting the expression itself, each `(`, `not` and call inside it, and each operator in a chain (so at most 149 nested parentheses). Statements: 100 levels counting the function body (so 99 nested blocks inside a function). A conditional: 1,000 branches. Past any of them, one error instead of a crash; together they keep the generated C within what clang accepts (256 nested brackets, and a long `else if` chain) |
+| Nesting limits | ✅ | Expressions: 150 levels, counting the expression itself, each `(`, `not` and call inside it, and each operator in a chain (so at most 149 nested parentheses). Statements: 100 levels counting the function body (so 99 nested blocks inside a function). A conditional: 1,000 branches. Pods: 100 levels of pods inside pods. Past any of them, one error instead of a crash; together they keep the generated C within what clang accepts (256 nested brackets, a long `else if` chain, deeply nested structs) |
 | Program arguments | 🚧 | Passed to the program, but W can't read them yet (💭) |
 
 ```

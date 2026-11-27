@@ -47,11 +47,12 @@ bool in_panic(void) {
     return panicking;
 }
 
-static void begin_statement(void) {
+void start_statement(void) {
     panicking = false;
     statement_start = tokens_consumed;
     statement_token = token;
 }
+
 
 void parser_error(const char* message) {
     if (in_panic()) return;
@@ -91,6 +92,23 @@ void skip_rest_of_line(void) {
         advance();
     }
     if (token == NEWLINE) advance();
+}
+
+void skip_indented_block(void) {
+    if (token != INDENT) return;
+    int level = 0;
+    while (token != 0) {
+        if (token == INDENT) {
+            level++;
+        } else if (token == DEDENT) {
+            level--;
+            if (level == 0) {
+                advance();
+                return;
+            }
+        }
+        advance();
+    }
 }
 
 // after a statement with an error: move to the start of the next statement
@@ -134,7 +152,7 @@ ASTNode* parse_block(void) {
     ASTNode* head = NULL;
     ASTNode* tail = NULL;
     while (token != DEDENT && token != 0) {
-        begin_statement();
+        start_statement();
         ASTNode* statement = parse_statement();
         if (in_panic()) recover();
         if (!statement) continue;
@@ -212,6 +230,12 @@ static ASTNode* parse_one_statement(void) {
             free_ast(stray);
             return NULL;
         }
+        case POD:
+            // reported once; the pod's lines are skipped (they belong at the top level)
+            parser_error("Pods are declared at the top level, not inside a function");
+            skip_rest_of_line();
+            skip_indented_block();
+            return NULL;
         case LOG:
             return parse_log();
         case INT_LITERAL:
@@ -243,7 +267,21 @@ static ASTNode* parse_one_statement(void) {
             eat(IDENTIFIER);
 
             ASTNode* node = NULL;
-            if (token == ASSIGNMENT) {
+            if (token == DOT) {
+                // a.b.c = value
+                ASTNode* target = parse_field_chain(create_variable_node(name, loc));
+                if (token == ASSIGNMENT) {
+                    node = parse_assignment(name, loc);
+                    if (node) {
+                        node->data.assignment.target_field = target;
+                    } else {
+                        free_ast(target);
+                    }
+                } else {
+                    parser_error("Expected '=' after a field (a field on its own does nothing)");
+                    free_ast(target);
+                }
+            } else if (token == ASSIGNMENT) {
                 node = parse_assignment(name, loc);
             } else if (token == LPAREN) {
                 node = parse_function_call(name, loc);
@@ -273,8 +311,9 @@ ASTNode* parse(void) {
     // yylex() returns 0 at end of input
     ASTNode* last_function = NULL;
     ASTNode* last_global = NULL;
+    ASTNode* last_pod = NULL;
     while (token != 0) {
-        begin_statement();
+        start_statement();
 
         // an indented block where none belongs: one error, and its contents are still checked
         if (token == INDENT) {
@@ -284,6 +323,20 @@ ASTNode* parse(void) {
         }
         if (token == DEDENT) {
             advance();   // the end of such a block; already reported
+            continue;
+        }
+
+        // a pod (a type with named fields)
+        if (token == POD) {
+            ASTNode* pod = parse_pod();
+            if (in_panic()) recover();
+            if (!pod) continue;
+            if (last_pod == NULL) {
+                program->data.program.pods = pod;
+            } else {
+                last_pod->next = pod;
+            }
+            last_pod = pod;
             continue;
         }
 
@@ -304,7 +357,7 @@ ASTNode* parse(void) {
         if (token != FUN) {
             char error_msg[100];
             snprintf(error_msg, sizeof(error_msg),
-                "Unexpected %s at top level. Expected 'fun' or 'dec'.",
+                "Unexpected %s at top level. Expected 'fun', 'dec' or 'pod'.",
                 token_registry_describe(token));
             parser_error(error_msg);
             recover();

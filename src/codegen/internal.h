@@ -80,6 +80,20 @@ void generate_num_negation(FILE* output, ASTNode* operand);
 // set while emitting globals' values (file-scope C constants)
 void set_in_global_value(bool in_global);
 
+// ==================== pods.c ====================
+// pods: structs, compound literals, field access, print functions for log
+
+void emit_pod_types(FILE* output, ASTNode* pods);
+void emit_pod_printers(FILE* output, ASTNode* pods);
+void generate_pod_literal(FILE* output, ASTNode* call, bool in_global);
+void generate_field_access(FILE* output, ASTNode* node);
+// W__Ball_print(value)
+void generate_pod_print(FILE* output, ASTNode* value);
+DataType pod_field_type(ASTNode* pod, const char* name);
+
+// is a global's value being emitted (a C constant)?
+bool in_global_value_now(void);
+
 // ==================== strings.c ====================
 // Strings own their text; the generated C frees it (see the top of strings.c)
 
@@ -125,6 +139,7 @@ void strings_emit_global_inits(FILE* output, ASTNode* globals, int indent_level)
 // W__name_v / W__name_f; w() -> main. Returns a static buffer (copy it to keep it)
 const char* mangle_identifier(const char* w_name, bool is_function);
 const char* mangle_init_temp(const char* w_name);
+const char* mangle_field(const char* w_name);
 
 // emit indentation (level * 4 spaces)
 void emit_indent(FILE* out, int level);
