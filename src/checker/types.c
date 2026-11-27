@@ -1,6 +1,7 @@
 #include "checker.h"
 #include "checker/internal.h"
 #include "language/operators.h"
+#include "user_types.h"
 
 // Type rules only: no AST, no errors printed.
 
@@ -49,6 +50,10 @@ bool can_convert_type(DataType from, DataType to) {
 // checker prefixes the expression, e.g. "num + bool: "). Every pair of types is covered by
 // tests/unit/type_rules.c.
 DataType operation_type(DataType left, DataType right, OperatorType op, const char** error) {
+    if (is_user_type(left) || is_user_type(right)) {
+        *error = "operators don't work on pods (use their fields)";
+        return TYPE_ERROR;
+    }
     if (left == TYPE_ZIL || right == TYPE_ZIL) {
         *error = "zil has no value (it's the result of a call that returns nothing)";
         return TYPE_ERROR;
@@ -106,6 +111,10 @@ DataType operation_type(DataType left, DataType right, OperatorType op, const ch
 }
 
 DataType unary_operation_type(DataType operand, OperatorType op, const char** error) {
+    if (is_user_type(operand)) {
+        *error = "operators don't work on pods (use their fields)";
+        return TYPE_ERROR;
+    }
     if (operand == TYPE_ZIL) {
         *error = "zil has no value (it's the result of a call that returns nothing)";
         return TYPE_ERROR;

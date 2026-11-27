@@ -91,7 +91,7 @@ ASTNode* parse_function(void) {
         parser_error("Expected ':' before the return type");
     } else if (token == COLON) {
         eat(COLON);
-        if (!token_registry_is_type(token)) {
+        if (!token_registry_is_type(token) && token != IDENTIFIER) {
             parser_error("Expected return type after ':'");
         } else {
             return_type = parse_type_specifier();
@@ -111,12 +111,14 @@ ASTNode* parse_function(void) {
 
 // ==================== calls ====================
 
-ASTNode** parse_argument_list(const char* context, int* arg_count) {
+ASTNode** parse_argument_list(const char* context, int* arg_count, char*** arg_names) {
     eat(LPAREN);
 
     ASTNode** args = NULL;
+    char** names = NULL;
     *arg_count = 0;
     int arg_capacity = 4;
+    if (arg_names) *arg_names = NULL;
 
     if (token != RPAREN) {
         args = malloc(sizeof(ASTNode*) * arg_capacity);
@@ -125,9 +127,47 @@ ASTNode** parse_argument_list(const char* context, int* arg_count) {
             if (*arg_count >= arg_capacity) {
                 arg_capacity *= 2;
                 args = realloc(args, sizeof(ASTNode*) * arg_capacity);
+                if (names) {
+                    names = realloc(names, sizeof(char*) * arg_capacity);
+                    if (!names) {
+                        fprintf(stderr, "Out of memory\n");
+                        exit(1);
+                    }
+                }
             }
 
-            args[(*arg_count)++] = parse_expression();
+            // `name: value`: parsed as a value first (one token of lookahead), then a ':'
+            // after a bare name makes it the argument's name
+            ASTNode* arg = parse_expression();
+            char* name = NULL;
+            if (token == COLON && arg && arg->type == NODE_VARIABLE) {
+                name = strdup(arg->data.variable.name);
+                free_ast(arg);
+                eat(COLON);
+                // a pod value nests one bracket level more in the C than a call
+                if (expression_enter()) {
+                    arg = parse_expression();
+                    expression_leave();
+                } else {
+                    arg = NULL;
+                }
+                if (!arg_names) {
+                    char error_msg[100];
+                    snprintf(error_msg, sizeof(error_msg), "Named values (name: value) aren't allowed in %s", context);
+                    parser_error(error_msg);
+                    free(name);
+                    name = NULL;
+                }
+            }
+            if (name && !names) {
+                names = calloc((size_t)arg_capacity, sizeof(char*));
+                if (!names) {
+                    fprintf(stderr, "Out of memory\n");
+                    exit(1);
+                }
+            }
+            if (names) names[*arg_count] = name;
+            args[(*arg_count)++] = arg;
 
             if (token == COMMA) {
                 eat(COMMA);
@@ -143,13 +183,16 @@ ASTNode** parse_argument_list(const char* context, int* arg_count) {
     }
 
     eat(RPAREN);
+    if (arg_names) *arg_names = names;
     return args;
 }
 
 ASTNode* parse_function_call(char* name, SourceLocation loc) {
     int arg_count;
-    ASTNode** args = parse_argument_list("function call", &arg_count);
+    char** arg_names;
+    ASTNode** args = parse_argument_list("function call", &arg_count, &arg_names);
     ASTNode* node = create_function_call_node(name, args, arg_count, loc);
+    node->data.function_call.arg_names = arg_names;   // the call owns them now
     free(args);
     return node;
 }

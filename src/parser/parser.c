@@ -243,7 +243,21 @@ static ASTNode* parse_one_statement(void) {
             eat(IDENTIFIER);
 
             ASTNode* node = NULL;
-            if (token == ASSIGNMENT) {
+            if (token == DOT) {
+                // a.b.c = value
+                ASTNode* target = parse_field_chain(create_variable_node(name, loc));
+                if (token == ASSIGNMENT) {
+                    node = parse_assignment(name, loc);
+                    if (node) {
+                        node->data.assignment.target_field = target;
+                    } else {
+                        free_ast(target);
+                    }
+                } else {
+                    parser_error("Expected '=' after a field (a field on its own does nothing)");
+                    free_ast(target);
+                }
+            } else if (token == ASSIGNMENT) {
                 node = parse_assignment(name, loc);
             } else if (token == LPAREN) {
                 node = parse_function_call(name, loc);
@@ -273,6 +287,7 @@ ASTNode* parse(void) {
     // yylex() returns 0 at end of input
     ASTNode* last_function = NULL;
     ASTNode* last_global = NULL;
+    ASTNode* last_pod = NULL;
     while (token != 0) {
         begin_statement();
 
@@ -284,6 +299,20 @@ ASTNode* parse(void) {
         }
         if (token == DEDENT) {
             advance();   // the end of such a block; already reported
+            continue;
+        }
+
+        // a pod (a type with named fields)
+        if (token == POD) {
+            ASTNode* pod = parse_pod();
+            if (in_panic()) recover();
+            if (!pod) continue;
+            if (last_pod == NULL) {
+                program->data.program.pods = pod;
+            } else {
+                last_pod->next = pod;
+            }
+            last_pod = pod;
             continue;
         }
 
@@ -304,7 +333,7 @@ ASTNode* parse(void) {
         if (token != FUN) {
             char error_msg[100];
             snprintf(error_msg, sizeof(error_msg),
-                "Unexpected %s at top level. Expected 'fun' or 'dec'.",
+                "Unexpected %s at top level. Expected 'fun', 'dec' or 'pod'.",
                 token_registry_describe(token));
             parser_error(error_msg);
             recover();

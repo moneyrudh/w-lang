@@ -9,7 +9,14 @@
 
 void declare_functions(ASTNode* functions) {
     for (ASTNode* function = functions; function != NULL; function = function->next) {
-        if (!declare_function(function)) {
+        int line = function->location.line;
+        check_type_known(&function->data.function.return_type, line);
+        for (Parameter* p = function->data.function.parameters; p; p = p->next) {
+            check_type_known(&p->type, line);
+        }
+        if (find_pod(function->data.function.name)) {
+            report_error(line, "'%s' is already a pod's name", function->data.function.name);
+        } else if (!declare_function(function)) {
             report_error(function->location.line, "Function '%s' already declared",
                          function->data.function.name);
         }
@@ -106,8 +113,8 @@ void check_function(ASTNode* function) {
     // a w() whose return type was already rejected (checker.c) gets no second error about it
     bool rejected_entry_point = strcmp(name, "w") == 0 && return_type != TYPE_NUM && return_type != TYPE_ZIL;
 
-    if (rejected_entry_point) {
-        // reported once, as the entry point's error
+    if (rejected_entry_point || return_type == TYPE_ERROR) {
+        // reported once already (the entry point's rules, or an unknown type)
     } else if (return_type != TYPE_ZIL && !checker_context.has_return) {
         report_error(line, "Function '%s' with return type '%s' must return a value",
                      name, get_wlang_type_from_enum(return_type));
@@ -136,6 +143,11 @@ void check_return(ASTNode* node) {
         return;
     }
 
+    if (return_type == TYPE_ERROR) {   // an unknown return type, already reported
+        if (value) check_expression(value);
+        return;
+    }
+
     if (!value) {
         report_error(line, "Function '%s' with return type '%s' must return a value",
                      name, get_wlang_type_from_enum(return_type));
@@ -156,10 +168,21 @@ DataType check_call(ASTNode* node) {
     int arg_count = node->data.function_call.arg_count;
     int line = node->location.line;
 
+    // Name(field: value, ...) is a pod value (it checks its own values)
+    ASTNode* pod = find_pod(name);
+    if (pod) {
+        return check_pod_literal(node, pod);
+    }
+
     // arguments are checked even when the call itself is wrong, so their errors still show
     DataType arg_types[arg_count > 0 ? arg_count : 1];
     for (int i = 0; i < arg_count; i++) {
         arg_types[i] = check_expression(node->data.function_call.args[i]);
+    }
+
+    if (node->data.function_call.arg_names) {
+        report_error(line, "Named values (name: value) are only for pod values, and '%s' isn't a pod", name);
+        return TYPE_ERROR;
     }
 
     FunctionSymbol* symbol = lookup_function(name);
@@ -176,7 +199,7 @@ DataType check_call(ASTNode* node) {
     } else {
         Parameter* param = function->data.function.parameters;
         for (int i = 0; i < arg_count; i++, param = param->next) {
-            if (arg_types[i] != TYPE_ERROR && !compare_types(param->type, arg_types[i])) {
+            if (arg_types[i] != TYPE_ERROR && param->type != TYPE_ERROR && !compare_types(param->type, arg_types[i])) {
                 report_error(line, "Argument %d of '%s': cannot pass %s as %s",
                              i + 1, name, get_wlang_type_from_enum(arg_types[i]),
                              get_wlang_type_from_enum(param->type));

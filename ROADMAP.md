@@ -53,12 +53,18 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
 12. ✅ **Small fixes from reviews:** `fun w()` without a return type exits with 0; `w()` must return `num`
    or nothing and takes no parameters; unused parameters don't make the generated C warn.
 
-## Step 3 — Data ⬜
+## Step 3 — Data 🔨
 
-1. ⬜ **Structs (`pod`).** Declaration, literals, field access and assignment, passing to functions. ❓ D3.
-2. ⬜ **Arrays (`vec`).** Fixed size first, then growable; indexing with bounds checks. ❓ D4.
-3. ⬜ **Loops over arrays.** ❓ D5 (W-style `for each` spelling).
-4. ⬜ **Modules (`use`).** A program across several `.w` files. ❓ D6.
+1. ✅ **Pods** (D3, D13). Declarations, values with field names, reading and assigning fields,
+   passing and returning (copied), nested pods, globals, `log` printing a pod.
+2. ⬜ **`ref` parameters** (D13). Done: `fun bounce(b: ref Ball)` changes the caller's pod; passing
+   a value that isn't a variable (or field of one) to a `ref` parameter is an error.
+3. ⬜ **`str` fields in pods.** Done: a pod with `str` fields is copied and freed correctly (the
+   string memory model, D2, extended to pods); LeakSanitizer and the flat-memory test cover it.
+4. ⬜ **`vec`** (D4, D14, D15). Done: `vec[T]` for any T, literals, indexing with a bounds check that
+   stops the program with a trace, copy-on-write, `add` / `pop` / `add_front` / `pop_front` / `len`.
+5. ⬜ **`loop x in v`** (D5), with `loop i, x in v`.
+6. ⬜ **Modules** (D6): `use name`, `use folder.name`, qualified names.
 
 ## Step 4 — Games ⬜
 

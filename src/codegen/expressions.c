@@ -14,6 +14,10 @@ void set_in_global_value(bool in_global) {
     in_global_value = in_global;
 }
 
+bool in_global_value_now(void) {
+    return in_global_value;
+}
+
 // ==================== literals & names ====================
 
 void generate_literal(FILE* output, ASTNode* node) {
@@ -185,6 +189,11 @@ void generate_unary_expr(FILE* output, ASTNode* node, int indent_level) {
 // ==================== calls ====================
 
 void generate_function_call(FILE* output, ASTNode* node, int indent_level) {
+    if (node->data.function_call.is_pod_literal) {
+        generate_pod_literal(output, node, in_global_value);
+        return;
+    }
+
     // if this is at indent_level > 0, it's a statement, so add indent and semicolon
     // if indent_level == 0, it's an expression within another expression
     if (indent_level > 0) {

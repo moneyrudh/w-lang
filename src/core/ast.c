@@ -26,6 +26,7 @@ ASTNode* create_program_node(SourceLocation loc) {
     ASTNode* node = new_node(NODE_PROGRAM, loc);
     node->data.program.functions = NULL;
     node->data.program.globals = NULL;
+    node->data.program.pods = NULL;
     return node;
 }
 
@@ -50,6 +51,8 @@ ASTNode* create_function_call_node(char* name, ASTNode** args, int arg_count, So
         memcpy(node->data.function_call.args, args, sizeof(ASTNode*) * arg_count);
     }
     node->data.function_call.arg_count = arg_count;
+    node->data.function_call.arg_names = NULL;
+    node->data.function_call.is_pod_literal = false;
     return node;
 }
 
@@ -71,6 +74,7 @@ ASTNode* create_assignment_node(char* target, ASTNode* value, SourceLocation loc
     ASTNode* node = new_node(NODE_ASSIGNMENT, loc);
     node->data.assignment.target = strdup(target);
     node->data.assignment.target_type = TYPE_ERROR;
+    node->data.assignment.target_field = NULL;
     node->data.assignment.value = value;
     return node;
 }
@@ -157,6 +161,22 @@ ASTNode* create_var_declaration_node(char* name, DataType type, ASTNode* init_ex
     return node;
 }
 
+ASTNode* create_pod_node(char* name, DataType type, Parameter* fields, int field_count, SourceLocation loc) {
+    ASTNode* node = new_node(NODE_POD_DECL, loc);
+    node->data.pod.name = name;
+    node->data.pod.type = type;
+    node->data.pod.fields = fields;
+    node->data.pod.field_count = field_count;
+    return node;
+}
+
+ASTNode* create_field_access_node(ASTNode* object, const char* field, SourceLocation loc) {
+    ASTNode* node = new_node(NODE_FIELD_ACCESS, loc);
+    node->data.field_access.object = object;
+    node->data.field_access.field = strdup(field);
+    return node;
+}
+
 void free_parameters(Parameter* parameters) {
     while (parameters != NULL) {
         Parameter* next = parameters->next;
@@ -176,6 +196,7 @@ void free_ast(ASTNode* node) {
             case NODE_PROGRAM:
                 free_ast(node->data.program.functions);
                 free_ast(node->data.program.globals);
+                free_ast(node->data.program.pods);
                 break;
             case NODE_FUNCTION:
                 free(node->data.function.name);
@@ -187,8 +208,10 @@ void free_ast(ASTNode* node) {
                 if (node->data.function_call.args) {
                     for (int i = 0; i < node->data.function_call.arg_count; i++) {
                         free_ast(node->data.function_call.args[i]);
+                        if (node->data.function_call.arg_names) free(node->data.function_call.arg_names[i]);
                     }
                     free(node->data.function_call.args);
+                    free(node->data.function_call.arg_names);
                 }
                 break;
             case NODE_LOG:
@@ -216,6 +239,7 @@ void free_ast(ASTNode* node) {
                 break;
             case NODE_ASSIGNMENT:
                 free(node->data.assignment.target);
+                free_ast(node->data.assignment.target_field);
                 free_ast(node->data.assignment.value);
                 break;
             case NODE_RETURN:
@@ -241,6 +265,14 @@ void free_ast(ASTNode* node) {
                 break;
             case NODE_SKIP:
             case NODE_STOP:
+                break;
+            case NODE_POD_DECL:
+                free(node->data.pod.name);
+                free_parameters(node->data.pod.fields);
+                break;
+            case NODE_FIELD_ACCESS:
+                free_ast(node->data.field_access.object);
+                free(node->data.field_access.field);
                 break;
             case NODE_NUMBER:
             case NODE_FLOAT:

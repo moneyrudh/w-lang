@@ -61,6 +61,7 @@ typedef enum {
     LBRACE,
     RBRACE,
     COMMA,
+    DOT,        // field access: ball.x
     SEMICOLON,
 
     // layout tokens produced from newlines and indentation
@@ -159,7 +160,9 @@ typedef enum {
     NODE_IF,
     NODE_LOOP,
     NODE_SKIP,
-    NODE_STOP
+    NODE_STOP,
+    NODE_POD_DECL,       // pod Name with its fields
+    NODE_FIELD_ACCESS    // object.field
 } NodeType;
 
 #endif

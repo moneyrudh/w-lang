@@ -64,8 +64,8 @@ Gotcha: `x--1` is `x` followed by a comment.
 | `str` | `char*` | ✅ | Literals, variables, comparison, `a + b` anywhere. Escapes `\n \t \\ \' \"` (an unknown one like `\q` is kept as written). Memory is handled for you: each variable owns its own copy of its text, which is freed when it's replaced or its block ends; joined text in the middle of an expression is freed after the statement. Memory stays flat in loops |
 | `bool` | `bool` | ✅ | `true` / `false`, printed by `log` as `true` / `false`. No arithmetic on `bool` (D9): `true + 1` is an error |
 | `zil` | `void` | ✅ | Function return type only: a `zil` variable or parameter is an error, and so is using a `zil` call's result as a value |
-| `vec map set ref heap stack que link tree pod` | — | 💭 | Tokens only. Spec drafts disagree on syntax: `map[num, str]` vs `map(num, str)` |
-| `pod` (struct with functions) vs `type` (plain data) | — | 💭 | |
+| `vec map set ref heap stack que link tree` | — | 📐 / 💭 | Reserved words. `vec` and `ref` are decided (D4, D13, D14) and come in roadmap step 3 |
+| `pod` | struct | ✅ | See §4a |
 
 Collection ideas from early drafts (💭): data structures ship with the transpiler and are pulled in with `use`; `map` uses a random hash seed per run; `que` may get a priority option; `link[Node]` / `tree[Node]` take a `pod`; `ref` (pointers) may be dropped entirely. Literal syntax drafts:
 ```
@@ -76,6 +76,33 @@ dec q: que(str) = ["one", "two", "three"]
 Implicit conversions (assignment, arguments, `ret`): `num ↔ chr`, `num ↔ bool`, `num/chr/bool → real`. `str` converts to nothing.
 
 Operators by type (every combination is checked by `tests/unit/type_rules.c`): `+ - * /` take `num`, `real`, `chr` (`'a' + 1` is `98`; any `real` makes the result `real`), and `+` also joins two `str`s; `str` with anything else and any `bool` are errors (D8, D9). Comparisons take any two non-`str` values, or two `str`s. `and` / `or` take anything but `str`. Unary `-x` takes `num`, `real` and `chr` (`-'a'` is a `num`, so `dec c: chr = -'a'` is an error); `not x` takes anything but `str`. Nothing takes `zil`.
+
+## 4a. Pods
+
+```
+pod Vec
+    x: real
+    y: real
+
+pod Ball
+    pos: Vec
+    speed: real
+
+dec b := Ball(pos: Vec(x: 1, y: 2), speed: 3)
+b.pos.x = b.pos.x + b.speed
+log(b)                      -- Ball(pos: Vec(x: 4.000000, y: 2.000000), speed: 3.000000)
+```
+
+| Feature | Status | Notes |
+|---|---|---|
+| `pod Name` with `field: type` lines | ✅ | Top level only; at least one field. Fields are `num real chr bool` or another pod (`str` fields: roadmap 3.3). A pod can't contain itself |
+| Values: `Ball(pos: ..., speed: 3)` | ✅ | Every value names its field; left-out fields are zero; a value converts like an assignment (`num` → `real`) |
+| `b.x`, `b.pos.x`, `make().x` | ✅ | Reading fields of variables, calls and values |
+| `b.x = value` | ✅ | Assigning a field (of a field ...) of a variable |
+| Pods are values (D13) | ✅ | Assigning or passing a pod copies it; `dec b: Ball` with no value is all zero |
+| `log(pod)` | ✅ | Prints `Name(field: value, ...)` |
+| Operators on pods | ✅ | An error: use the fields |
+| `ref` parameters | 📐 | Roadmap 3.2 |
 
 ## 5. Variables
 

@@ -11,6 +11,7 @@ Each stage is a folder under `src/`. Its public API is one header in `include/` 
   - `pipeline.c` — `transpile()`: lex → parse → check → codegen for one file, including registry setup
   - `toolchain.c` — Calling the C compiler (`$CC`, else `cc`), running the program, temp directories
 - `src/core/ast.c` — AST node creation and memory management (`include/ast.h`). Constructors only build nodes; they never look names up or report errors. `include/types.h` holds the shared enums: `TokenType`, `DataType`, `NodeType`, `OperatorType`, plus shared structs
+- `src/core/user_types.c` — Types a program defines (pods; later `vec[T]`), numbered from `TYPE_USER_BASE` so they're still a `DataType` (`include/user_types.h`). The type registry's lookups fall back to it
 - `src/core/diagnostics.c` — `report_error(line, fmt, …)` and `error_count()`, used by every stage (`include/diagnostics.h`)
 - `src/language/` — W's definition as tables, no stage logic:
   - `token_registry.c` — Map-backed registry of all token metadata (display names, lexemes, categories)
@@ -30,12 +31,14 @@ Each stage is a folder under `src/`. Its public API is one header in `include/` 
   - `functions.c` — Signatures, bodies and return checks, calls (argument count and types)
   - `control_flow.c` — Conditions, loops, `skip`/`stop` placement
   - `scopes.c` — Scoped variable table (`push_scope`/`pop_scope`) and function table
+  - `pods.c` — Pod declarations (fields, cycles), unknown type names, field access, pod values
   - `types.c` — Pure type rules (`compare_types`, `can_convert_type`, `operation_type`); no AST, no printing
 - `src/codegen/` — Walks the AST and emits C via `fprintf`:
   - `codegen.c` — `generate()` dispatch and the program layout (includes, forward declarations, `w()` last)
   - `expressions.c`, `statements.c`, `functions.c`, `control_flow.c` — One file per kind of construct
   - `formatters.c` — Helpers for emitting C constructs (mangling, signatures, casts, operators, indentation)
   - `arithmetic.c` — The always-emitted runtime: call frames for traces (`W__push` / `W__pop` / `W__runtime_error`), checked `W__div` / `W__mod`, and the wrap-around forms of `num` arithmetic (D11). Every W function but `main()` takes the caller's line as a hidden first parameter (`int W__line`); every call passes it, and every way out of a function pops its frame
+  - `pods.c` — Pod structs (in dependency order), compound literals, field access, a print function per pod for `log`
   - `strings.c` — String memory (D2): the small runtime emitted into programs that use `str`, and the bookkeeping for which `str` variables are alive, so blocks, `ret`, `stop` and `skip` free them. Any new statement that leaves a block early, or new place a `str` can be stored, must go through it
   - `c_syntax.h` — `#define` constants for all C syntax strings (keywords, operators, punctuation, escapes)
 - `src/util/map.c` — Generic hashmap used internally by the registries

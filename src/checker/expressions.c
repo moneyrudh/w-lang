@@ -83,6 +83,7 @@ static DataType expression_type(ASTNode* node) {
         case NODE_BINARY_EXPR:   return check_binary_expr(node);
         case NODE_UNARY_EXPR:    return check_unary_expr(node);
         case NODE_FUNCTION_CALL: return check_call(node);
+        case NODE_FIELD_ACCESS:  return check_field_access(node);
         default:
             report_error(node->location.line, "Unknown expression type");
             return TYPE_ERROR;

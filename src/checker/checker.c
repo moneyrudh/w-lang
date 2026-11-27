@@ -35,8 +35,9 @@ void check_program(ASTNode* program) {
     checker_context.has_return = false;
     checker_context.loop_depth = 0;
 
-    // pass 1: globals, then every signature, so a function can use a global, and a call can
-    // come before the function's definition, wherever they appear in the file
+    // pass 1: pods, globals, then every signature, so anything can use a pod, a function can
+    // use a global, and a call can come before the function's definition, wherever they are
+    declare_pods(program->data.program.pods);
     for (ASTNode* global = program->data.program.globals; global != NULL; global = global->next) {
         check_global(global);
     }

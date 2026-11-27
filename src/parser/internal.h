@@ -56,6 +56,14 @@ ASTNode* parse_block(void);
 
 ASTNode* parse_expression(void);
 
+// object.field.field... after an operand (each '.' counts toward the nesting limit)
+ASTNode* parse_field_chain(ASTNode* object);
+
+// the nesting limit for constructs parsed outside expressions.c: enter returns false (after
+// reporting) when one more level would pass MAX_EXPRESSION_DEPTH; leave undoes an enter
+bool expression_enter(void);
+void expression_leave(void);
+
 // ==================== statements.c ====================
 
 // num, real, chr, str, bool, zil (TYPE_ERROR after reporting if it isn't a type)
@@ -68,13 +76,18 @@ ASTNode* parse_assignment(char* name, SourceLocation loc);
 
 ASTNode* parse_log(void);
 
+// pod Name with an indented list of `field: type` (top level only)
+ASTNode* parse_pod(void);
+
 // ==================== functions.c ====================
 
 ASTNode* parse_function(void);
 
-// '(' expression, ... ')': a malloc'd array (NULL when empty) the caller owns, with its
-// count in arg_count. `context` names the construct in errors ("function call", "log")
-ASTNode** parse_argument_list(const char* context, int* arg_count);
+// '(' argument, ... ')': a malloc'd array (NULL when empty) the caller owns, with its count in
+// arg_count. An argument is `value` or `name: value` (for pod values); the names come back in
+// *arg_names (NULL when there are none; NULL entries for unnamed ones), or are reported as an
+// error when arg_names is NULL. `context` names the construct in errors ("function call", "log")
+ASTNode** parse_argument_list(const char* context, int* arg_count, char*** arg_names);
 
 // called after the function name, at '('
 ASTNode* parse_function_call(char* name, SourceLocation loc);

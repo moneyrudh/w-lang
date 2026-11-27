@@ -1,4 +1,5 @@
 #include "language/type_registry.h"
+#include "user_types.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -128,12 +129,16 @@ const TypeMapping* type_registry_get_by_c_name(const char* name) {
 
 // ==================== convenience functions ====================
 
+// a program's own types (pods) aren't in the table: user_types.c knows them
+
 const char* get_c_type_from_enum(DataType type) {
+    if (is_user_type(type)) return user_type_c_name(type);
     const TypeMapping* mapping = type_registry_get_by_enum(type);
     return mapping ? mapping->c_equivalent : "void";
 }
 
 const char* get_wlang_type_from_enum(DataType type) {
+    if (is_user_type(type)) return user_type_name(type);
     const TypeMapping* mapping = type_registry_get_by_enum(type);
     return mapping ? mapping->w_lang_name : "unknown";
 }
@@ -144,6 +149,7 @@ const char* get_format_spec_from_enum(DataType type) {
 }
 
 const char* get_default_value_from_enum(DataType type) {
+    if (is_user_type(type)) return "{0}";   // every field zero / false
     const TypeMapping* mapping = type_registry_get_by_enum(type);
     return mapping ? mapping->default_value : "";
 }

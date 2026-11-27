@@ -91,6 +91,8 @@ bool expression_makes_temps(ASTNode* expr) {
                    expression_makes_temps(expr->data.binary_expr.right);
         case NODE_UNARY_EXPR:
             return expression_makes_temps(expr->data.unary_expr.operand);
+        case NODE_FIELD_ACCESS:
+            return expression_makes_temps(expr->data.field_access.object);
         case NODE_FUNCTION_CALL:
             if (expr->expr_type == TYPE_STR) return true;
             for (int i = 0; i < expr->data.function_call.arg_count; i++) {
@@ -166,6 +168,8 @@ static bool expression_uses_str(ASTNode* expr) {
                    expression_uses_str(expr->data.binary_expr.right);
         case NODE_UNARY_EXPR:
             return expression_uses_str(expr->data.unary_expr.operand);
+        case NODE_FIELD_ACCESS:
+            return expression_uses_str(expr->data.field_access.object);
         case NODE_FUNCTION_CALL:
             for (int i = 0; i < expr->data.function_call.arg_count; i++) {
                 if (expression_uses_str(expr->data.function_call.args[i])) return true;

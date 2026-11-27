@@ -22,6 +22,36 @@ static bool too_deep(void) {
     return true;
 }
 
+// one level deeper (false, after reporting, when that would pass the limit)
+bool expression_enter(void) {
+    if (too_deep()) return false;
+    expression_depth++;
+    return true;
+}
+
+void expression_leave(void) {
+    expression_depth--;
+}
+
+// object.field.field...: each '.' is one level deeper
+ASTNode* parse_field_chain(ASTNode* object) {
+    int levels = 0;
+    while (token == DOT && object) {
+        if (!expression_enter()) break;
+        levels++;
+        SourceLocation loc = current_location();
+        eat(DOT);
+        if (token != IDENTIFIER) {
+            parser_error("Expected a field name after '.'");
+            break;
+        }
+        object = create_field_access_node(object, yylval.string, loc);
+        eat(IDENTIFIER);
+    }
+    expression_depth -= levels;
+    return object;
+}
+
 // ==================== operands ====================
 
 static ASTNode* parse_factor(void) {
@@ -62,19 +92,19 @@ static ASTNode* parse_factor(void) {
                 char* name = strdup(yylval.string);
                 eat(IDENTIFIER);
 
-                // a name followed by '(' is a call, otherwise a variable reference
+                // a name followed by '(' is a call (or a pod value), otherwise a variable
                 ASTNode* node = (token == LPAREN)
                     ? parse_function_call(name, loc)
                     : create_variable_node(name, loc);
                 free(name);
-                return node;
+                return parse_field_chain(node);
             }
         case LPAREN:
             {
                 eat(LPAREN);
                 ASTNode* node = parse_expression();
                 eat(RPAREN);
-                return node;
+                return parse_field_chain(node);
             }
         case NOT:
         case BANG:
