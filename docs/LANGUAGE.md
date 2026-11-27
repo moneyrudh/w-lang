@@ -200,3 +200,5 @@ Arguments after the `.w` file are passed to the program, so `run`'s options go b
 ## 12. Known bugs
 
 - An unclosed bracket followed by a line that starts with a name or a value (`x = 3`, `f()`) is reported on that line (`Expected ')', got name`), not where it opened: such a line could be continuing the expression
+- `fun w()` without a return type compiles to `void main`: the C compiler warns, and the program's exit code is garbage instead of 0
+- A parameter a function never uses makes the generated C warn (`-Wunused-parameter`); only matters when compiling it with `-Werror`

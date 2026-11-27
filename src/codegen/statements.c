@@ -12,10 +12,6 @@ static void generate_str_declaration(FILE* output, ASTNode* node, int indent_lev
     ASTNode* init = node->data.var_declaration.init_expr;
     bool via_temp = node->data.var_declaration.shadows_outer && init;
 
-    if (node->data.var_declaration.shadows_outer) {
-        strings_shadow(output, indent_level, mangle_identifier(name, false));
-    }
-
     emit_indent(output, indent_level);
     fprintf(output, "%s %s" C_ASSIGN C_STR_COPY C_LPAREN, c_type,
             via_temp ? mangle_init_temp(name) : mangle_identifier(name, false));
@@ -37,6 +33,12 @@ static void generate_str_declaration(FILE* output, ASTNode* node, int indent_lev
 void generate_var_declaration(FILE* output, ASTNode* node, int indent_level) {
     const char* c_type = get_c_type_from_enum(node->data.var_declaration.type);
     const char* name = node->data.var_declaration.name;
+
+    // shadowing a str this function owns (with a variable of any type): the outer str is kept
+    // under an alias, so a ret / stop / skip from the inner scope still frees the right thing
+    if (node->data.var_declaration.shadows_outer) {
+        strings_shadow(output, indent_level, mangle_identifier(name, false));
+    }
 
     if (node->data.var_declaration.type == TYPE_STR) {
         generate_str_declaration(output, node, indent_level);

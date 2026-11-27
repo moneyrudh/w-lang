@@ -76,4 +76,6 @@ Status: ✅ done · 🔨 in progress · ⏳ next · ⬜ later · ❓ blocked on 
   take ~17 s to reject. Find the quadratic step.
 - ⬜ `mangle_identifier()` uses a fixed 512-byte buffer: names over ~500 characters are truncated and
   two such names with the same start collide. Limit name length in the lexer, or emit names directly.
+- ⬜ `fun w()` (zil) becomes `void main` with a garbage exit code: emit `int main` returning 0.
+- ⬜ Unused parameters warn under `-Wunused-parameter`: mark them `(void)` in the generated C.
 - ⬜ Release script: tag, GitHub release, bump the Homebrew formula (still asks before running).

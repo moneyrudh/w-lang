@@ -29,6 +29,26 @@ fun shadow_in_loop(): num
         say i is 3, stop
     ret i
 
+fun num_shadows_str(): num
+    -- an inner variable of another type with the same name: early exits free the outer str only
+    dec s := "outer"
+    say true
+        dec s := 5
+        ret s
+    ret 0
+
+fun num_shadows_str_in_loop(): num
+    dec s := "outer"
+    dec i := 0
+    loop while i < 4
+        dec s := i * 10
+        i = i + 1
+        say s is 10, skip
+        say s is 20
+            dec s := "innermost"
+            stop
+    ret i
+
 fun stop_with_temps()
     loop forever
         say "a" + "b" is "ab", stop
@@ -36,6 +56,8 @@ fun stop_with_temps()
 fun w(): num
     log("shadowing with an early ret 1 =>", shadow_and_return())
     log("shadowing in a loop with skip and stop 3 =>", shadow_in_loop())
+    log("a num shadowing a str, early ret 5 =>", num_shadows_str())
+    log("in a loop with skip and stop 3 =>", num_shadows_str_in_loop())
     stop_with_temps()
     log("a global replaced while the caller reads it old ! =>", g, bump())
     dec s := g + grow()
